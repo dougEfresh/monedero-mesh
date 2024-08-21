@@ -1,0 +1,90 @@
+[package]
+name = "sessions"
+version = "0.1.0"
+edition = "2021"
+
+[lints.rust]
+unsafe_code = "forbid"
+unused = "allow"
+unused_variables = "allow"
+unused_imports = "allow"
+dead_code = "allow"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["kv", "dashmap"]
+kv = ["dep:kvx"]
+mock = []
+wasm = [
+    "wasm-bindgen",
+    "web-sys",
+    "getrandom",
+]
+
+[dependencies]
+aead = { workspace = true }
+alloy-chains = {workspace = true}
+base64 = { workspace = true }
+#base64-url = { workspace = true }
+chacha20poly1305 = { workspace = true }
+chrono = { version = "0.4", default-features = false, features = [
+    "std",
+    "clock",
+    "serde"
+] }
+data-encoding = { workspace = true }
+derive_more = { workspace = true }
+hkdf = { workspace = true }
+kvx = {version = "0.9", optional = true }
+lazy_static = { workspace = true }
+microxdg = { workspace = true }
+once_cell = { workspace = true }
+paste = { workspace = true }
+rand = { workspace = true }
+regex = { workspace = true }
+sha2 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = {workspace = true}
+tracing = { workspace = true}
+trait-variant = {workspace = true}
+url = { workspace = true }
+dashmap = {  version = "5.5", optional = true }
+x25519-dalek = { version = "2.0", features = ["static_secrets", "serde"] }
+walletconnect_sdk = { git = "https://github.com/WalletConnect/WalletConnectRust.git" }
+xtra = {workspace = true, features = ["macros", "tokio", "instrumentation"]}
+
+
+## wasm
+wasm-bindgen = { version = "0.2", optional = true}
+web-sys = { version = "0.3", optional = true}
+getrandom = { version = "0.2", features = ["js"], optional = true}
+gloo-storage = { version = "0.3"}
+
+
+
+[[example]]
+name = "dapp"
+path = "examples/dapp/main.rs"
+
+[dev-dependencies]
+assert_matches = { version = "1.5.0" }
+hex-literal = { version = "0.4.1" }
+# Serialization/Deserealization changes order of fields. Preserving order
+# makes it easier to construct the unittests.
+serde_json = { version = "1.0", features = ["preserve_order"] }
+anyhow = "1"
+clap = { version = "4.4", features = ["derive"] }
+chrono = "0.4"
+tokio = { version = "1", features = ["full"] }
+env_logger = { version = "0.11" }
+tracing = { version = "0.1" }
+tracing-error = { version = "0.2.0"}
+dotenvy = {version = "0.15"}
+tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
+ratatui = { version = "0.28", features = ["all-widgets"]}
+tui-input = "0.10.0"
+
