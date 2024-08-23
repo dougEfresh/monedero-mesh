@@ -19,7 +19,7 @@ use tokio::sync::oneshot;
 use tokio::time::timeout;
 use tracing::{debug, error, info, warn, Instrument};
 use xtra::Address;
-use crate::actors::{Actors, AddRequest, InboundResponseActor, RequestActor, SendRequest, TransportActor};
+use crate::actors::{Actors, AddRequest, InboundResponseActor, RequestHandlerActor, SendRequest, TransportActor};
 
 pub trait Wired: Debug + Clone + PartialEq + Serialize + DeserializeOwned {}
 impl<T> Wired for T where T: Debug + Clone + PartialEq + Serialize + DeserializeOwned {}

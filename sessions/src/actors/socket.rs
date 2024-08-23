@@ -31,7 +31,7 @@ impl Handler<SocketEvent> for SocketActors {
 
   async fn handle(&mut self, message: SocketEvent, ctx: &mut Context<Self>) -> Self::Return {
     let mut s = self.subscribers.write().await;
-    tracing::debug!("Handling socket state change {message} for {} handlers", s.len());
+    tracing::trace!("Handling socket state change {message} for {} handlers", s.len());
     for handler in s.iter_mut() {
       handler.event(message.clone());
     }
@@ -40,17 +40,7 @@ impl Handler<SocketEvent> for SocketActors {
 
 impl SocketHandler for SocketLogActor {
   fn event(&mut self, event: SocketEvent) {
-    match  event {
-      SocketEvent::Connected => {
-        info!("socket closed!");
-      }
-      SocketEvent::Disconnect => {
-        info!("socket disconnect");
-      }
-      SocketEvent::ForceDisconnect => {
-        info!("forced socket closed");
-      }
-    }
+    info!("[SocketLogActor] socket {event}");
   }
 }
 

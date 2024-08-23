@@ -7,7 +7,7 @@ use serde_json::Value;
 use tokio::sync::oneshot;
 use tracing::info;
 use xtra::{Address, Context, Handler};
-use crate::actors::{AddRequest, InboundResponseActor, RequestResponderActor};
+use crate::actors::{AddRequest, InboundResponseActor};
 use crate::Cipher;
 use crate::domain::{MessageId, Topic};
 use crate::relay::{Client, MessageIdGenerator};

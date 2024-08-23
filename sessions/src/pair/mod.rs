@@ -2,7 +2,7 @@ mod builder;
 //pub(crate) mod settlement;
 
 use std::future::Future;
-use crate::domain::Topic;
+use crate::domain::{SubscriptionId, Topic};
 use crate::relay::{Client, ConnectionHandler, ConnectionOptions};
 use crate::rpc::{ErrorParams, Metadata, PairPingRequest, ProposeNamespaces, Proposer, RelayProtocol, Request, RequestParams, Response, ResponseParams, ResponseParamsSuccess, RpcResponse, SessionProposeRequest};
 use crate::session::{ClientSession, RelayHandler};
@@ -15,7 +15,7 @@ use serde_json::json;
 use tokio::sync::{broadcast, oneshot};
 use tracing::{info, warn};
 use xtra::{Context, Handler, Mailbox};
-use crate::actors::{Actors, RequestResponderActor};
+use crate::actors::Actors;
 
 pub trait PairHandler: Send + 'static {
     fn ping(&mut self, topic: Topic);
@@ -30,7 +30,7 @@ pub struct PairingManager {
     metadata: Metadata,
     transport: TopicTransport,
     terminator: broadcast::Sender<()>,
-    storage: Arc<KvStorage>,
+    //storage: Arc<KvStorage>,
     actors: Actors
 }
 
@@ -61,14 +61,13 @@ async fn handle_socket_close(mgr: PairingManager, mut rx: broadcast::Receiver<Wi
 }
 
 impl PairingManager {
-    async fn init(metadata: Metadata, opts: ConnectionOptions, storage: KvStorage) -> Result<Self> {
-        let (broadcast_tx, _broadcast_rx) = broadcast::channel::<WireEvent>(5);
+    async fn init(metadata: Metadata, opts: ConnectionOptions, actors: Actors) -> Result<Self> {
+        //let (broadcast_tx, _broadcast_rx) = broadcast::channel::<WireEvent>(5);
         let (terminator, terminate_rx) = broadcast::channel::<()>(2);
         //let pending_requests = PendingRequests::new();
-        let storage = Arc::new(storage);
-        let ciphers = Cipher::new(storage.clone(), None)?;
+        //let storage = Arc::new(storage);
+        let ciphers = actors.cipher().clone();
         //let socket_handler_rx = broadcast_tx.subscribe();
-        let actors = Actors::init(ciphers.clone());
         let handler = RelayHandler::new(
             ciphers.clone(),
             actors.clone()
@@ -92,7 +91,7 @@ impl PairingManager {
             metadata,
             transport,
             terminator,
-            storage,
+            //storage,
             actors
         };
         //let socker_handler = mgr.clone();
@@ -105,8 +104,18 @@ impl PairingManager {
         self.ciphers.clone()
     }
 
+    pub(crate) async fn subscribe(&self, topic: Topic) -> Result<(SubscriptionId)> {
+        Ok(self.relay.subscribe(topic).await?)
+    }
+
+    /*
     pub fn storage(&self) -> Arc<KvStorage> {
         self.storage.clone()
+    }
+     */
+
+    pub(crate) fn actors(&self) -> Actors {
+        self.actors.clone()
     }
 
     pub fn pair_key(&self) -> Option<String> {
@@ -149,14 +158,12 @@ impl PairingManager {
         self.ciphers.pairing().map(|p| p.topic.clone())
     }
 
-    /*
     pub async fn ping(&self) -> Result<()> {
         let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
         self.transport
             .publish_request(t, RequestParams::PairPing(()))
             .await
     }
-     */
 
     pub async fn shutdown(&self) -> Result<()> {
         //self.broadcast_tx.send(WireEvent::Shutdown).unwrap();

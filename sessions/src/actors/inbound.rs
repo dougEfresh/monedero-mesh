@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::sync::Arc;
 use dashmap::DashMap;
 use serde_json::Value;
 use tokio::sync::oneshot;
@@ -10,7 +11,7 @@ use crate::rpc::{RequestParams, Response, ResponseParams};
 
 #[derive(Default, xtra::Actor)]
 pub(crate) struct InboundResponseActor {
-  pending: DashMap<MessageId, oneshot::Sender<crate::Result<Value>>>,
+  pending: Arc<DashMap<MessageId, oneshot::Sender<crate::Result<Value>>>>,
   generator: MessageIdGenerator,
 }
 

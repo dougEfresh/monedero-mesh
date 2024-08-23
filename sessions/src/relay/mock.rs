@@ -86,9 +86,15 @@ async fn event_loop<T: ConnectionHandler>(
             Err(_) => tracing::error!("got recv error for mock broadcast {mocker}"),
             Ok(payload) => match payload.event {
                 MockEvents::Connect => {
-                    handler.connected();
+                    if payload.id == mocker.client_id {
+                        handler.connected();
+                    }
                 }
-                MockEvents::Disconnect => handler.disconnected(None),
+                MockEvents::Disconnect => {
+                    if payload.id == mocker.client_id {
+                        handler.disconnected(None)
+                    }
+                },
                 MockEvents::Payload(message) => {
                     if payload.id == mocker.client_id {
                         tracing::info!("got my own message");
@@ -108,6 +114,11 @@ async fn event_loop<T: ConnectionHandler>(
             },
         }
     }
+}
+
+#[derive(Clone, xtra::Actor)]
+struct MockerActor {
+
 }
 
 impl Mocker {
@@ -243,6 +254,7 @@ impl Mocker {
     }
 
     pub async fn connect(&self) -> Result<()> {
+
         self.connect_state(self.connect_event.clone())
     }
 

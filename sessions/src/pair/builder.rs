@@ -1,8 +1,10 @@
+use std::sync::Arc;
 use crate::domain::ProjectId;
 use crate::relay::ConnectionOptions;
 use crate::rpc::Metadata;
-use crate::{KvStorage, PairingManager, RELAY_ADDRESS};
+use crate::{Cipher, KvStorage, PairingManager, RELAY_ADDRESS};
 use walletconnect_sdk::rpc::auth::SerializedAuthToken;
+use crate::actors::Actors;
 
 pub struct WalletConnectBuilder {
     connect_opts: Option<ConnectionOptions>,
@@ -85,10 +87,16 @@ impl WalletConnectBuilder {
             None => ConnectionOptions::new(self.project_id.clone(), self.auth.clone()).mock(self.mock)
         };
 
+        #[cfg(not(feature = "mock"))]
         let store = match self.store.as_ref() {
             Some(s) => s.clone(),
             None => KvStorage::file(None)?,
         };
-        PairingManager::init(md, opts, store).await
+        #[cfg(feature = "mock")]
+        let store = KvStorage::mem();
+        let store = Arc::new(store);
+        let cipher = Cipher::new(store, None)?;
+        let actors = Actors::init(cipher).await?;
+        PairingManager::init(md, opts, actors).await
     }
 }

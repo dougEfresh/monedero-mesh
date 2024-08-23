@@ -79,14 +79,15 @@ pub(crate) fn send_event(tx: &broadcast::Sender<WireEvent>, event: WireEvent) {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::cell::RefCell;
     use std::str::FromStr;
     use std::sync::{Arc, RwLock};
     use std::time::Duration;
-    use crate::{Cipher, KvStorage, Pairing, PairingManager, SocketEvent, SocketHandler, INIT};
+    use crate::{Cipher, Pairing, PairingManager, SocketEvent, SocketHandler, WalletConnectBuilder, INIT};
     use tracing_subscriber::fmt::format::FmtSpan;
     use tracing_subscriber::EnvFilter;
-    use crate::actors::Actors;
+    use crate::actors::{Actors, RegisteredManagers};
+    use crate::domain::ProjectId;
+    use crate::relay::mock::test::auth;
 
     #[derive(Default, Debug, Clone)]
     pub (crate) struct  ConnectionState {
@@ -104,42 +105,65 @@ pub(crate) mod tests {
     pub(crate) struct TestStuff {
         pub(crate) dapp_cipher: Cipher,
         pub(crate) wallet_cipher: Cipher,
-        pub(crate) actors: Actors,
+        pub(crate) dapp_actors: Actors,
+        pub(crate) wallet_actors: Actors,
         pub(crate) socket_state: ConnectionState,
-        //dapp: PairingManager,
-        //wallet: PairingManager,
+        pub(crate) dapp: PairingManager,
+        pub(crate) wallet: PairingManager,
     }
 
     pub(crate) async fn yield_ms(ms: u64) {
         tokio::time::sleep(Duration::from_millis(ms)).await;
     }
 
-    pub(crate) async fn init_test_components() -> anyhow::Result<TestStuff> {
-        let (dapp_cipher, wallet_cipher) = dapp_wallet_ciphers()?;
-        let actors = Actors::init(dapp_cipher.clone());
-        let socket_state = ConnectionState::default();
-        actors.register_socket_handler(socket_state.clone()).await?;
-        Ok(TestStuff{
-            dapp_cipher,
-            wallet_cipher,
-            actors,
-            socket_state,
-        })
-    }
-    pub(crate) fn dapp_wallet_ciphers() -> anyhow::Result<(Cipher, Cipher)> {
+    pub(crate) async fn init_test_components(pair: bool) -> anyhow::Result<TestStuff> {
         init_tracing();
-        let dapp = Cipher::new(Arc::new(KvStorage::default()), None)?;
-        let wallet = Cipher::new(Arc::new(KvStorage::default()), None)?;
+        let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
+        let dapp = WalletConnectBuilder::new(p.clone(), auth()).build().await?;
+        let wallet = WalletConnectBuilder::new(p, auth()).build().await?;
+        let dapp_actors = dapp.actors();
+        let wallet_actors = wallet.actors();
+        let socket_state = ConnectionState::default();
+        dapp_actors.register_socket_handler(socket_state.clone()).await?;
+        yield_ms(500).await;
+        let t = TestStuff {
+            dapp_cipher: dapp.ciphers(),
+            wallet_cipher: wallet.ciphers(),
+            dapp_actors: dapp_actors.clone(),
+            wallet_actors: wallet_actors.clone(),
+            socket_state,
+            dapp,
+            wallet
+        };
+        if (pair) {
+            dapp_wallet_ciphers(&t).await?;
+            let registered = wallet_actors.request().send(RegisteredManagers).await?;
+            assert_eq!(1, registered);
+            let registered = dapp_actors.request().send(RegisteredManagers).await?;
+            assert_eq!(1, registered);
+        }
+        Ok(t)
+    }
+
+    pub(crate) async fn dapp_wallet_ciphers(t: &TestStuff) -> anyhow::Result<()> {
         let pairing = Pairing::default();
         let topic = pairing.topic.clone();
 
-        dapp.set_pairing(Some(pairing.clone()))?;
-        let pairing_from_uri = Pairing::from_str(&dapp.pairing_uri().unwrap())?;
-        wallet.set_pairing(Some(pairing_from_uri))?;
+        t.dapp_cipher.set_pairing(Some(pairing.clone()))?;
+        let pairing_from_uri = Pairing::from_str(&t.dapp_cipher.pairing_uri().unwrap())?;
+        t.wallet_cipher.set_pairing(Some(pairing_from_uri))?;
 
-        dapp.create_common_topic(wallet.public_key_hex().unwrap())?;
-        wallet.create_common_topic(dapp.public_key_hex().unwrap())?;
-        Ok((dapp, wallet))
+        t.dapp_cipher.create_common_topic(t.wallet_cipher.public_key_hex().unwrap())?;
+        t.wallet_cipher.create_common_topic(t.dapp_cipher.public_key_hex().ok_or(crate::Error::NoPairingTopic)?);
+
+        t.dapp_actors.register_mgr(topic.clone(), t.dapp.clone()).await?;
+        t.wallet_actors.register_mgr(topic.clone(), t.wallet.clone()).await?;
+
+        t.dapp.subscribe(topic.clone()).await?;
+        t.wallet.subscribe(topic.clone()).await?;
+        yield_ms(1000);
+
+        Ok(())
     }
 
     pub(crate) fn init_tracing() {

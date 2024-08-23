@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::future::Future;
+use std::sync::Arc;
 use dashmap::DashMap;
 use serde_json::json;
 use crate::transport::{PairingRpcEvent, RpcRecv};
@@ -12,43 +13,34 @@ use crate::rpc::{ErrorParams, PairPingRequest, Request, RequestParams, Response,
 
 
 #[derive(xtra::Actor)]
-pub(crate) struct RequestResponderActor {
-  pub(crate) cipher: Cipher,
-  pub(crate) relay: Option<Client>,
-}
-
-impl RequestResponderActor {
-  pub(crate) fn new(cipher: Cipher) -> Self {
-    Self {
-      cipher,
-      relay: None
-    }
-  }
-}
-
-impl Handler<Client> for RequestResponderActor {
-  type Return = ();
-
-  async fn handle(&mut self, message: Client, ctx: &mut Context<Self>) ->Self::Return {
-    self.relay = Some(message);
-  }
-}
-
-impl Handler<RpcResponse> for RequestResponderActor {
-  type Return = ();
-
-  async fn handle(&mut self, message: RpcResponse, ctx: &mut Context<Self>) -> Self::Return {
-    tracing::debug!("sending response to id:{} on topic {} ", message.payload.id, message.topic);
-  }
-}
-
-#[derive(xtra::Actor)]
-pub(crate) struct RequestActor {
-  pair_managers: HashMap<Topic, Address<PairingManager>>,
+pub(crate) struct RequestHandlerActor {
+  pair_managers: Arc<DashMap<Topic, Address<PairingManager>>>,
   responder: Address<TransportActor>,
 }
 
-impl Handler<Client> for RequestActor {
+pub(crate) struct RegisteredManagers;
+
+impl Handler<RegisteredManagers> for RequestHandlerActor {
+  type Return = usize;
+
+  async fn handle(&mut self, _message: RegisteredManagers, _ctx: &mut Context<Self>) -> Self::Return {
+    self.pair_managers.len()
+  }
+}
+
+pub(crate) struct RegisterTopicManager(pub(crate) Topic, pub(crate) PairingManager);
+
+impl Handler<RegisterTopicManager> for RequestHandlerActor {
+  type Return = ();
+
+  async fn handle(&mut self, message: RegisterTopicManager, _ctx: &mut Context<Self>) -> Self::Return {
+    tracing::info!("registering mgr for topic {}", message.0);
+    let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
+    self.pair_managers.insert(message.0, addr);
+  }
+}
+
+impl Handler<Client> for RequestHandlerActor {
   type Return = crate::Result<()>;
 
   async fn handle(&mut self, message: Client, ctx: &mut Context<Self>) -> Self::Return {
@@ -56,10 +48,10 @@ impl Handler<Client> for RequestActor {
   }
 }
 
-impl RequestActor {
+impl RequestHandlerActor {
   pub(crate) fn new(responder: Address<TransportActor>) -> Self {
     Self {
-      pair_managers: HashMap::new(),
+      pair_managers: Arc::new(DashMap::new()),
       responder,
     }
   }
@@ -69,7 +61,7 @@ impl RequestActor {
   }
 }
 
-impl Handler<RpcRequest> for RequestActor {
+impl Handler<RpcRequest> for RequestHandlerActor {
   type Return = ();
 
   async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) ->  Self::Return {

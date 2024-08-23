@@ -18,8 +18,8 @@ use x25519_dalek::{PublicKey, StaticSecret};
 pub const MULTICODEC_ED25519_LENGTH: usize = 32;
 const CRYPTO_STORAGE_PREFIX_KEY: &str = "crypto";
 
-pub type AtomicPairing = DashMap<Topic, Arc<Pairing>>;
-type CipherSessionKeyStore = DashMap<Topic, ChaCha20Poly1305>;
+pub type AtomicPairing = Arc<DashMap<Topic, Arc<Pairing>>>;
+type CipherSessionKeyStore = Arc<DashMap<Topic, ChaCha20Poly1305>>;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Type {
@@ -98,8 +98,8 @@ impl Cipher {
             pairings.insert(pairing.topic.clone(), Arc::new(pairing));
         }
         let mut cipher = Self {
-            ciphers: DashMap::new(),
-            pairing: pairings,
+            ciphers: Arc::new(DashMap::new()),
+            pairing: Arc::new(pairings),
             storage,
         };
         cipher.init()?;
@@ -137,11 +137,8 @@ impl Cipher {
         self.reset();
         if let Some(new_pair) = pairing {
             debug!("setting pairing topic to {}", new_pair.topic);
-            self.storage
-                .set::<Pairing>(Self::storage_key_pairing(), new_pair.clone())?;
-            {
-                self.pairing.insert(new_pair.topic.clone(), Arc::new(new_pair.clone()));
-            }
+            self.storage.set::<Pairing>(Self::storage_key_pairing(), new_pair.clone())?;
+            self.pairing.insert(new_pair.topic.clone(), Arc::new(new_pair.clone()));
             let key = new_pair.params.sym_key.clone();
             self.ciphers.insert(
                 new_pair.topic,
@@ -196,6 +193,7 @@ impl Cipher {
     }
 
     fn update_sessions(&self, controller_pk: String, topic: Topic) -> Result<(), CipherError> {
+        // TODO: May need to lock this entire operation
         let sessions_key = Self::storage_key_sessions();
         let mut sessions: Vec<String> = self.storage.get(&sessions_key)?.unwrap_or_default();
         sessions.push(topic.to_string());
@@ -338,6 +336,7 @@ mod tests {
         let dapp = Cipher::new(Arc::new(dapp_store), None)?;
         let wallet = Cipher::new(Arc::new(wallet_store), None)?;
         let pairing = Arc::new(create_pairing());
+        let generator = MessageIdGenerator::new();
 
         dapp.set_pairing(Some((*pairing).clone()))?;
         let pairing_from_uri = Pairing::from_str(&dapp.pairing_uri().unwrap())?;
@@ -348,25 +347,32 @@ mod tests {
         );
 
         let (dapp_topic, _) = dapp.create_common_topic(wallet.public_key_hex().unwrap())?;
-        let (wallet_topic, _) = wallet.create_common_topic(dapp.public_key_hex().unwrap())?;
+        let (session_topic, _) = wallet.create_common_topic(dapp.public_key_hex().unwrap())?;
 
-        assert_eq!(dapp_topic.clone(), wallet_topic.clone());
+        assert_eq!(dapp_topic, session_topic);
         //assert_eq!(wallet.public_key().unwrap(), wallet_pk);
 
         let dapp_req_ext = RequestParams::SessionExtend(SessionExtendRequest { expiry: 1 });
-        let generator = MessageIdGenerator::new();
         let dapp_req_ext = Request::new(generator.next(), dapp_req_ext.clone().try_into()?);
 
-        let encrypted = dapp.encode(&wallet_topic, &dapp_req_ext)?;
-        let decrypted_req: Request = wallet.decode::<Request>(&wallet_topic, &encrypted)?;
+        let encrypted = dapp.encode(&session_topic, &dapp_req_ext)?;
+        let decrypted_req: Request = wallet.decode::<Request>(&session_topic, &encrypted)?;
 
         assert_eq!(dapp_req_ext, decrypted_req);
 
         let wallet_req_ext = RequestParams::SessionExtend(SessionExtendRequest { expiry: 2 });
         let wallet_req_ext = Request::new(generator.next(), wallet_req_ext.clone().try_into()?);
-        let encrypted = wallet.encode(&wallet_topic, &wallet_req_ext)?;
-        let decrypted_req: Request = dapp.decode::<Request>(&wallet_topic, &encrypted)?;
+        let encrypted = wallet.encode(&session_topic, &wallet_req_ext)?;
+        let decrypted_req: Request = dapp.decode::<Request>(&session_topic, &encrypted)?;
         assert_eq!(wallet_req_ext, decrypted_req);
+
+        // Pairing topic peer
+        let dapp_req_ext = RequestParams::PairPing(());
+        let dapp_req_ext = Request::new(generator.next(), dapp_req_ext.try_into()?);
+        let encrypted = dapp.encode(&pairing.topic, &dapp_req_ext)?;
+        let decrypted_req = wallet.decode::<Request>(&pairing.topic, &encrypted)?;
+
+        assert_eq!(dapp_req_ext, decrypted_req);
         Ok(())
     }
 
@@ -381,6 +387,7 @@ mod tests {
         let store = KvStorage::file(Some(format!("target/kv/{topic}")))?;
         test_storage(Arc::new(store))
     }
+
     #[cfg(not(feature = "wasm"))]
     #[test]
     pub fn test_cipher_storage_mem() -> anyhow::Result<()> {
