@@ -8,8 +8,9 @@ use {
     std::{fmt::Debug, sync::Arc},
 };
 
-use crate::domain::MessageId;
+use crate::domain::{MessageId, Topic};
 pub use params::*;
+use crate::transport::Wired;
 
 /// Version of the WalletConnect protocol that we're implementing.
 pub const JSON_RPC_VERSION_STR: &str = "2.0";
@@ -76,6 +77,27 @@ impl Payload {
     pub fn irn_tag_in_range(tag: u32) -> bool {
         (1100..=1115).contains(&tag)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct RpcResponse {
+    pub(crate) topic: Topic,
+    pub(crate) payload: Response
+}
+
+impl RpcResponse {
+    pub fn into_response(id: MessageId, topic: Topic, response_params: ResponseParams) -> Self {
+        Self {
+            topic,
+            payload: Response::new(id, response_params)
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct RpcRequest {
+    pub(crate) topic: Topic,
+    pub(crate) payload: Request
 }
 
 /// Data structure representing a JSON RPC request.

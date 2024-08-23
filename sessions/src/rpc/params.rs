@@ -165,6 +165,7 @@ pub enum RequestParams {
     #[serde(rename = "wc_sessionPing")]
     SessionPing(()),
 }
+
 impl_relay_protocol_metadata!(RequestParams, request);
 
 /// https://www.jsonrpc.org/specification#response_object

@@ -1,67 +1,82 @@
+mod socket;
+mod inbound;
+mod request;
+mod transport;
+
 use std::future::Future;
-use dashmap::DashMap;
 use serde::de::DeserializeOwned;
-use serde_json::Value;
-use tokio::sync::oneshot;
-use tracing::{error, info};
-use xtra::prelude::*;
-use crate::crypto::CipherError;
-use crate::domain::MessageId;
-use crate::Message;
-use crate::relay::MessageIdGenerator;
+use xtra::{Address, Mailbox};
 use crate::rpc::{Response, ResponseParams};
-use crate::Result;
+pub(crate) use socket::SocketActors;
+pub(crate) use request::RequestActor;
+pub(crate) use inbound::{InboundResponseActor, AddRequest};
+pub(crate) use request::RequestResponderActor;
+pub(crate) use transport::{TransportActor, SendRequest};
+use crate::{Cipher, SocketHandler};
+use crate::relay::Client;
 
-#[derive(Default, xtra::Actor)]
-pub(crate) struct ResponseActor {
-  pending: DashMap<MessageId, oneshot::Sender<Result<Value>>>,
-  generator: MessageIdGenerator,
+#[derive(Clone)]
+pub(crate) struct Actors {
+  inbound_response_actor: Address<InboundResponseActor>,
+  request_actor: Address<RequestActor>,
+  transport_actor: Address<TransportActor>,
+  socket_actors: Address<SocketActors>,
 }
 
-#[derive(Default, xtra::Actor)]
-pub(crate) struct RequestActor {
+impl Actors {
+  pub(crate) async fn register_socket_handler<T: SocketHandler>(&self, handler: T) -> crate::Result<()> {
+    Ok(self.socket_actors.send(socket::Subscribe(handler)).await?)
+  }
 
-}
-
-pub(crate) struct AddRequest;
-
-impl Handler<AddRequest> for ResponseActor {
-  type Return = (MessageId, oneshot::Receiver<Result<Value>>);
-
-  async fn handle(&mut self, _message: AddRequest, _ctx: &mut Context<Self>) -> Self::Return {
-    let id = self.generator.next();
-    let (tx, rx) = oneshot::channel::<Result<Value>>();
-    self.pending.insert(id.clone(), tx);
-    (id, rx)
+  pub(crate) async fn register_client(&self, relay: Client) -> crate::Result<()> {
+    let _ = self.request_actor.send(relay).await?;
+    Ok(())
   }
 }
 
-impl Handler<Response> for ResponseActor {
-  type Return = ();
-
-  async fn handle(&mut self, message: Response, _ctx: &mut Context<Self>) -> Self::Return {
-    if let Some((_, tx)) = self.pending.remove(&message.id) {
-      let res: Result<Value> = match message.params {
-        ResponseParams::Success(v) => Ok(v),
-        ResponseParams::Err(v) => Err(crate::Error::RpcError(v)),
-      };
-      let _ = tx.send(res);
-      return;
+impl Actors {
+  pub(crate) fn init(cipher: Cipher) -> Self {
+    let inbound_response_actor = xtra::spawn_tokio(InboundResponseActor::default(), Mailbox::unbounded());
+    let socket_actors = xtra::spawn_tokio(SocketActors::default(), Mailbox::unbounded());
+    let transport_actor = xtra::spawn_tokio(TransportActor::new(cipher, inbound_response_actor.clone()), Mailbox::unbounded());
+    let request_actor = xtra::spawn_tokio(RequestActor::new(transport_actor.clone()), Mailbox::unbounded());
+    Self {
+      inbound_response_actor,
+      request_actor,
+      transport_actor,
+      socket_actors,
     }
-    error!("id [{}] not found for message {:#?}", message.id, message.params)
   }
 }
 
+impl Actors {
+  pub(crate) fn response(&self) -> Address<InboundResponseActor> {
+    self.inbound_response_actor.clone()
+  }
+
+  pub(crate) fn request(&self) -> Address<RequestActor> {
+    self.request_actor.clone()
+  }
+
+  pub(crate) fn transport(&self) -> Address<TransportActor> {
+    self.transport_actor.clone()
+  }
+
+  pub(crate) fn sockets(&self) -> Address<SocketActors> {
+    self.socket_actors.clone()
+  }
+}
 
 #[cfg(test)]
 mod test {
   use super::*;
   use xtra::prelude::*;
+  use crate::actors::inbound::{AddRequest, InboundResponseActor};
   use crate::rpc::{ResponseParamsSuccess, SessionProposeResponse};
 
   #[tokio::test]
   async fn test_payload_response() -> anyhow::Result<()> {
-    let addr = xtra::spawn_tokio(ResponseActor::default(), Mailbox::unbounded());
+    let addr = xtra::spawn_tokio(InboundResponseActor::default(), Mailbox::unbounded());
     let (id, rx) = addr.send(AddRequest).await?;
     let addr_resp = addr.clone();
     tokio::spawn(async move {

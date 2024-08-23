@@ -18,6 +18,8 @@ use std::time::Duration;
 use tokio::sync::oneshot;
 use tokio::time::timeout;
 use tracing::{debug, error, info, warn, Instrument};
+use xtra::Address;
+use crate::actors::{Actors, AddRequest, InboundResponseActor, RequestActor, SendRequest, TransportActor};
 
 pub trait Wired: Debug + Clone + PartialEq + Serialize + DeserializeOwned {}
 impl<T> Wired for T where T: Debug + Clone + PartialEq + Serialize + DeserializeOwned {}
@@ -145,20 +147,18 @@ pub enum WireEvent {
 
 #[derive(Clone)]
 pub(crate) struct TopicTransport {
-    pending_requests: PendingRequests,
-    ciphers: Cipher,
-    relay: Client,
+    transport_actor: Address<TransportActor>,
 }
 
 impl TopicTransport {
-    pub(crate) fn new(pending_requests: PendingRequests, ciphers: Cipher, client: Client) -> Self {
+
+    pub(crate) fn new(transport_actor: Address<TransportActor>) -> Self {
         Self {
-            pending_requests,
-            ciphers,
-            relay: client,
+            transport_actor
         }
     }
 
+    /*
     pub async fn publish_response(
         &self,
         id: MessageId,
@@ -180,27 +180,15 @@ impl TopicTransport {
         Ok(())
     }
 
+     */
+
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn publish_request<R: DeserializeOwned>(
         &self,
         topic: Topic,
         params: RequestParams,
     ) -> Result<R> {
-        let (id, rx) = self.pending_requests.add()?;
-        let irn_metadata = params.irn_metadata();
-        let request = Request::new(id, params);
-        info!("Sending request topic={topic}");
-        let encrypted = self.ciphers.encode(&topic, &request)?;
-        let ttl = Duration::from_secs(irn_metadata.ttl);
-        self.relay
-            .publish(
-                topic,
-                Arc::from(encrypted),
-                irn_metadata.tag,
-                ttl,
-                irn_metadata.prompt,
-            )
-            .await?;
+        let (id, ttl,  rx) = self.transport_actor.send(SendRequest(topic, params)).await??;
 
         match timeout(ttl, rx).await {
             Err(_) => Err(crate::Error::SessionRequestTimeout),
@@ -222,11 +210,13 @@ pub(crate) struct SessionTransport {
 }
 
 impl SessionTransport {
+    /*
     pub async fn publish_response(&self, id: MessageId, resp: ResponseParamsSuccess) -> Result<()> {
         self.transport
             .publish_response(id, self.topic.clone(), resp)
             .await
     }
+     */
     pub async fn publish_request<R: DeserializeOwned>(&self, params: RequestParams) -> Result<R> {
         self.transport
             .publish_request(self.topic.clone(), params)

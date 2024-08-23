@@ -7,11 +7,17 @@ pub enum Error {
     #[error("failed to decode payload from PublishedMessage {0:#?}")]
     DecodeError(PublishedMessage),
 
+    #[error("client is not initialized")]
+    NoClient,
+
     #[error("failed to get mutex lock")]
     LockError,
 
     #[error("failed to store Pairing")]
     PairingInitError,
+
+    #[error(transparent)]
+    ActorSendError(#[from] xtra::Error),
 
     #[error(transparent)]
     ConnectError(#[from] crate::relay::ClientError),

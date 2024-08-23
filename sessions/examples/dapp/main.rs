@@ -7,16 +7,16 @@ mod msg;
 mod runner;
 mod ui;
 
-use sign_api;
+use sessions;
 use std::collections::BTreeMap;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
 
 use crate::log::initialize_logging;
-use sign_api::rpc::{ProposeNamespace, ProposeNamespaces};
-use sign_api::WalletConnectBuilder;
-use sign_api::{KvStorage, PairingManager, RELAY_ADDRESS};
+use sessions::rpc::{ProposeNamespace, ProposeNamespaces};
+use sessions::WalletConnectBuilder;
+use sessions::{KvStorage, PairingManager, RELAY_ADDRESS};
 use std::time::Duration;
 use tokio::{select, signal};
 use walletconnect_sdk::rpc::auth::ed25519_dalek::SigningKey;
@@ -66,7 +66,7 @@ async fn dapp() -> anyhow::Result<()> {
 
     let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
     let builder = WalletConnectBuilder::new(p, auth);
-    let store = KvStorage::mem()?;
+    let store = KvStorage::mem();
     let builder = builder.store(store);
     let pairing_mgr = builder.build().await?;
     //pairing_mgr.socket_open().await?;

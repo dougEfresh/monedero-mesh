@@ -12,6 +12,7 @@ mod transport;
 mod actors;
 // mod wallet;
 
+use std::fmt::{Display, Formatter};
 use crate::rpc::SessionSettleRequest;
 pub use crypto::cipher::Cipher;
 pub use domain::Message;
@@ -32,8 +33,35 @@ use crate::session::ClientSession;
 pub type EventChannel = broadcast::Receiver<WireEvent>;
 pub type EventClientSession = tokio::sync::oneshot::Receiver<Result<ClientSession>>;
 pub type Atomic<T> = Arc<Mutex<T>>;
-//pub use wallet::WalletHandler;
-//pub use wallet::WalletSession;
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub enum SocketEvent {
+    Connected,
+    #[default]
+    Disconnect,
+    ForceDisconnect
+}
+
+impl Display for SocketEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SocketEvent::Connected => {
+                write!(f, "connected")
+            }
+            SocketEvent::Disconnect => {
+                write!(f, "disconnected")
+            }
+            SocketEvent::ForceDisconnect => {
+                write!(f, "force disconnect")
+            }
+        }
+    }
+}
+
+//#[trait_variant::make(Send)]
+pub trait SocketHandler: Sync + Send + 'static {
+    fn event(&mut self, event: SocketEvent);
+}
 
 pub type Result<T> = std::result::Result<T, Error>;
 #[allow(dead_code)]
@@ -51,12 +79,53 @@ pub(crate) fn send_event(tx: &broadcast::Sender<WireEvent>, event: WireEvent) {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use std::cell::RefCell;
     use std::str::FromStr;
-    use std::sync::Arc;
-    use crate::{Cipher, KvStorage, Pairing, INIT};
+    use std::sync::{Arc, RwLock};
+    use std::time::Duration;
+    use crate::{Cipher, KvStorage, Pairing, PairingManager, SocketEvent, SocketHandler, INIT};
     use tracing_subscriber::fmt::format::FmtSpan;
     use tracing_subscriber::EnvFilter;
+    use crate::actors::Actors;
 
+    #[derive(Default, Debug, Clone)]
+    pub (crate) struct  ConnectionState {
+        pub(crate) state: Arc<RwLock<SocketEvent>>
+    }
+
+    impl SocketHandler for ConnectionState {
+        fn event(&mut self, event: SocketEvent) {
+            if let Ok(mut l) =  self.state.write() {
+                *l = event;
+            }
+        }
+    }
+
+    pub(crate) struct TestStuff {
+        pub(crate) dapp_cipher: Cipher,
+        pub(crate) wallet_cipher: Cipher,
+        pub(crate) actors: Actors,
+        pub(crate) socket_state: ConnectionState,
+        //dapp: PairingManager,
+        //wallet: PairingManager,
+    }
+
+    pub(crate) async fn yield_ms(ms: u64) {
+        tokio::time::sleep(Duration::from_millis(ms)).await;
+    }
+
+    pub(crate) async fn init_test_components() -> anyhow::Result<TestStuff> {
+        let (dapp_cipher, wallet_cipher) = dapp_wallet_ciphers()?;
+        let actors = Actors::init(dapp_cipher.clone());
+        let socket_state = ConnectionState::default();
+        actors.register_socket_handler(socket_state.clone()).await?;
+        Ok(TestStuff{
+            dapp_cipher,
+            wallet_cipher,
+            actors,
+            socket_state,
+        })
+    }
     pub(crate) fn dapp_wallet_ciphers() -> anyhow::Result<(Cipher, Cipher)> {
         init_tracing();
         let dapp = Cipher::new(Arc::new(KvStorage::default()), None)?;

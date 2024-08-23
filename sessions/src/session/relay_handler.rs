@@ -1,183 +1,123 @@
 use crate::domain::Message;
 use crate::relay::{ClientError, CloseFrame, ConnectionHandler};
-use crate::rpc::{Payload, Request, RequestParams, Response, ResponseParams};
+use crate::rpc::{Payload, Request, RequestParams, Response, ResponseParams, RpcRequest, RpcResponse};
 use crate::transport::{PendingRequests, RpcRecv};
-use crate::{Cipher, WireEvent};
+use crate::{Cipher, SocketEvent, WireEvent};
 use std::sync::Arc;
 use std::thread::spawn;
 use tokio::select;
 use tokio::sync::{broadcast, mpsc};
 use tracing::{debug, error, info, warn};
 use xtra::{Actor, Address};
-use crate::actors::{RequestActor, ResponseActor};
+use crate::actors::{Actors, RequestActor, InboundResponseActor, SocketActors};
 
-pub struct RelayActHandler {
+pub struct RelayHandler {
     cipher: Cipher,
-    req_tx: mpsc::UnboundedSender<Request>,
+    req_tx: mpsc::UnboundedSender<RpcRequest>,
     res_tx: mpsc::UnboundedSender<Response>,
+    socket_tx: mpsc::UnboundedSender<SocketEvent>,
 }
 
-impl RelayActHandler {
-    pub fn new(cipher: Cipher, res_actor: Address<ResponseActor>, req_actor: Address<RequestActor>) -> Self {
-        let (req_tx, req_rx) = mpsc::unbounded_channel::<Request>();
+impl RelayHandler {
+    pub(crate) fn new(cipher: Cipher, actors: Actors) -> Self {
+        let (req_tx, req_rx) = mpsc::unbounded_channel::<RpcRequest>();
         let (res_tx, res_rx) = mpsc::unbounded_channel::<Response>();
+        let (socket_tx, socket_rx) = mpsc::unbounded_channel::<SocketEvent>();
+        let req_actor = actors.request();
+        let res_actor = actors.response();
         tokio::spawn(async move  {
             event_loop_req(req_rx, req_actor).await;
         });
         tokio::spawn(async move {
             event_loop_res(res_rx, res_actor).await;
         });
+
+        tokio::spawn(async move {
+            event_loop_socket(socket_rx, actors.sockets()).await;
+        });
         Self {
             cipher,
             req_tx,
-            res_tx
-        }
-    }
-}
-
-impl ConnectionHandler for RelayActHandler {
-    fn message_received(&mut self, message: Message) {
-        if !Payload::irn_tag_in_range(message.tag) {
-            warn!("\ntag={} skip handling", message.tag);
-            return;
-        }
-        debug!("decoding {}", message.id);
-        match self
-          .cipher
-          .decode::<Payload>(&message.topic, &message.message) {
-            Ok(Payload::Request(req)) => {
-                self.req_tx.send(req).unwrap();
-            }
-            Ok(Payload::Response(res)) => {
-                self.res_tx.send(res).unwrap();
-            }
-            Err(err) => {
-                error!("failed to decode message id {}", message.id);
-            }
-        }
-    }
-}
-
-pub struct RelayHandler {
-    cipher: Cipher,
-    // pending_requests: PendingRequests,
-     //tx: mpsc::Sender<Payload>,
-}
-
-async fn event_loop_req(mut rx: mpsc::UnboundedReceiver<Request>, _actor: Address<RequestActor>)  {
-    info!("started event loop for requests");
-    while let Some(r) = rx.recv().await {
-        debug!("request");
-    }
-}
-
-async fn event_loop_res(mut rx: mpsc::UnboundedReceiver<Response>, actor: Address<ResponseActor>)  {
-    info!("started event loop for requests");
-    while let Some(r) = rx.recv().await {
-        if let Err(_) = actor.send(r).await {
-            warn!("actor channel has closed");
-            return;
-        }
-    }
-}
-
-impl RelayHandler {
-    pub(crate) fn new(
-        tx: broadcast::Sender<WireEvent>,
-        pending_requests: PendingRequests,
-        cipher: Cipher,
-    ) -> Self {
-        Self {
-          //  tx,
-            cipher,
-      //      pending_requests,
+            res_tx,
+            socket_tx
         }
     }
 }
 
 impl ConnectionHandler for RelayHandler {
     fn connected(&mut self) {
-        //crate::send_event(&self.tx, WireEvent::Connected);
+        if let Err(_) = self.socket_tx.send(SocketEvent::Connected) {
+            warn!("failed to send socket event");
+        }
     }
 
     fn disconnected(&mut self, _frame: Option<CloseFrame<'static>>) {
-        //crate::send_event(&self.tx, WireEvent::DisconnectFromHandler);
+        if let Err(_) = self.socket_tx.send(SocketEvent::ForceDisconnect) {
+            warn!("failed to send socket event");
+        }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
     fn message_received(&mut self, message: Message) {
         if !Payload::irn_tag_in_range(message.tag) {
             warn!("\ntag={} skip handling", message.tag);
             return;
         }
         debug!("decoding {}", message.id);
-        /*
         match self
           .cipher
           .decode::<Payload>(&message.topic, &message.message) {
             Ok(Payload::Request(req)) => {
-                // send payload to actor
+                let rpc: RpcRequest = RpcRequest {
+                    topic: message.topic,
+                    payload: req,
+                };
+                self.req_tx.send(rpc).unwrap();
             }
             Ok(Payload::Response(res)) => {
-                // send payload to actor
+                self.res_tx.send(res).unwrap();
             }
             Err(err) => {
-                error!("failed to decode message id {}", message.id);
+                error!("failed to decode message id {} ({err})", message.id);
             }
         }
-         */
     }
-    /*
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn message_received(&mut self, message: Message) {
-            if !Payload::irn_tag_in_range(message.tag) {
-            warn!("\ntag={} skip handling", message.tag);
+
+    fn inbound_error(&mut self, _error: ClientError) {
+        self.disconnected(None);
+    }
+
+    fn outbound_error(&mut self, _error: ClientError) {
+        self.disconnected(None);
+    }
+}
+
+
+async fn event_loop_socket(mut rx: mpsc::UnboundedReceiver<SocketEvent>, actor: Address<SocketActors>)  {
+    info!("started event loop for sockets");
+    while let Some(r) = rx.recv().await {
+        if let Err(_) = actor.send(r).await {
+            warn!("[socket] actor channel has closed");
             return;
         }
-        crate::send_event(&self.tx, WireEvent::MessageRecv(message.clone()));
-        match self
-            .cipher
-            .decode::<Payload>(&message.topic, &message.message)
-        {
-            Ok(payload) => {
-                match payload {
-                    // The other side is responding to a request made from us
-                    Payload::Response(res) => {
-                        self.pending_requests
-                            .handle_response(&res.id, res.params.clone());
-                        let rpc: RpcRecv<ResponseParams> =
-                            RpcRecv::new(message.id, message.topic, res.params);
-                        let event: WireEvent = WireEvent::ResponseRecv(rpc);
-                        crate::send_event(&self.tx, event);
-                    }
-                    Payload::Request(req) => {
-                        let rpc: RpcRecv<RequestParams> =
-                            RpcRecv::new(req.id, message.topic, req.params);
-                        let event: WireEvent = WireEvent::RequestRecv(rpc);
-                        crate::send_event(&self.tx, event);
-                    }
-                }
-            }
-            Err(e) => {
-                crate::send_event(
-                    &self.tx,
-                    WireEvent::DecryptError(message, format!("{e}").into()),
-                );
-                return;
-            }
-        };
     }
+}
 
-     */
-
-    fn inbound_error(&mut self, error: ClientError) {
-        warn!("[inbound] Connection was closed inbound error: {error}");
-        //crate::send_event(&self.tx, WireEvent::DisconnectFromHandler);
+async fn event_loop_req(mut rx: mpsc::UnboundedReceiver<RpcRequest>, actor: Address<RequestActor>)  {
+    info!("started event loop for requests");
+    while let Some(req) = rx.recv().await {
+        if let Err(err) = actor.send(req).await {
+            error!("request actor shutdown! {err}");
+        }
     }
+}
 
-    fn outbound_error(&mut self, error: ClientError) {
-        warn!("[outbound] Connection appears down: {error}");
-        //crate::send_event(&self.tx, WireEvent::DisconnectFromHandler);
+async fn event_loop_res(mut rx: mpsc::UnboundedReceiver<Response>, actor: Address<InboundResponseActor>)  {
+    info!("started event loop for response");
+    while let Some(r) = rx.recv().await {
+        if let Err(_) = actor.send(r).await {
+            warn!("actor channel has closed");
+            return;
+        }
     }
 }
 
@@ -188,26 +128,57 @@ mod test {
     use std::time::Duration;
     use anyhow::format_err;
     use serde_json::json;
-    use xtra::Mailbox;
     use crate::actors::AddRequest;
     use crate::domain::SubscriptionId;
     use crate::rpc;
+    use crate::tests::yield_ms;
     use super::*;
 
+
     #[tokio::test]
-    async fn test_relay() -> anyhow::Result<()> {
-        let (dapp, wallet) = crate::tests::dapp_wallet_ciphers()?;
-        let pairing = dapp.pairing().ok_or(Err(format_err!("no pairing!")))?;
+    async fn test_relay_connection_state() -> anyhow::Result<()> {
+        let test_components = crate::tests::init_test_components().await?;
+        let actors = test_components.actors;
+        let dapp_cipher = test_components.dapp_cipher;
+        let socket_state = test_components.socket_state;
+
+        let mut handler = RelayHandler::new(dapp_cipher, actors);
+        yield_ms(500).await;
+        assert_eq!(SocketEvent::Disconnect, *socket_state.state.read().unwrap());
+        handler.connected();
+        yield_ms(500).await;
+        assert_eq!(SocketEvent::Connected, *socket_state.state.read().unwrap());
+        handler.disconnected(None);
+        yield_ms(500).await;
+        assert_eq!(SocketEvent::ForceDisconnect, *socket_state.state.read().unwrap());
+
+        handler.connected();
+        yield_ms(500).await;
+        handler.inbound_error(ClientError::Disconnected);
+        yield_ms(500).await;
+        assert_eq!(SocketEvent::ForceDisconnect, *socket_state.state.read().unwrap());
+
+        handler.connected();
+        yield_ms(500).await;
+        handler.outbound_error(ClientError::Disconnected);
+        yield_ms(500).await;
+        assert_eq!(SocketEvent::ForceDisconnect, *socket_state.state.read().unwrap());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_relay_response() -> anyhow::Result<()> {
+        let test_components = crate::tests::init_test_components().await?;
+        let dapp_cipher = test_components.dapp_cipher;
+        let wallet_cipher = test_components.wallet_cipher;
+        let actors = test_components.actors;
+        let pairing = dapp_cipher.pairing().ok_or(format_err!("no pairing!"))?;
         let topic = pairing.topic.clone();
-
-        let res_addr = xtra::spawn_tokio(ResponseActor::default(), Mailbox::unbounded());
-        let req_addr = xtra::spawn_tokio(RequestActor::default(), Mailbox::unbounded());
-        let (id, rx) = res_addr.send(AddRequest).await?;
+        let res_actor = actors.response();
+        let (id, rx) = res_actor.send(AddRequest).await?;
         let resp = Response::new(id.clone(), ResponseParams::Success(json!(true)));
-        //addr.send(resp)
-        let mut handler = RelayActHandler::new(dapp, res_addr.clone(), req_addr.clone());
-        let payload = wallet.encode(&topic,&resp)?;
-
+        let mut handler = RelayHandler::new(dapp_cipher, actors);
+        let payload = wallet_cipher.encode(&topic,&resp)?;
         let msg = Message {
             id: id.clone(),
             subscription_id: SubscriptionId::generate(),

@@ -4,6 +4,7 @@
 use super::IrnMetadata;
 use crate::rpc::{TAG_PAIR_PING_REQUEST, TAG_PAIR_PING_RESPONSE};
 use serde::{Deserialize, Serialize};
+use crate::domain::{MessageId, Topic};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: TAG_PAIR_PING_REQUEST,
@@ -20,6 +21,15 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PairPingRequest {}
+
+/*
+#[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
+pub struct PairRpcPing {
+    pub id: MessageId,
+    pub topic: Topic,
+    pub request: PairPingRequest
+}
+ */
 
 #[cfg(test)]
 mod tests {

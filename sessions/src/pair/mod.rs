@@ -1,24 +1,28 @@
 mod builder;
-pub(crate) mod settlement;
+//pub(crate) mod settlement;
 
+use std::future::Future;
 use crate::domain::Topic;
 use crate::relay::{Client, ConnectionHandler, ConnectionOptions};
-use crate::rpc::{ErrorParams, Metadata, ProposeNamespaces, Proposer, RelayProtocol, Request, RequestParams, Response, ResponseParams, SessionProposeRequest};
+use crate::rpc::{ErrorParams, Metadata, PairPingRequest, ProposeNamespaces, Proposer, RelayProtocol, Request, RequestParams, Response, ResponseParams, ResponseParamsSuccess, RpcResponse, SessionProposeRequest};
 use crate::session::{ClientSession, RelayHandler};
-use crate::transport::{PendingRequests, TopicTransport};
+use crate::transport::{PendingRequests, RpcRecv, TopicTransport};
 use crate::{relay, session, Cipher, EventChannel, KvStorage, Pairing, Result, WireEvent};
 pub use builder::WalletConnectBuilder;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
+use serde_json::json;
 use tokio::sync::{broadcast, oneshot};
 use tracing::{info, warn};
+use xtra::{Context, Handler, Mailbox};
+use crate::actors::{Actors, RequestResponderActor};
 
 pub trait PairHandler: Send + 'static {
     fn ping(&mut self, topic: Topic);
     fn delete(&mut self, reason: ErrorParams, topic: Topic);
 }
 
-#[derive(Clone)]
+#[derive(Clone, xtra::Actor)]
 pub struct PairingManager {
     relay: Client,
     opts: ConnectionOptions,
@@ -26,8 +30,16 @@ pub struct PairingManager {
     metadata: Metadata,
     transport: TopicTransport,
     terminator: broadcast::Sender<()>,
-    pub(crate) broadcast_tx: broadcast::Sender<WireEvent>,
     storage: Arc<KvStorage>,
+    actors: Actors
+}
+
+impl Handler<PairPingRequest> for PairingManager {
+    type Return = ResponseParams;
+
+    async fn handle(&mut self, _message: PairPingRequest, _ctx: &mut Context<Self>) -> Self::Return {
+        ResponseParamsSuccess::PairPing(true).try_into().unwrap()
+    }
 }
 
 async fn handle_socket_close(mgr: PairingManager, mut rx: broadcast::Receiver<WireEvent>) {
@@ -52,14 +64,14 @@ impl PairingManager {
     async fn init(metadata: Metadata, opts: ConnectionOptions, storage: KvStorage) -> Result<Self> {
         let (broadcast_tx, _broadcast_rx) = broadcast::channel::<WireEvent>(5);
         let (terminator, terminate_rx) = broadcast::channel::<()>(2);
-        let pending_requests = PendingRequests::new();
+        //let pending_requests = PendingRequests::new();
         let storage = Arc::new(storage);
         let ciphers = Cipher::new(storage.clone(), None)?;
-        let socket_handler_rx = broadcast_tx.subscribe();
+        //let socket_handler_rx = broadcast_tx.subscribe();
+        let actors = Actors::init(ciphers.clone());
         let handler = RelayHandler::new(
-            broadcast_tx.clone(),
-            pending_requests.clone(),
             ciphers.clone(),
+            actors.clone()
         );
         #[cfg(feature = "mock")]
         let relay = Client::mock(handler);
@@ -67,10 +79,10 @@ impl PairingManager {
         #[cfg(not(feature = "mock"))]
         let relay = Client::new(handler);
 
+        actors.register_client(relay.clone()).await?;
         relay.connect(&opts).await?;
 
-        let transport =
-            TopicTransport::new(pending_requests.clone(), ciphers.clone(), relay.clone());
+        let transport = TopicTransport::new(actors.transport());
 
         //tokio::spawn(session::handle_session_request(broadcast_rx, terminate_rx));
         let mgr = Self {
@@ -80,22 +92,17 @@ impl PairingManager {
             metadata,
             transport,
             terminator,
-            broadcast_tx,
             storage,
+            actors
         };
-        let socker_handler = mgr.clone();
-        tokio::spawn(async move { handle_socket_close(socker_handler, socket_handler_rx).await });
+        //let socker_handler = mgr.clone();
+        //tokio::spawn(async move { handle_socket_close(socker_handler, socket_handler_rx).await });
         mgr.socket_open().await?;
         Ok(mgr)
     }
 
-
     pub fn ciphers(&self) -> Cipher {
         self.ciphers.clone()
-    }
-
-    pub fn transporter(&self) -> TopicTransport {
-        self.transport.clone()
     }
 
     pub fn storage(&self) -> Arc<KvStorage> {
@@ -126,6 +133,7 @@ impl PairingManager {
         });
 
         let (tx, rx) = oneshot::channel::<Result<ClientSession>>();
+        /*
         tokio::spawn(settlement::process_settlement(
             self.clone(),
             tx,
@@ -133,6 +141,7 @@ impl PairingManager {
             pairing.clone(),
             payload,
         ));
+         */
         Ok((pairing, rx))
     }
 
@@ -140,15 +149,17 @@ impl PairingManager {
         self.ciphers.pairing().map(|p| p.topic.clone())
     }
 
+    /*
     pub async fn ping(&self) -> Result<()> {
         let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
         self.transport
             .publish_request(t, RequestParams::PairPing(()))
             .await
     }
+     */
 
     pub async fn shutdown(&self) -> Result<()> {
-        self.broadcast_tx.send(WireEvent::Shutdown).unwrap();
+        //self.broadcast_tx.send(WireEvent::Shutdown).unwrap();
         self.socket_disconnect().await
     }
 
@@ -163,15 +174,16 @@ impl PairingManager {
         if let Err(err) = self.relay.disconnect().await {
             warn!("failed to close socket {err}");
         }
-        self.broadcast_tx.send(WireEvent::Disconnect).map_err(|_| crate::Error::LockError)?;
+        //self.broadcast_tx.send(WireEvent::Disconnect).map_err(|_| crate::Error::LockError)?;
         Ok(())
     }
 
-    pub fn event_subscription(&self) -> EventChannel {
-        self.broadcast_tx.subscribe()
-    }
+    //pub fn event_subscription(&self) -> EventChannel {
+        //self.broadcast_tx.subscribe()
+    //}
 }
 
+/*
 #[cfg(feature = "mock")]
 #[cfg(test)]
 mod test {
@@ -228,3 +240,5 @@ mod test {
         Ok(())
     }
 }
+
+ */
