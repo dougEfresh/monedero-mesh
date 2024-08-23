@@ -22,6 +22,12 @@ pub struct PairDeleteRequest {
     pub message: String,
 }
 
+impl Default for PairDeleteRequest {
+    fn default() -> Self {
+        crate::rpc::USER_DISCONNECTED.into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

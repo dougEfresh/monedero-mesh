@@ -96,6 +96,7 @@ impl WalletConnectBuilder {
         };
         #[cfg(feature = "mock")]
         let store = KvStorage::mem();
+
         let store = Arc::new(store);
         let cipher = Cipher::new(store, None)?;
         let actors = Actors::init(cipher).await?;

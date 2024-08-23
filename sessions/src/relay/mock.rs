@@ -14,8 +14,12 @@ use tokio::sync::{broadcast, mpsc};
 type ClientId = Topic;
 
 use once_cell::sync::Lazy;
-pub(crate) static MOCK_FACTORY: Lazy<MockerFactory> = Lazy::new(|| MockerFactory::new());
+use tracing::info;
 
+pub(crate) static MOCK_FACTORY: Lazy<MockerFactory> = Lazy::new(|| MockerFactory::new());
+// Special topic that indicates force disconnect
+pub(crate) static DISCONNECT_TOPIC: Lazy<Topic> =
+    Lazy::new(|| Topic::from("92b2701dbdbb72abea51591a06d41e7d76ebfe18e1a1ca5680a5ac6e3717c6d9"));
 #[derive(Clone)]
 pub(crate) struct Mocker {
     pub client_id: ClientId,
@@ -231,6 +235,14 @@ impl Mocker {
 
     #[tracing::instrument(level = "info")]
     pub async fn subscribe(&self, topic: Topic) -> Result<SubscriptionId> {
+        if topic.value() == DISCONNECT_TOPIC.value() {
+            info!("forcing disconnect");
+            let c = self.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(500)).await;
+                c.disconnect().await
+            });
+        }
         let id = SubscriptionId::generate();
         self.topics.insert(topic, id.clone());
         Ok(id)

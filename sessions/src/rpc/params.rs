@@ -12,12 +12,11 @@ pub(super) mod session_update;
 pub(super) mod shared_types;
 
 pub use {
-    pair_ping::*, session_delete::*, session_event::*, session_extend::*, session_ping::*,
-    session_propose::*, session_request::*, session_settle::*, session_update::*, shared_types::*,
+    pair_delete::*, pair_extend::*, pair_ping::*, session_delete::*, session_event::*,
+    session_extend::*, session_ping::*, session_propose::*, session_request::*, session_settle::*,
+    session_update::*, shared_types::*,
 };
 
-use crate::rpc::params::pair_delete::PairDeleteRequest;
-use crate::rpc::params::pair_extend::PairExtendRequest;
 use {
     paste::paste,
     serde::{Deserialize, Serialize},

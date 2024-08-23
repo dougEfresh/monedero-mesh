@@ -1,5 +1,6 @@
 mod actors;
 pub mod crypto;
+mod dapp;
 mod domain;
 mod error;
 mod handlers;
@@ -59,8 +60,8 @@ impl Display for SocketEvent {
 }
 
 //#[trait_variant::make(Send)]
-pub trait SocketHandler: Sync + Send + 'static {
-    fn event(&mut self, event: SocketEvent);
+pub trait SocketHandler {
+    fn event(&self, event: SocketEvent);
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -82,36 +83,11 @@ pub(crate) mod tests {
     use crate::actors::{Actors, RegisteredManagers};
     use crate::domain::ProjectId;
     use crate::relay::mock::test::auth;
-    use crate::{
-        Cipher, Pairing, PairingManager, SocketEvent, SocketHandler, WalletConnectBuilder, INIT,
-    };
+    use crate::{Cipher, Pairing, PairingManager, WalletConnectBuilder, INIT};
     use std::str::FromStr;
-    use std::sync::{Arc, RwLock};
     use std::time::Duration;
     use tracing_subscriber::fmt::format::FmtSpan;
     use tracing_subscriber::EnvFilter;
-
-    #[derive(Default, Debug, Clone)]
-    pub(crate) struct ConnectionState {
-        pub(crate) state: Arc<RwLock<SocketEvent>>,
-    }
-
-    impl SocketHandler for ConnectionState {
-        fn event(&mut self, event: SocketEvent) {
-            if let Ok(mut l) = self.state.write() {
-                *l = event;
-            }
-        }
-    }
-
-    impl ConnectionState {
-        pub(crate) fn get_state(&self) -> SocketEvent {
-            if let Ok(l) = self.state.read() {
-                return l.clone();
-            }
-            panic!("failed to get lock for connection state test");
-        }
-    }
 
     pub(crate) struct TestStuff {
         pub(crate) dapp_cipher: Cipher,
@@ -162,7 +138,7 @@ pub(crate) mod tests {
 
         t.dapp_cipher
             .create_common_topic(t.wallet_cipher.public_key_hex().unwrap())?;
-        t.wallet_cipher.create_common_topic(
+        let _ = t.wallet_cipher.create_common_topic(
             t.dapp_cipher
                 .public_key_hex()
                 .ok_or(crate::Error::NoPairingTopic)?,

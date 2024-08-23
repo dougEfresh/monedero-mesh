@@ -1,9 +1,10 @@
 use crate::actors::TransportActor;
-use crate::domain::Topic;
+use crate::domain::{MessageId, Topic};
 use crate::relay::Client;
 use crate::rpc::{
-    ErrorParams, PairPingRequest, Request, RequestParams, Response, ResponseParams,
-    ResponseParamsError, RpcErrorResponse, RpcRequest, RpcResponse, RpcResponsePayload,
+    ErrorParams, PairDeleteRequest, PairPingRequest, Request, RequestParams, Response,
+    ResponseParams, ResponseParamsError, ResponseParamsSuccess, RpcErrorResponse, RpcRequest,
+    RpcResponse, RpcResponsePayload,
 };
 use crate::transport::{PairingRpcEvent, RpcRecv};
 use crate::Result;
@@ -73,6 +74,74 @@ impl RequestHandlerActor {
     }
 }
 
+async fn handle_pair_delete_request(
+    args: PairDeleteRequest,
+    managers: Arc<DashMap<Topic, Address<PairingManager>>>,
+    responder: Address<TransportActor>,
+    unknown: RpcResponse,
+) {
+    let id = unknown.id.clone();
+    let topic = unknown.topic.clone();
+    let response: RpcResponse = match managers.get(&topic) {
+        Some(mgr) => mgr
+            .send(args)
+            .await
+            .map(|r| RpcResponse {
+                id: id.clone(),
+                topic: topic.clone(),
+                payload: r,
+            })
+            .unwrap_or_else(|e| {
+                warn!("unknown error for request {e} id:{} topic:{}", id, topic);
+                unknown
+            }),
+        None => {
+            warn!("topic {topic} has no pairing manager!");
+            unknown
+        }
+    };
+    if let Err(err) = responder.send(response).await {
+        warn!(
+            "Failed to send response for id {} on topic {} {}",
+            id, topic, err
+        );
+    }
+}
+
+async fn handle_pair_request(
+    args: PairPingRequest,
+    managers: Arc<DashMap<Topic, Address<PairingManager>>>,
+    responder: Address<TransportActor>,
+    unknown: RpcResponse,
+) {
+    let id = unknown.id.clone();
+    let topic = unknown.topic.clone();
+    let response: RpcResponse = match managers.get(&topic) {
+        Some(mgr) => mgr
+            .send(args)
+            .await
+            .map(|r| RpcResponse {
+                id: id.clone(),
+                topic: topic.clone(),
+                payload: r,
+            })
+            .unwrap_or_else(|e| {
+                warn!("unknown error for request {e} id:{} topic:{}", id, topic);
+                unknown
+            }),
+        None => {
+            warn!("topic {topic} has no pairing manager!");
+            unknown
+        }
+    };
+    if let Err(err) = responder.send(response).await {
+        warn!(
+            "Failed to send response for id {} on topic {} {}",
+            id, topic, err
+        );
+    }
+}
+
 impl Handler<RpcRequest> for RequestHandlerActor {
     type Return = ();
 
@@ -80,13 +149,48 @@ impl Handler<RpcRequest> for RequestHandlerActor {
         let id = message.payload.id.clone();
         let topic = message.topic.clone();
         let responder = self.responder.clone();
-        match &message.payload.params {
-            RequestParams::PairDelete(_) => {}
-            RequestParams::PairExtend(_) => {}
+        let managers = self.pair_managers.clone();
+        match message.payload.params {
+            RequestParams::PairDelete(args) => {
+                let unknown = RpcResponse::unknown(
+                    id,
+                    topic.clone(),
+                    ResponseParamsError::PairDelete(ErrorParams::unknown()),
+                );
+                tokio::spawn(async move {
+                    handle_pair_delete_request(args, managers, responder, unknown).await
+                });
+            }
+            RequestParams::PairExtend(_) => {
+                // TODO: complete
+                if let Err(_) = self
+                    .responder
+                    .send(RpcResponse {
+                        id,
+                        topic,
+                        payload: RpcResponsePayload::Success(ResponseParamsSuccess::PairExtend(
+                            true,
+                        )),
+                    })
+                    .await
+                {
+                    warn!("failed to send PairExtend response");
+                }
+            }
             RequestParams::PairPing(args) => {
+                let unknown = RpcResponse::unknown(
+                    id,
+                    topic.clone(),
+                    ResponseParamsError::PairPing(ErrorParams::unknown()),
+                );
+                tokio::spawn(async move {
+                    handle_pair_request(args, managers, responder, unknown).await
+                });
+
+                /*
                 let response: RpcResponse = match self.pair_managers.get(&message.topic) {
                     Some(mgr) => mgr
-                        .send(PairPingRequest {})
+                        .send(args)
                         .await
                         .map(|r| RpcResponse {
                             id: id.clone(),
@@ -118,6 +222,8 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                         );
                     }
                 });
+
+                 */
             }
             RequestParams::SessionPropose(args) => {}
             RequestParams::SessionSettle(_) => {}

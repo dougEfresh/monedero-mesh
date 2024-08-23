@@ -26,6 +26,7 @@ wasm = [
 [dependencies]
 aead = { workspace = true }
 alloy-chains = {workspace = true}
+backoff = {version = "0.4.0", features = ["tokio"]} ## wasm support
 base64 = { workspace = true }
 #base64-url = { workspace = true }
 chacha20poly1305 = { workspace = true }
