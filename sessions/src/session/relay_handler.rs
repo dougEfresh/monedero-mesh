@@ -1,6 +1,7 @@
+use crate::actors::{Actors, InboundResponseActor, RequestHandlerActor, SocketActors};
 use crate::domain::Message;
 use crate::relay::{ClientError, CloseFrame, ConnectionHandler};
-use crate::rpc::{Payload, Request, RequestParams, Response, ResponseParams, RpcRequest, RpcResponse};
+use crate::rpc::{Payload, Request, RequestParams, Response, ResponseParams, RpcRequest};
 use crate::transport::{PendingRequests, RpcRecv};
 use crate::{Cipher, SocketEvent, WireEvent};
 use std::sync::Arc;
@@ -9,7 +10,6 @@ use tokio::select;
 use tokio::sync::{broadcast, mpsc};
 use tracing::{debug, error, info, warn};
 use xtra::{Actor, Address};
-use crate::actors::{Actors, RequestHandlerActor, InboundResponseActor, SocketActors};
 
 pub struct RelayHandler {
     cipher: Cipher,
@@ -25,7 +25,7 @@ impl RelayHandler {
         let (socket_tx, socket_rx) = mpsc::unbounded_channel::<SocketEvent>();
         let req_actor = actors.request();
         let res_actor = actors.response();
-        tokio::spawn(async move  {
+        tokio::spawn(async move {
             event_loop_req(req_rx, req_actor).await;
         });
         tokio::spawn(async move {
@@ -39,7 +39,7 @@ impl RelayHandler {
             cipher,
             req_tx,
             res_tx,
-            socket_tx
+            socket_tx,
         }
     }
 }
@@ -64,8 +64,9 @@ impl ConnectionHandler for RelayHandler {
         }
         debug!("decoding {}", message.id);
         match self
-          .cipher
-          .decode::<Payload>(&message.topic, &message.message) {
+            .cipher
+            .decode::<Payload>(&message.topic, &message.message)
+        {
             Ok(Payload::Request(req)) => {
                 let rpc: RpcRequest = RpcRequest {
                     topic: message.topic,
@@ -91,8 +92,10 @@ impl ConnectionHandler for RelayHandler {
     }
 }
 
-
-async fn event_loop_socket(mut rx: mpsc::UnboundedReceiver<SocketEvent>, actor: Address<SocketActors>)  {
+async fn event_loop_socket(
+    mut rx: mpsc::UnboundedReceiver<SocketEvent>,
+    actor: Address<SocketActors>,
+) {
     info!("started event loop for sockets");
     while let Some(r) = rx.recv().await {
         if let Err(_) = actor.send(r).await {
@@ -102,16 +105,23 @@ async fn event_loop_socket(mut rx: mpsc::UnboundedReceiver<SocketEvent>, actor: 
     }
 }
 
-async fn event_loop_req(mut rx: mpsc::UnboundedReceiver<RpcRequest>, actor: Address<RequestHandlerActor>)  {
+async fn event_loop_req(
+    mut rx: mpsc::UnboundedReceiver<RpcRequest>,
+    actor: Address<RequestHandlerActor>,
+) {
     info!("started event loop for requests");
     while let Some(req) = rx.recv().await {
         if let Err(err) = actor.send(req).await {
             error!("request actor shutdown! {err}");
+            return;
         }
     }
 }
 
-async fn event_loop_res(mut rx: mpsc::UnboundedReceiver<Response>, actor: Address<InboundResponseActor>)  {
+async fn event_loop_res(
+    mut rx: mpsc::UnboundedReceiver<Response>,
+    actor: Address<InboundResponseActor>,
+) {
     info!("started event loop for response");
     while let Some(r) = rx.recv().await {
         if let Err(_) = actor.send(r).await {
@@ -121,59 +131,51 @@ async fn event_loop_res(mut rx: mpsc::UnboundedReceiver<Response>, actor: Addres
     }
 }
 
-
+#[cfg(feature = "mock")]
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
-    use std::time::Duration;
-    use anyhow::format_err;
-    use dashmap::DashMap;
-    use serde_json::json;
-    use crate::actors::AddRequest;
-    use crate::domain::SubscriptionId;
-    use crate::rpc;
-    use crate::tests::yield_ms;
     use super::*;
+    use crate::tests::{yield_ms, ConnectionState};
 
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 5 )]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
     async fn test_relay_connection_state() -> anyhow::Result<()> {
-        let test_components = crate::tests::init_test_components(true).await?;
+        let test_components = crate::tests::init_test_components(false).await?;
         let actors = test_components.dapp_actors;
         let dapp_cipher = test_components.dapp_cipher;
-        let socket_state = test_components.socket_state;
+        let socket_state = ConnectionState::default();
+        actors.register_socket_handler(socket_state.clone()).await?;
 
         let mut handler = RelayHandler::new(dapp_cipher, actors);
         yield_ms(500).await;
-        assert_eq!(SocketEvent::Disconnect, *socket_state.state.read().unwrap());
+        assert_eq!(SocketEvent::Disconnect, socket_state.get_state());
         handler.connected();
         yield_ms(500).await;
-        assert_eq!(SocketEvent::Connected, *socket_state.state.read().unwrap());
+        assert_eq!(SocketEvent::Connected, socket_state.get_state());
         handler.disconnected(None);
         yield_ms(500).await;
-        assert_eq!(SocketEvent::ForceDisconnect, *socket_state.state.read().unwrap());
+        assert_eq!(SocketEvent::ForceDisconnect, socket_state.get_state());
 
         handler.connected();
         yield_ms(500).await;
         handler.inbound_error(ClientError::Disconnected);
         yield_ms(500).await;
-        assert_eq!(SocketEvent::ForceDisconnect, *socket_state.state.read().unwrap());
+        assert_eq!(SocketEvent::ForceDisconnect, socket_state.get_state());
 
         handler.connected();
         yield_ms(500).await;
         handler.outbound_error(ClientError::Disconnected);
         yield_ms(500).await;
-        assert_eq!(SocketEvent::ForceDisconnect, *socket_state.state.read().unwrap());
+        assert_eq!(SocketEvent::ForceDisconnect, socket_state.get_state());
         Ok(())
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 5 )]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
     async fn test_relay_request() -> anyhow::Result<()> {
         let test_components = crate::tests::init_test_components(true).await?;
         Ok(())
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 10 )]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_relay_response() -> anyhow::Result<()> {
         let test_components = crate::tests::init_test_components(true).await?;
         let dapp = test_components.dapp;

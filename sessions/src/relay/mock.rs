@@ -14,8 +14,7 @@ use tokio::sync::{broadcast, mpsc};
 type ClientId = Topic;
 
 use once_cell::sync::Lazy;
-pub(crate) static MOCK_FACTORY: Lazy<MockerFactory> =
-    Lazy::new(|| MockerFactory::new());
+pub(crate) static MOCK_FACTORY: Lazy<MockerFactory> = Lazy::new(|| MockerFactory::new());
 
 #[derive(Clone)]
 pub(crate) struct Mocker {
@@ -80,7 +79,7 @@ async fn event_loop<T: ConnectionHandler>(
     mocker: Mocker,
     mut handler: T,
 ) {
-    tracing::info!("created event loop for {mocker}");
+    tracing::info!("[{}] created mocker event loop", mocker);
     loop {
         match rx.recv().await {
             Err(_) => tracing::error!("got recv error for mock broadcast {mocker}"),
@@ -94,18 +93,18 @@ async fn event_loop<T: ConnectionHandler>(
                     if payload.id == mocker.client_id {
                         handler.disconnected(None)
                     }
-                },
+                }
                 MockEvents::Payload(message) => {
                     if payload.id == mocker.client_id {
-                        tracing::info!("got my own message");
+                        tracing::debug!("[{}] got my own message", mocker);
                         continue;
                     }
                     if !mocker.connected.load(Ordering::Relaxed) {
-                        tracing::info!("[{}] not connected", mocker);
+                        tracing::debug!("[{}] not connected", mocker);
                         continue;
                     }
                     if !mocker.my_topic(&message.topic) {
-                        tracing::info!("[{}] subscribed to topic {}", mocker, message.topic);
+                        tracing::debug!("[{}] subscribed to topic {}", mocker, message.topic);
                         continue;
                     }
                     handler.message_received(message);
@@ -117,9 +116,7 @@ async fn event_loop<T: ConnectionHandler>(
 }
 
 #[derive(Clone, xtra::Actor)]
-struct MockerActor {
-
-}
+struct MockerActor {}
 
 impl Mocker {
     pub fn new<T: ConnectionHandler>(
@@ -179,7 +176,7 @@ impl Debug for Mocker {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "clientId:{} event: {}",
+            "clientId:{} topics: {}",
             display_client_id(&self.client_id),
             self.topics.len()
         )
@@ -188,7 +185,12 @@ impl Debug for Mocker {
 
 impl Display for Mocker {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} topics={}", self.client_id, self.topics.len())
+        write!(
+            f,
+            "clientId:{} topics: {}",
+            display_client_id(&self.client_id),
+            self.topics.len()
+        )
     }
 }
 
@@ -254,7 +256,6 @@ impl Mocker {
     }
 
     pub async fn connect(&self) -> Result<()> {
-
         self.connect_state(self.connect_event.clone())
     }
 
@@ -274,13 +275,13 @@ pub(crate) mod test {
     use walletconnect_sdk::rpc::auth::ed25519_dalek::SigningKey;
     use walletconnect_sdk::rpc::auth::{AuthToken, SerializedAuthToken};
 
-    struct TestClient {
+    pub(crate) struct TestClient {
         client: Mocker,
         handler: DummyHandler,
     }
 
     impl TestClient {
-        fn new(factory: &MockerFactory) -> Self {
+        pub(crate) fn new(factory: &MockerFactory) -> Self {
             let hdl = DummyHandler::new();
             let client = factory.create(hdl.clone());
             Self {
@@ -291,7 +292,7 @@ pub(crate) mod test {
     }
 
     #[derive(Clone)]
-    struct DummyHandler {
+    pub(crate) struct DummyHandler {
         messages: Atomic<VecDeque<Message>>,
         connected: Atomic<AtomicBool>,
     }
@@ -311,7 +312,7 @@ pub(crate) mod test {
     }
 
     impl DummyHandler {
-        fn new() -> Self {
+        pub(crate) fn new() -> Self {
             Self {
                 messages: Arc::new(Mutex::new(VecDeque::new())),
                 connected: Arc::new(Mutex::new(AtomicBool::new(false))),
@@ -368,10 +369,10 @@ pub(crate) mod test {
     pub(crate) fn auth() -> SerializedAuthToken {
         let key = SigningKey::generate(&mut rand::thread_rng());
         AuthToken::new("https://example.com")
-          .aud(RELAY_ADDRESS)
-          .ttl(Duration::from_secs(60 * 60))
-          .as_jwt(&key)
-          .unwrap()
+            .aud(RELAY_ADDRESS)
+            .ttl(Duration::from_secs(60 * 60))
+            .as_jwt(&key)
+            .unwrap()
     }
 
     pub(crate) fn connection_opts() -> ConnectionOptions {

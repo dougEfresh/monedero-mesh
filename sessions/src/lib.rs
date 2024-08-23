@@ -1,3 +1,4 @@
+mod actors;
 pub mod crypto;
 mod domain;
 mod error;
@@ -9,10 +10,8 @@ pub mod rpc;
 pub mod session;
 mod storage;
 mod transport;
-mod actors;
 // mod wallet;
 
-use std::fmt::{Display, Formatter};
 use crate::rpc::SessionSettleRequest;
 pub use crypto::cipher::Cipher;
 pub use domain::Message;
@@ -20,6 +19,7 @@ pub use error::Error;
 pub use pair::{PairingManager, WalletConnectBuilder};
 pub use pairing_uri::Pairing;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex, Once, OnceLock};
 pub use storage::KvStorage;
 use tokio::sync::broadcast;
@@ -27,8 +27,8 @@ pub use walletconnect_sdk::client::error::ClientError;
 
 use crate::domain::MessageId;
 use crate::relay::ConnectionHandler;
-pub use transport::WireEvent;
 use crate::session::ClientSession;
+pub use transport::WireEvent;
 
 pub type EventChannel = broadcast::Receiver<WireEvent>;
 pub type EventClientSession = tokio::sync::oneshot::Receiver<Result<ClientSession>>;
@@ -39,7 +39,7 @@ pub enum SocketEvent {
     Connected,
     #[default]
     Disconnect,
-    ForceDisconnect
+    ForceDisconnect,
 }
 
 impl Display for SocketEvent {
@@ -79,26 +79,37 @@ pub(crate) fn send_event(tx: &broadcast::Sender<WireEvent>, event: WireEvent) {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::str::FromStr;
-    use std::sync::{Arc, RwLock};
-    use std::time::Duration;
-    use crate::{Cipher, Pairing, PairingManager, SocketEvent, SocketHandler, WalletConnectBuilder, INIT};
-    use tracing_subscriber::fmt::format::FmtSpan;
-    use tracing_subscriber::EnvFilter;
     use crate::actors::{Actors, RegisteredManagers};
     use crate::domain::ProjectId;
     use crate::relay::mock::test::auth;
+    use crate::{
+        Cipher, Pairing, PairingManager, SocketEvent, SocketHandler, WalletConnectBuilder, INIT,
+    };
+    use std::str::FromStr;
+    use std::sync::{Arc, RwLock};
+    use std::time::Duration;
+    use tracing_subscriber::fmt::format::FmtSpan;
+    use tracing_subscriber::EnvFilter;
 
     #[derive(Default, Debug, Clone)]
-    pub (crate) struct  ConnectionState {
-        pub(crate) state: Arc<RwLock<SocketEvent>>
+    pub(crate) struct ConnectionState {
+        pub(crate) state: Arc<RwLock<SocketEvent>>,
     }
 
     impl SocketHandler for ConnectionState {
         fn event(&mut self, event: SocketEvent) {
-            if let Ok(mut l) =  self.state.write() {
+            if let Ok(mut l) = self.state.write() {
                 *l = event;
             }
+        }
+    }
+
+    impl ConnectionState {
+        pub(crate) fn get_state(&self) -> SocketEvent {
+            if let Ok(l) = self.state.read() {
+                return l.clone();
+            }
+            panic!("failed to get lock for connection state test");
         }
     }
 
@@ -107,7 +118,6 @@ pub(crate) mod tests {
         pub(crate) wallet_cipher: Cipher,
         pub(crate) dapp_actors: Actors,
         pub(crate) wallet_actors: Actors,
-        pub(crate) socket_state: ConnectionState,
         pub(crate) dapp: PairingManager,
         pub(crate) wallet: PairingManager,
     }
@@ -123,17 +133,14 @@ pub(crate) mod tests {
         let wallet = WalletConnectBuilder::new(p, auth()).build().await?;
         let dapp_actors = dapp.actors();
         let wallet_actors = wallet.actors();
-        let socket_state = ConnectionState::default();
-        dapp_actors.register_socket_handler(socket_state.clone()).await?;
         yield_ms(500).await;
         let t = TestStuff {
             dapp_cipher: dapp.ciphers(),
             wallet_cipher: wallet.ciphers(),
             dapp_actors: dapp_actors.clone(),
             wallet_actors: wallet_actors.clone(),
-            socket_state,
             dapp,
-            wallet
+            wallet,
         };
         if (pair) {
             dapp_wallet_ciphers(&t).await?;
@@ -153,11 +160,20 @@ pub(crate) mod tests {
         let pairing_from_uri = Pairing::from_str(&t.dapp_cipher.pairing_uri().unwrap())?;
         t.wallet_cipher.set_pairing(Some(pairing_from_uri))?;
 
-        t.dapp_cipher.create_common_topic(t.wallet_cipher.public_key_hex().unwrap())?;
-        t.wallet_cipher.create_common_topic(t.dapp_cipher.public_key_hex().ok_or(crate::Error::NoPairingTopic)?);
+        t.dapp_cipher
+            .create_common_topic(t.wallet_cipher.public_key_hex().unwrap())?;
+        t.wallet_cipher.create_common_topic(
+            t.dapp_cipher
+                .public_key_hex()
+                .ok_or(crate::Error::NoPairingTopic)?,
+        );
 
-        t.dapp_actors.register_mgr(topic.clone(), t.dapp.clone()).await?;
-        t.wallet_actors.register_mgr(topic.clone(), t.wallet.clone()).await?;
+        t.dapp_actors
+            .register_mgr(topic.clone(), t.dapp.clone())
+            .await?;
+        t.wallet_actors
+            .register_mgr(topic.clone(), t.wallet.clone())
+            .await?;
 
         t.dapp.subscribe(topic.clone()).await?;
         t.wallet.subscribe(topic.clone()).await?;

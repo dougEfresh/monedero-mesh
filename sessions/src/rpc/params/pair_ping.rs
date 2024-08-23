@@ -2,9 +2,9 @@
 //! #wc_pairingPing
 
 use super::IrnMetadata;
+use crate::domain::{MessageId, Topic};
 use crate::rpc::{TAG_PAIR_PING_REQUEST, TAG_PAIR_PING_RESPONSE};
 use serde::{Deserialize, Serialize};
-use crate::domain::{MessageId, Topic};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: TAG_PAIR_PING_REQUEST,

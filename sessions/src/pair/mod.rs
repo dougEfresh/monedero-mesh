@@ -1,21 +1,25 @@
 mod builder;
 //pub(crate) mod settlement;
 
-use std::future::Future;
+use crate::actors::Actors;
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::{Client, ConnectionHandler, ConnectionOptions};
-use crate::rpc::{ErrorParams, Metadata, PairPingRequest, ProposeNamespaces, Proposer, RelayProtocol, Request, RequestParams, Response, ResponseParams, ResponseParamsSuccess, RpcResponse, SessionProposeRequest};
+use crate::rpc::{
+    ErrorParams, Metadata, PairPingRequest, ProposeNamespaces, Proposer, RelayProtocol, Request,
+    RequestParams, Response, ResponseParams, ResponseParamsError, ResponseParamsSuccess,
+    RpcResponse, RpcResponsePayload, SessionProposeRequest,
+};
 use crate::session::{ClientSession, RelayHandler};
 use crate::transport::{PendingRequests, RpcRecv, TopicTransport};
 use crate::{relay, session, Cipher, EventChannel, KvStorage, Pairing, Result, WireEvent};
 pub use builder::WalletConnectBuilder;
+use serde_json::json;
+use std::future::Future;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
-use serde_json::json;
 use tokio::sync::{broadcast, oneshot};
 use tracing::{info, warn};
 use xtra::{Context, Handler, Mailbox};
-use crate::actors::Actors;
 
 pub trait PairHandler: Send + 'static {
     fn ping(&mut self, topic: Topic);
@@ -31,14 +35,18 @@ pub struct PairingManager {
     transport: TopicTransport,
     terminator: broadcast::Sender<()>,
     //storage: Arc<KvStorage>,
-    actors: Actors
+    actors: Actors,
 }
 
 impl Handler<PairPingRequest> for PairingManager {
-    type Return = ResponseParams;
+    type Return = RpcResponsePayload;
 
-    async fn handle(&mut self, _message: PairPingRequest, _ctx: &mut Context<Self>) -> Self::Return {
-        ResponseParamsSuccess::PairPing(true).try_into().unwrap()
+    async fn handle(
+        &mut self,
+        _message: PairPingRequest,
+        _ctx: &mut Context<Self>,
+    ) -> Self::Return {
+        RpcResponsePayload::Success(ResponseParamsSuccess::PairPing(true))
     }
 }
 
@@ -68,10 +76,7 @@ impl PairingManager {
         //let storage = Arc::new(storage);
         let ciphers = actors.cipher().clone();
         //let socket_handler_rx = broadcast_tx.subscribe();
-        let handler = RelayHandler::new(
-            ciphers.clone(),
-            actors.clone()
-        );
+        let handler = RelayHandler::new(ciphers.clone(), actors.clone());
         #[cfg(feature = "mock")]
         let relay = Client::mock(handler);
 
@@ -92,7 +97,7 @@ impl PairingManager {
             transport,
             terminator,
             //storage,
-            actors
+            actors,
         };
         //let socker_handler = mgr.clone();
         //tokio::spawn(async move { handle_socket_close(socker_handler, socket_handler_rx).await });
@@ -161,7 +166,7 @@ impl PairingManager {
     pub async fn ping(&self) -> Result<()> {
         let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
         self.transport
-            .publish_request(t, RequestParams::PairPing(()))
+            .publish_request(t, RequestParams::PairPing(PairPingRequest {}))
             .await
     }
 
@@ -186,7 +191,7 @@ impl PairingManager {
     }
 
     //pub fn event_subscription(&self) -> EventChannel {
-        //self.broadcast_tx.subscribe()
+    //self.broadcast_tx.subscribe()
     //}
 }
 

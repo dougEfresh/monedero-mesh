@@ -55,6 +55,9 @@ pub enum Error {
     #[error("Timeout waiting for session request")]
     SessionRequestTimeout,
 
+    #[error("Timeout waiting for response")]
+    ResponseTimeout,
+
     #[error("recv channel closed for settlement request")]
     SettlementRecvError,
 
@@ -69,4 +72,7 @@ pub enum Error {
 
     #[error(transparent)]
     ParamsError(#[from] crate::rpc::ParamsError),
+
+    #[error("This error goes back to the origninal request")]
+    RpcErrorFromRequest(crate::rpc::RpcErrorResponse),
 }

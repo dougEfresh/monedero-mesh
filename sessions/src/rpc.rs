@@ -9,8 +9,8 @@ use {
 };
 
 use crate::domain::{MessageId, Topic};
-pub use params::*;
 use crate::transport::Wired;
+pub use params::*;
 
 /// Version of the WalletConnect protocol that we're implementing.
 pub const JSON_RPC_VERSION_STR: &str = "2.0";
@@ -75,21 +75,36 @@ impl Payload {
     }
 
     pub fn irn_tag_in_range(tag: u32) -> bool {
-        (1100..=1115).contains(&tag)
+        (1000..=1115).contains(&tag)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct RpcResponse {
+    pub(crate) id: MessageId,
     pub(crate) topic: Topic,
-    pub(crate) payload: Response
+    pub(crate) payload: RpcResponsePayload,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RpcErrorResponse {
+    pub(crate) id: MessageId,
+    pub(crate) topic: Topic,
+    pub(crate) payload: ErrorParams,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RpcResponsePayload {
+    Success(ResponseParamsSuccess),
+    Error(ResponseParamsError),
 }
 
 impl RpcResponse {
-    pub fn into_response(id: MessageId, topic: Topic, response_params: ResponseParams) -> Self {
+    pub(crate) fn unknown(id: MessageId, topic: Topic, params: ResponseParamsError) -> Self {
         Self {
+            id,
             topic,
-            payload: Response::new(id, response_params)
+            payload: RpcResponsePayload::Error(params),
         }
     }
 }
@@ -97,7 +112,7 @@ impl RpcResponse {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct RpcRequest {
     pub(crate) topic: Topic,
-    pub(crate) payload: Request
+    pub(crate) payload: Request,
 }
 
 /// Data structure representing a JSON RPC request.

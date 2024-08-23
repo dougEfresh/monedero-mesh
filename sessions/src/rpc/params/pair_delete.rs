@@ -17,7 +17,10 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct PairDeleteRequest {}
+pub struct PairDeleteRequest {
+    pub code: u64,
+    pub message: String,
+}
 
 #[cfg(test)]
 mod tests {
@@ -25,11 +28,15 @@ mod tests {
 
     use super::super::tests::param_serde_test;
     use anyhow::Result;
+    use serde_json::json;
 
     #[test]
     fn test_serde_pair_delete_request() -> Result<()> {
-        let json = r#"{}"#;
+        let j = json! ({
+            "code": 1,
+            "message": "Error"
+        });
 
-        param_serde_test::<PairDeleteRequest>(json)
+        param_serde_test::<PairDeleteRequest>(&j.to_string())
     }
 }

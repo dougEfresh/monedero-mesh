@@ -17,7 +17,10 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct PairExtendRequest {}
+pub struct PairExtendRequest {
+    // Epoch UTC
+    pub expiry: u64,
+}
 
 #[cfg(test)]
 mod tests {
@@ -28,7 +31,7 @@ mod tests {
 
     #[test]
     fn test_serde_pair_extend_request() -> Result<()> {
-        let json = r#"{}"#;
+        let json = r#"{"expiry": 111233211}"#;
 
         param_serde_test::<PairExtendRequest>(json)
     }

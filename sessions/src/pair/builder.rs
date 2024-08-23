@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use crate::actors::Actors;
 use crate::domain::ProjectId;
 use crate::relay::ConnectionOptions;
 use crate::rpc::Metadata;
 use crate::{Cipher, KvStorage, PairingManager, RELAY_ADDRESS};
+use std::sync::Arc;
 use walletconnect_sdk::rpc::auth::SerializedAuthToken;
-use crate::actors::Actors;
 
 pub struct WalletConnectBuilder {
     connect_opts: Option<ConnectionOptions>,
@@ -15,7 +15,7 @@ pub struct WalletConnectBuilder {
     icons: Vec<String>,
     project_id: ProjectId,
     store: Option<KvStorage>,
-    mock: bool
+    mock: bool,
 }
 
 impl WalletConnectBuilder {
@@ -31,7 +31,7 @@ impl WalletConnectBuilder {
             icons: vec!["https://avatars.githubusercontent.com/u/976425?v=4".to_owned()],
             name: None,
             store: None,
-            mock: false
+            mock: false,
         }
     }
 
@@ -84,7 +84,9 @@ impl WalletConnectBuilder {
 
         let opts: ConnectionOptions = match self.connect_opts {
             Some(ref opts) => opts.clone(),
-            None => ConnectionOptions::new(self.project_id.clone(), self.auth.clone()).mock(self.mock)
+            None => {
+                ConnectionOptions::new(self.project_id.clone(), self.auth.clone()).mock(self.mock)
+            }
         };
 
         #[cfg(not(feature = "mock"))]

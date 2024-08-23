@@ -2,6 +2,7 @@ use crate::crypto::error::CipherError;
 use crate::pairing_uri::Pairing;
 use crate::KvStorage;
 use chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, KeyInit, Nonce};
+use dashmap::DashMap;
 use derive_more::{AsMut, AsRef};
 use hkdf::Hkdf;
 use serde::de::DeserializeOwned;
@@ -9,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use dashmap::DashMap;
 use tracing::debug;
 use walletconnect_sdk::rpc::auth::ed25519_dalek::{SecretKey, VerifyingKey};
 use walletconnect_sdk::rpc::domain::{DecodedTopic, Topic};
@@ -137,8 +137,10 @@ impl Cipher {
         self.reset();
         if let Some(new_pair) = pairing {
             debug!("setting pairing topic to {}", new_pair.topic);
-            self.storage.set::<Pairing>(Self::storage_key_pairing(), new_pair.clone())?;
-            self.pairing.insert(new_pair.topic.clone(), Arc::new(new_pair.clone()));
+            self.storage
+                .set::<Pairing>(Self::storage_key_pairing(), new_pair.clone())?;
+            self.pairing
+                .insert(new_pair.topic.clone(), Arc::new(new_pair.clone()));
             let key = new_pair.params.sym_key.clone();
             self.ciphers.insert(
                 new_pair.topic,
@@ -248,7 +250,8 @@ impl Cipher {
         nonce: Nonce,
         envelope_type: Type,
     ) -> Result<String, CipherError> {
-        let cipher = self.ciphers
+        let cipher = self
+            .ciphers
             .get(topic)
             .ok_or(CipherError::UnknownTopic(topic.clone()))?;
         let serialized_payload = serde_json::to_string(payload)?;
@@ -286,7 +289,8 @@ impl Cipher {
     }
 
     fn decode_bytes(&self, topic: &Topic, bytes: &[u8]) -> Result<String, CipherError> {
-        let cipher = self.ciphers
+        let cipher = self
+            .ciphers
             .get(topic)
             .ok_or(CipherError::UnknownTopic(topic.clone()))?;
         let decoded_bytes = cipher
@@ -317,7 +321,7 @@ impl Cipher {
 mod tests {
     use super::*;
     use crate::crypto::session::SessionKey;
-    use crate::rpc::{Request, RequestParams, SessionExtendRequest};
+    use crate::rpc::{PairPingRequest, Request, RequestParams, SessionExtendRequest};
     use crate::storage::KvStorage;
     use anyhow::format_err;
     use std::str::FromStr;
@@ -367,7 +371,7 @@ mod tests {
         assert_eq!(wallet_req_ext, decrypted_req);
 
         // Pairing topic peer
-        let dapp_req_ext = RequestParams::PairPing(());
+        let dapp_req_ext = RequestParams::PairPing(PairPingRequest {});
         let dapp_req_ext = Request::new(generator.next(), dapp_req_ext.try_into()?);
         let encrypted = dapp.encode(&pairing.topic, &dapp_req_ext)?;
         let decrypted_req = wallet.decode::<Request>(&pairing.topic, &encrypted)?;

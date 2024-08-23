@@ -1,3 +1,6 @@
+use crate::actors::{
+    Actors, AddRequest, InboundResponseActor, RequestHandlerActor, SendRequest, TransportActor,
+};
 use crate::domain::{MessageId, SubscriptionId, Topic};
 use crate::relay::{Client, MessageIdGenerator};
 use crate::rpc::{
@@ -16,10 +19,10 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::oneshot;
+use tokio::sync::oneshot::error::RecvError;
 use tokio::time::timeout;
 use tracing::{debug, error, info, warn, Instrument};
 use xtra::Address;
-use crate::actors::{Actors, AddRequest, InboundResponseActor, RequestHandlerActor, SendRequest, TransportActor};
 
 pub trait Wired: Debug + Clone + PartialEq + Serialize + DeserializeOwned {}
 impl<T> Wired for T where T: Debug + Clone + PartialEq + Serialize + DeserializeOwned {}
@@ -151,11 +154,8 @@ pub(crate) struct TopicTransport {
 }
 
 impl TopicTransport {
-
     pub(crate) fn new(transport_actor: Address<TransportActor>) -> Self {
-        Self {
-            transport_actor
-        }
+        Self { transport_actor }
     }
 
     /*
@@ -188,18 +188,21 @@ impl TopicTransport {
         topic: Topic,
         params: RequestParams,
     ) -> Result<R> {
-        let (id, ttl,  rx) = self.transport_actor.send(SendRequest(topic, params)).await??;
+        let (id, ttl, rx) = self
+            .transport_actor
+            .send(SendRequest(topic, params))
+            .await??;
 
-        match timeout(ttl, rx).await {
-            Err(_) => Err(crate::Error::SessionRequestTimeout),
-            Ok(res) => match res {
-                Ok(v) => match v {
-                    Ok(value) => Ok(serde_json::from_value(value)?),
-                    Err(err) => Err(err),
+        if let Ok(result) = timeout(ttl, rx).await {
+            return match result {
+                Ok(response) => match response.params {
+                    ResponseParams::Success(v) => Ok(serde_json::from_value(v)?),
+                    ResponseParams::Err(v) => Err(crate::Error::RpcError(v)),
                 },
-                Err(_) => Err(crate::Error::ResponseChannelError(id)),
-            },
+                Err(e) => Err(crate::Error::ResponseChannelError(id)),
+            };
         }
+        Err(crate::Error::ResponseTimeout)
     }
 }
 

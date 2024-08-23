@@ -16,6 +16,8 @@ pub use {
     session_propose::*, session_request::*, session_settle::*, session_update::*, shared_types::*,
 };
 
+use crate::rpc::params::pair_delete::PairDeleteRequest;
+use crate::rpc::params::pair_extend::PairExtendRequest;
 use {
     paste::paste,
     serde::{Deserialize, Serialize},
@@ -125,7 +127,7 @@ macro_rules! impl_relay_protocol_helpers {
                     } else if tag == pair_delete::IRN_RESPONSE_METADATA.tag  {
                         Ok(Self::PairDelete(serde_json::from_value(value)?))
                     } else if tag == pair_extend::IRN_RESPONSE_METADATA.tag {
-                        Ok(Self::PairDelete(serde_json::from_value(value)?))
+                        Ok(Self::PairExtend(serde_json::from_value(value)?))
                     } else {
                         Err(ParamsError::ResponseTag(tag))
                     }
@@ -143,11 +145,11 @@ macro_rules! impl_relay_protocol_helpers {
 #[serde(tag = "method", content = "params")]
 pub enum RequestParams {
     #[serde(rename = "wc_pairingDelete")]
-    PairDelete(()),
+    PairDelete(PairDeleteRequest),
     #[serde(rename = "wc_pairingExtend")]
-    PairExtend(()),
+    PairExtend(PairExtendRequest),
     #[serde(rename = "wc_pairingPing")]
-    PairPing(()),
+    PairPing(PairPingRequest),
     #[serde(rename = "wc_sessionPropose")]
     SessionPropose(SessionProposeRequest),
     #[serde(rename = "wc_sessionSettle")]
@@ -230,6 +232,15 @@ pub struct ErrorParams {
     pub message: String,
 }
 
+impl ErrorParams {
+    pub fn unknown() -> Self {
+        Self {
+            code: Some(1),
+            message: "Unknown Error".to_string(),
+        }
+    }
+}
+
 /// Typed error response parameters.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -246,6 +257,7 @@ pub enum ResponseParamsError {
     PairDelete(ErrorParams),
     PairExtend(ErrorParams),
 }
+
 impl_relay_protocol_metadata!(ResponseParamsError, response);
 impl_relay_protocol_helpers!(ResponseParamsError);
 

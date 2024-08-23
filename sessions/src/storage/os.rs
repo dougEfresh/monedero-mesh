@@ -1,3 +1,4 @@
+use crate::domain::SubscriptionId;
 use crate::storage::Error::SegmentErr;
 use crate::storage::Result;
 use kvx::{Key, KeyValueStore, Namespace, ReadStore, Segment, WriteStore};
@@ -5,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::debug;
 use url::Url;
-use crate::domain::SubscriptionId;
 
 #[derive(Clone)]
 pub struct KvStorage {
@@ -43,8 +43,7 @@ impl KvStorage {
     pub fn mem() -> Self {
         // create random namespace to avoid collision
         let id = format!("{}", SubscriptionId::generate());
-        let namespace =
-            Namespace::parse(&id).unwrap();
+        let namespace = Namespace::parse(&id).unwrap();
         let store = KeyValueStore::new(&Url::parse("memory://").unwrap(), namespace).unwrap();
         Self {
             store: Arc::new(store),

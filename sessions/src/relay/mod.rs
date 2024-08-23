@@ -2,19 +2,19 @@ mod error;
 pub(crate) mod mock;
 
 use crate::domain::{Message, ProjectId, SubscriptionId, Topic};
+use crate::RELAY_ADDRESS;
 pub use error::ClientError;
 use std::borrow::Cow;
 use std::sync::Arc;
 use std::time::Duration;
-use walletconnect_sdk::client::Authorization;
 use walletconnect_sdk::client::websocket::PublishedMessage;
 pub use walletconnect_sdk::client::websocket::{
     Client as WcClient, ConnectionHandler as WcHandler,
 };
+use walletconnect_sdk::client::Authorization;
 pub use walletconnect_sdk::client::ConnectionOptions as WcOptions;
 pub use walletconnect_sdk::client::MessageIdGenerator;
 use walletconnect_sdk::rpc::auth::SerializedAuthToken;
-use crate::RELAY_ADDRESS;
 
 pub(crate) type Result<T> = std::result::Result<T, ClientError>;
 
@@ -35,9 +35,8 @@ pub struct ConnectionOptions {
     pub origin: Option<String>,
 
     /// Mock the client for internal loopback testing
-    pub mock: bool
-    // Optional user agent parameters.
-    //pub user_agent: Option<UserAgent>,
+    pub mock: bool, // Optional user agent parameters.
+                    //pub user_agent: Option<UserAgent>,
 }
 
 impl ConnectionOptions {
@@ -47,10 +46,10 @@ impl ConnectionOptions {
             project_id,
             auth: Authorization::Query(serialized),
             origin: None,
-            mock: false
+            mock: false,
         }
     }
-    
+
     pub fn mock(mut self, mock: bool) -> Self {
         self.mock = mock;
         self
@@ -83,7 +82,6 @@ pub trait ConnectionHandler: Send + 'static {
     /// websocket stream.
     fn outbound_error(&mut self, _error: ClientError) {}
 }
-
 
 #[derive(Clone)]
 pub struct Client {
@@ -137,7 +135,6 @@ impl Client {
 
 #[cfg(feature = "mock")]
 impl Client {
-
     pub fn mock(handler: impl ConnectionHandler) -> Self {
         let wc = mock::MOCK_FACTORY.create(handler);
         Self { wc }
