@@ -1,5 +1,6 @@
 use crate::actors::{
-    Actors, AddRequest, InboundResponseActor, RequestHandlerActor, SendRequest, TransportActor,
+    Actors, AddRequest, InboundResponseActor, RequestHandlerActor, SendRequest, Subscribe,
+    TransportActor,
 };
 use crate::domain::{MessageId, SubscriptionId, Topic};
 use crate::relay::{Client, MessageIdGenerator};
@@ -158,6 +159,9 @@ impl TopicTransport {
         Self { transport_actor }
     }
 
+    pub async fn subscribe(&self, topic: Topic) -> Result<SubscriptionId> {
+        self.transport_actor.send(Subscribe(topic)).await?
+    }
     /*
     pub async fn publish_response(
         &self,

@@ -42,6 +42,19 @@ pub struct SessionProposeRequest {
     pub required_namespaces: ProposeNamespaces,
 }
 
+impl SessionProposeRequest {
+    pub fn new(pk: String, ns: ProposeNamespaces) -> Self {
+        Self {
+            relays: vec![RelayProtocol::default()],
+            proposer: Proposer {
+                public_key: pk,
+                metadata: Default::default(),
+            },
+            required_namespaces: ns,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionProposeResponse {

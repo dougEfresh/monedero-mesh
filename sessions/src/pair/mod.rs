@@ -14,6 +14,7 @@ use crate::session::{ClientSession, RelayHandler};
 use crate::transport::{PendingRequests, RpcRecv, TopicTransport};
 use crate::{relay, session, Cipher, EventChannel, KvStorage, Pairing, Result, WireEvent};
 pub use builder::WalletConnectBuilder;
+use serde::de::DeserializeOwned;
 use serde_json::json;
 use std::future::Future;
 use std::sync::{mpsc, Arc};
@@ -93,12 +94,6 @@ impl PairingManager {
         Ok(self.relay.subscribe(topic).await?)
     }
 
-    /*
-    pub fn storage(&self) -> Arc<KvStorage> {
-        self.storage.clone()
-    }
-     */
-
     pub(crate) fn actors(&self) -> Actors {
         self.actors.clone()
     }
@@ -126,6 +121,18 @@ impl PairingManager {
         self.ciphers.set_pairing(None)?;
         self.relay.unsubscribe(t).await?;
         Ok(true)
+    }
+
+    pub async fn set_pairing(&self, pairing: Pairing) -> Result<()> {
+        let cipher = self.actors.cipher_actor();
+        cipher.send(pairing.clone()).await??;
+        self.subscribe(pairing.topic.clone()).await?;
+        Ok(())
+    }
+
+    pub async fn publish_request<R: DeserializeOwned>(&self, params: RequestParams) -> Result<R> {
+        let topic = self.topic().ok_or(crate::Error::NoPairingTopic)?;
+        self.transport.publish_request(topic, params).await
     }
 
     pub async fn shutdown(&self) -> Result<()> {

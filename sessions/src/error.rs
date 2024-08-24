@@ -75,4 +75,7 @@ pub enum Error {
 
     #[error("This error goes back to the origninal request")]
     RpcErrorFromRequest(crate::rpc::RpcErrorResponse),
+
+    #[error(transparent)]
+    PairingParseError(#[from] crate::pairing_uri::ParseError),
 }

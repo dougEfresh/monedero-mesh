@@ -1,71 +1,54 @@
-use tokio::sync::oneshot;
-use crate::{relay, Cipher, KvStorage, Pairing, PairingManager};
-use crate::pair::settlement;
-use crate::relay::mock::MOCK_FACTORY;
-use crate::rpc::{SessionProposeRequest, SessionProposeResponse, SessionRequestRequest, SessionSettleRequest};
-use crate::transport::{RpcRecv, TopicTransport};
-use crate::Result;
+use crate::rpc::{
+    ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload, SessionProposeRequest,
+    SessionProposeResponse, UNSUPPORTED_ACCOUNTS, UNSUPPORTED_CHAINS, USER_REJECTED,
+};
+use crate::{Pairing, PairingManager, Result};
+use std::future::Future;
+use std::str::FromStr;
+use tracing::info;
+use xtra::prelude::*;
 
-pub trait WalletSettlementHandler: Send + 'static {
-  fn handle_propose(&mut self, settlement: RpcRecv<SessionProposeRequest>) -> Result<SessionSettleRequest>;
+#[derive(Clone, xtra::Actor)]
+pub struct Wallet {
+    manager: PairingManager,
 }
 
-pub trait WalletHandler: Send + 'static {
-  fn handle_request(&mut self, request: RpcRecv<SessionRequestRequest>) {}
+async fn send_settlement(_wallet: Wallet) {
+    info!("sending settlement")
 }
 
-#[derive(Clone)]
-pub struct WalletManager {
-  mgr: PairingManager,
-  ciphers: Cipher,
-  transporter: TopicTransport
-}
-pub struct WalletSession {
+impl Handler<SessionProposeRequest> for Wallet {
+    type Return = RpcResponsePayload;
 
-}
-
-impl WalletManager {
-  pub async fn init(mgr: PairingManager) -> Self {
-    Self {
-      transporter: mgr.transporter(),
-      ciphers: mgr.ciphers(),
-      mgr,
+    async fn handle(
+        &mut self,
+        message: SessionProposeRequest,
+        _ctx: &mut Context<Self>,
+    ) -> Self::Return {
+        let wallet = self.clone();
+        tokio::spawn(async move { send_settlement(wallet).await });
+        match self.manager.pair_key() {
+            None => {
+                RpcResponsePayload::Error(ResponseParamsError::SessionPropose(USER_REJECTED.into()))
+            }
+            Some(_) => RpcResponsePayload::Success(ResponseParamsSuccess::SessionPropose(
+                SessionProposeResponse {
+                    relay: Default::default(),
+                    responder_public_key: self.manager.pair_key().unwrap(),
+                },
+            )),
+        }
     }
-  }
-
-  pub async fn pair<S, H>(&self, pairing: Pairing, settler: S, handler: H) -> Result<WalletSession>
-  where
-    S: WalletSettlementHandler,
-    H: WalletHandler
-  {
-    self.ciphers.set_pairing(Some(pairing.clone()))?;
-    let key = match self.ciphers.public_key_hex() {
-      None => return Err(crate::error::Error::PairingInitError),
-      Some(k) => k,
-    };
-
-    let (tx, rx) = oneshot::channel::<Result<()>>();
-
-    tokio::spawn(settlement::start_settlement(self.mgr.clone(), tx, self.broadcast_tx.clone()));
-    let _ = self.relay.subscribe(pairing.topic.clone()).await?;
-
-    Ok(rx)
-  }
 }
 
-pub struct WalletAdapter {
-
-}
-
-pub(crate) struct  MockWallet {
-  //client: relay::Client,
-}
-
-impl MockWallet {
-
-  fn new() -> Self {
-    Self {
-
+impl Wallet {
+    pub fn new(manager: PairingManager) -> Self {
+        Self { manager }
     }
-  }
+
+    pub async fn pair(&self, uri: String) -> Result<Pairing> {
+        let pairing = Pairing::from_str(&uri)?;
+        self.manager.set_pairing(pairing.clone()).await?;
+        Ok(pairing)
+    }
 }

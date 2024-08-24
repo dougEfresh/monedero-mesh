@@ -1,6 +1,6 @@
-use crate::actors::{AddRequest, InboundResponseActor};
+use crate::actors::{AddRequest, InboundResponseActor, Subscribe};
 use crate::crypto::CipherError;
-use crate::domain::{MessageId, Topic};
+use crate::domain::{MessageId, SubscriptionId, Topic};
 use crate::relay::{Client, MessageIdGenerator};
 use crate::rpc::{
     IrnMetadata, RelayProtocolMetadata, Request, RequestParams, Response, ResponseParams,
@@ -68,6 +68,15 @@ impl TransportActor {
             inbound_response_actor,
             relay: None,
         }
+    }
+}
+
+impl Handler<Subscribe> for TransportActor {
+    type Return = Result<SubscriptionId>;
+
+    async fn handle(&mut self, message: Subscribe, _ctx: &mut Context<Self>) -> Self::Return {
+        let relay = self.relay.as_ref().ok_or(crate::Error::NoClient)?;
+        Ok(relay.subscribe(message.0).await?)
     }
 }
 
@@ -151,9 +160,7 @@ mod test {
             .await?;
         assert!(matches!(
             result,
-            Err(crate::Error::CipherError(
-                crate::crypto::CipherError::UnknownTopic(_)
-            ))
+            Err(crate::Error::CipherError(CipherError::UnknownTopic(_)))
         ));
         cipher.set_pairing(Some(pairing))?;
         let result = actor

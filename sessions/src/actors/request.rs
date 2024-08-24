@@ -1,4 +1,4 @@
-use crate::actors::TransportActor;
+use crate::actors::{RegisterDapp, RegisterWallet, TransportActor};
 use crate::domain::{MessageId, Topic};
 use crate::relay::Client;
 use crate::rpc::{
@@ -7,23 +7,43 @@ use crate::rpc::{
     RpcResponse, RpcResponsePayload,
 };
 use crate::transport::{PairingRpcEvent, RpcRecv};
-use crate::Result;
 use crate::{rpc, Cipher, Error, PairingManager};
+use crate::{Dapp, Result, Wallet};
 use dashmap::DashMap;
 use serde_json::json;
 use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
-use tracing::warn;
+use tracing::{error, warn};
 use xtra::prelude::*;
 
 #[derive(xtra::Actor)]
 pub(crate) struct RequestHandlerActor {
     pair_managers: Arc<DashMap<Topic, Address<PairingManager>>>,
+    dapps: Arc<DashMap<Topic, Address<Dapp>>>,
+    wallets: Arc<DashMap<Topic, Address<Wallet>>>,
     responder: Address<TransportActor>,
 }
 
 pub(crate) struct RegisteredManagers;
+
+impl Handler<RegisterWallet> for RequestHandlerActor {
+    type Return = ();
+
+    async fn handle(&mut self, message: RegisterWallet, ctx: &mut Context<Self>) -> Self::Return {
+        let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
+        self.wallets.insert(message.0, addr);
+    }
+}
+
+impl Handler<RegisterDapp> for RequestHandlerActor {
+    type Return = ();
+
+    async fn handle(&mut self, message: RegisterDapp, ctx: &mut Context<Self>) -> Self::Return {
+        let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
+        self.dapps.insert(message.0, addr);
+    }
+}
 
 impl Handler<RegisteredManagers> for RequestHandlerActor {
     type Return = usize;
@@ -66,6 +86,8 @@ impl RequestHandlerActor {
         Self {
             pair_managers: Arc::new(DashMap::new()),
             responder,
+            dapps: Arc::new(DashMap::new()),
+            wallets: Arc::new(DashMap::new()),
         }
     }
 
@@ -186,47 +208,30 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                 tokio::spawn(async move {
                     handle_pair_request(args, managers, responder, unknown).await
                 });
-
-                /*
-                let response: RpcResponse = match self.pair_managers.get(&message.topic) {
-                    Some(mgr) => mgr
+            }
+            RequestParams::SessionPropose(args) => {}
+            RequestParams::SessionSettle(args) => {
+                let unknown = RpcResponse::unknown(
+                    id,
+                    topic.clone(),
+                    ResponseParamsError::SessionSettle(ErrorParams::unknown()),
+                );
+                let response: RpcResponse = match self.dapps.get(&topic) {
+                    None => unknown,
+                    Some(dapp) => dapp
                         .send(args)
                         .await
                         .map(|r| RpcResponse {
-                            id: id.clone(),
-                            topic: topic.clone(),
+                            id,
+                            topic,
                             payload: r,
                         })
-                        .unwrap_or_else(|e| {
-                            warn!("unknown error for request {e} id:{} topic:{}", id, topic);
-                            RpcResponse::unknown(
-                                id,
-                                topic.clone(),
-                                ResponseParamsError::PairPing(ErrorParams::unknown()),
-                            )
-                        }),
-                    None => {
-                        warn!("topic {topic} has no pairing manager!");
-                        RpcResponse::unknown(
-                            id,
-                            topic.clone(),
-                            ResponseParamsError::PairPing(ErrorParams::unknown()),
-                        )
-                    }
+                        .unwrap_or(unknown),
                 };
-                tokio::spawn(async move {
-                    if let Err(err) = responder.send(response).await {
-                        warn!(
-                            "Failed to send response for id {} on topic {} {}",
-                            id, topic, err
-                        );
-                    }
-                });
-
-                 */
+                if let Err(e) = self.responder.send(response).await {
+                    warn!("responder actor is not responding {e}");
+                }
             }
-            RequestParams::SessionPropose(args) => {}
-            RequestParams::SessionSettle(_) => {}
             RequestParams::SessionUpdate(_) => {}
             RequestParams::SessionExtend(_) => {}
             RequestParams::SessionRequest(_) => {}

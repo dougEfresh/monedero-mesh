@@ -11,10 +11,14 @@ pub mod rpc;
 pub mod session;
 mod storage;
 mod transport;
-// mod wallet;
+mod wallet;
 
+use crate::domain::MessageId;
+use crate::relay::ConnectionHandler;
 use crate::rpc::SessionSettleRequest;
+use crate::session::ClientSession;
 pub use crypto::cipher::Cipher;
+pub use dapp::Dapp;
 pub use domain::Message;
 pub use error::Error;
 pub use pair::{PairingManager, WalletConnectBuilder};
@@ -24,13 +28,9 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex, Once, OnceLock};
 pub use storage::KvStorage;
 use tokio::sync::broadcast;
-pub use walletconnect_sdk::client::error::ClientError;
-
-use crate::domain::MessageId;
-use crate::relay::ConnectionHandler;
-use crate::session::ClientSession;
 pub use transport::WireEvent;
-
+pub use wallet::Wallet;
+pub use walletconnect_sdk::client::error::ClientError;
 pub type EventChannel = broadcast::Receiver<WireEvent>;
 pub type EventClientSession = tokio::sync::oneshot::Receiver<Result<ClientSession>>;
 pub type Atomic<T> = Arc<Mutex<T>>;
