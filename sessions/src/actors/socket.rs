@@ -1,10 +1,6 @@
-use crate::{Atomic, PairingManager, SocketEvent};
-use std::future::Future;
-use std::sync::{Arc, Mutex};
-use tokio::sync::RwLock;
-use tracing::{debug, info, warn};
+use crate::{PairingManager, SocketEvent};
+use tracing::{debug, warn};
 use xtra::prelude::*;
-use xtra::WeakAddress;
 
 #[derive(Clone, Default, xtra::Actor)]
 pub(crate) struct SocketActor {
@@ -14,10 +10,10 @@ pub(crate) struct SocketActor {
 impl Handler<SocketEvent> for SocketActor {
     type Return = ();
 
-    async fn handle(&mut self, message: SocketEvent, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: SocketEvent, _ctx: &mut Context<Self>) -> Self::Return {
         if let Some(handler) = self.address.as_ref() {
             if let Err(e) = handler.send(message).await {
-                warn!("failed to send socket event to handler");
+                warn!("failed to send socket event to handler: '{e}'");
             }
         } else {
             debug!("no socket handlers available");
@@ -31,7 +27,7 @@ impl Handler<Address<PairingManager>> for SocketActor {
     async fn handle(
         &mut self,
         message: Address<PairingManager>,
-        ctx: &mut Context<Self>,
+        _ctx: &mut Context<Self>,
     ) -> Self::Return {
         self.address = Some(message);
     }

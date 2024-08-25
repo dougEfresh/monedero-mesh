@@ -1,9 +1,8 @@
 use crate::actors::TransportActor;
-use crate::rpc::{RpcRequest, RpcResponsePayload};
+use crate::rpc::RpcRequest;
 use crate::session::ClientSession;
 use crate::Topic;
 use dashmap::DashMap;
-use std::future::Future;
 use std::sync::Arc;
 use xtra::prelude::*;
 
@@ -25,7 +24,7 @@ impl SessionRequestHandlerActor {
 impl Handler<ClientSession> for SessionRequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: ClientSession, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: ClientSession, _ctx: &mut Context<Self>) -> Self::Return {
         self.sessions.insert(message.topic(), message);
     }
 }

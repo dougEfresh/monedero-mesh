@@ -1,18 +1,11 @@
 use crate::actors::{AddRequest, InboundResponseActor, SendRequest, Subscribe};
-use crate::crypto::CipherError;
-use crate::domain::{MessageId, SubscriptionId, Topic};
-use crate::relay::{Client, MessageIdGenerator};
+use crate::domain::{MessageId, SubscriptionId};
+use crate::relay::Client;
 use crate::rpc::{
-    IrnMetadata, RelayProtocolMetadata, Request, RequestParams, Response, ResponseParams,
-    RpcResponse, RpcResponsePayload,
+    IrnMetadata, RelayProtocolMetadata, Request, Response, RpcResponse, RpcResponsePayload,
 };
-use crate::transport::TopicTransport;
 use crate::Cipher;
 use crate::Result;
-use dashmap::DashMap;
-use serde::de::DeserializeOwned;
-use serde_json::Value;
-use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::oneshot;
@@ -151,8 +144,9 @@ impl Handler<SendRequest> for TransportActor {
 mod test {
     use super::*;
     use crate::actors::InboundResponseActor;
+    use crate::crypto::CipherError;
     use crate::relay::mock::test::DummyHandler;
-    use crate::rpc::PairPingRequest;
+    use crate::rpc::{PairPingRequest, RequestParams};
     use crate::{KvStorage, Pairing};
     use xtra::Mailbox;
 

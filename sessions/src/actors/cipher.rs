@@ -3,7 +3,6 @@ use crate::domain::Topic;
 use crate::rpc::{Proposer, SessionProposeResponse};
 use crate::Result;
 use crate::{Cipher, Pairing};
-use std::future::Future;
 use xtra::prelude::*;
 
 #[derive(Clone, xtra::Actor)]

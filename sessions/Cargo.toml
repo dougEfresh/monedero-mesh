@@ -5,10 +5,10 @@ edition = "2021"
 
 [lints.rust]
 unsafe_code = "forbid"
-unused = "allow"
-unused_variables = "allow"
-unused_imports = "allow"
-dead_code = "allow"
+unused = "deny"
+unused_variables = "deny"
+unused_imports = "deny"
+dead_code = "deny"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

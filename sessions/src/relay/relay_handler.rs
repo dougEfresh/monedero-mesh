@@ -1,15 +1,11 @@
 use crate::actors::{Actors, InboundResponseActor, RequestHandlerActor, SocketActor};
 use crate::domain::Message;
 use crate::relay::{ClientError, CloseFrame, ConnectionHandler};
-use crate::rpc::{Payload, Request, RequestParams, Response, ResponseParams, RpcRequest};
-use crate::transport::{PendingRequests, RpcRecv};
-use crate::{Cipher, SocketEvent, WireEvent};
-use std::sync::Arc;
-use std::thread::spawn;
-use tokio::select;
-use tokio::sync::{broadcast, mpsc};
-use tracing::{debug, error, info, trace, warn};
-use xtra::{Actor, Address};
+use crate::rpc::{Payload, Response, RpcRequest};
+use crate::{Cipher, SocketEvent};
+use tokio::sync::mpsc;
+use tracing::{error, info, trace, warn};
+use xtra::prelude::*;
 
 pub struct RelayHandler {
     cipher: Cipher,

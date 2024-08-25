@@ -10,7 +10,6 @@ use {
 };
 
 use crate::domain::{MessageId, Topic};
-use crate::transport::Wired;
 pub use params::*;
 pub use sdkerrors::SdkErrors;
 

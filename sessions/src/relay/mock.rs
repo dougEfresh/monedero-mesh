@@ -1,16 +1,13 @@
 use crate::domain::{SubscriptionId, Topic};
-use crate::relay::{
-    ClientError, CloseFrame, ConnectionHandler, ConnectionOptions, MessageIdGenerator, Result,
-};
-use crate::{relay, Atomic, Message};
+use crate::relay::{ClientError, ConnectionHandler, MessageIdGenerator, Result};
+use crate::Message;
 use dashmap::DashMap;
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::VecDeque;
 use std::fmt::{Debug, Display, Formatter};
-use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{broadcast, mpsc, RwLock};
+use tokio::sync::{broadcast, RwLock};
 type ClientId = Topic;
 
 use once_cell::sync::Lazy;
@@ -38,20 +35,12 @@ pub(crate) struct MockPayload {
     event: MockEvents,
 }
 
-fn display_client_id(id: &ClientId) -> String {
-    let mut id = format!("{}", id);
-    if id.len() > 10 {
-        id = String::from(&id[0..9]);
-    }
-    id
-}
-
 impl Debug for MockPayload {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "clientId:{} event: {}",
-            display_client_id(&self.id),
+            crate::shorten_topic(&self.id),
             self.event
         )
     }
@@ -63,7 +52,6 @@ impl Display for MockEvents {
             MockEvents::Connect => String::from("connected"),
             MockEvents::Disconnect => String::from("disconnect"),
             MockEvents::Payload(p) => format!("messageId: {}", p.id),
-            MockEvents::Shutdown => String::from("shutdown"),
         };
         write!(f, "{event}")
     }
@@ -74,8 +62,6 @@ pub(crate) enum MockEvents {
     Connect,
     Disconnect,
     Payload(Message),
-    //Subscribe(ClientId, Topic),
-    Shutdown,
 }
 
 async fn event_loop<T: ConnectionHandler>(
@@ -100,7 +86,7 @@ async fn event_loop<T: ConnectionHandler>(
                 }
                 MockEvents::Payload(message) => {
                     if payload.id == mocker.client_id {
-                        tracing::debug!("[{}] got my own message", mocker);
+                        debug!("[{}] got my own message", mocker);
                         continue;
                     }
                     if !mocker.connected.load(Ordering::Relaxed) {
@@ -117,7 +103,6 @@ async fn event_loop<T: ConnectionHandler>(
                     }
                     handler.message_received(message);
                 }
-                MockEvents::Shutdown => break,
             },
         }
     }
@@ -160,6 +145,15 @@ impl Mocker {
     fn my_topic(&self, topic: &Topic) -> bool {
         self.topics.contains_key(topic)
     }
+
+    fn fmt_common(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "clientId:{} topics: {}",
+            crate::shorten_topic(&self.client_id),
+            self.topics.len()
+        )
+    }
 }
 
 pub struct MockerFactory {
@@ -183,23 +177,13 @@ impl MockerFactory {
 
 impl Debug for Mocker {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "clientId:{} topics: {}",
-            display_client_id(&self.client_id),
-            self.topics.len()
-        )
+        self.fmt_common(f)
     }
 }
 
 impl Display for Mocker {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "clientId:{} topics: {}",
-            display_client_id(&self.client_id),
-            self.topics.len()
-        )
+        self.fmt_common(f)
     }
 }
 
@@ -310,8 +294,10 @@ impl Mocker {
 pub(crate) mod test {
     use super::*;
     use crate::domain::ProjectId;
-    use crate::RELAY_ADDRESS;
+    use crate::relay::{CloseFrame, ConnectionOptions};
+    use crate::{Atomic, RELAY_ADDRESS};
     use assert_matches::assert_matches;
+    use std::sync::Mutex;
     use std::time::Duration;
     use tokio::time::sleep;
     use walletconnect_sdk::rpc::auth::ed25519_dalek::SigningKey;

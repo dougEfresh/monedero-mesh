@@ -1,28 +1,17 @@
 mod builder;
 mod handlers;
-//pub(crate) mod settlement;
 
 use crate::actors::Actors;
 use crate::domain::{SubscriptionId, Topic};
-use crate::relay::{Client, ConnectionHandler, ConnectionOptions};
-use crate::rpc::{
-    ErrorParams, Metadata, PairDeleteRequest, PairExtendRequest, PairPingRequest,
-    ProposeNamespaces, Proposer, RelayProtocol, Request, RequestParams, Response, ResponseParams,
-    ResponseParamsError, ResponseParamsSuccess, RpcResponse, RpcResponsePayload,
-    SessionProposeRequest,
-};
-use crate::session::{ClientSession, RelayHandler};
-use crate::transport::{PendingRequests, RpcRecv, TopicTransport};
-use crate::{relay, session, Cipher, EventChannel, KvStorage, Pairing, Result, WireEvent};
+use crate::relay::relay_handler::RelayHandler;
+use crate::relay::{Client, ConnectionOptions};
+use crate::rpc::{ErrorParams, PairExtendRequest, RequestParams};
+use crate::transport::TopicTransport;
+use crate::{Cipher, Pairing, Result};
 pub use builder::WalletConnectBuilder;
 use serde::de::DeserializeOwned;
-use serde_json::json;
-use std::future::Future;
-use std::sync::{mpsc, Arc};
-use std::time::Duration;
-use tokio::sync::{broadcast, oneshot};
 use tracing::{info, warn};
-use xtra::{Context, Handler, Mailbox};
+use xtra::prelude::*;
 
 pub trait PairHandler: Send + 'static {
     fn ping(&mut self, topic: Topic);
@@ -34,27 +23,13 @@ pub struct PairingManager {
     relay: Client,
     opts: ConnectionOptions,
     ciphers: Cipher,
-    metadata: Metadata,
     transport: TopicTransport,
-    terminator: broadcast::Sender<()>,
-    //storage: Arc<KvStorage>,
     actors: Actors,
 }
 
 impl PairingManager {
-    //pub(crate) fn create_pairing_topic(&self) -> Pairing {
-
-    //}
-}
-
-impl PairingManager {
-    async fn init(metadata: Metadata, opts: ConnectionOptions, actors: Actors) -> Result<Self> {
-        //let (broadcast_tx, _broadcast_rx) = broadcast::channel::<WireEvent>(5);
-        let (terminator, terminate_rx) = broadcast::channel::<()>(2);
-        //let pending_requests = PendingRequests::new();
-        //let storage = Arc::new(storage);
+    async fn init(opts: ConnectionOptions, actors: Actors) -> Result<Self> {
         let ciphers = actors.cipher().clone();
-        //let socket_handler_rx = broadcast_tx.subscribe();
         let handler = RelayHandler::new(ciphers.clone(), actors.clone());
         #[cfg(feature = "mock")]
         let relay = Client::mock(handler);
@@ -67,15 +42,11 @@ impl PairingManager {
 
         let transport = TopicTransport::new(actors.transport());
 
-        //tokio::spawn(session::handle_session_request(broadcast_rx, terminate_rx));
         let mgr = Self {
             relay,
             opts,
             ciphers,
-            metadata,
             transport,
-            terminator,
-            //storage,
             actors: actors.clone(),
         };
 
@@ -87,11 +58,12 @@ impl PairingManager {
         Ok(mgr)
     }
 
+    #[cfg(feature = "mock")]
     pub fn ciphers(&self) -> Cipher {
         self.ciphers.clone()
     }
 
-    pub async fn subscribe(&self, topic: Topic) -> Result<(SubscriptionId)> {
+    pub async fn subscribe(&self, topic: Topic) -> Result<SubscriptionId> {
         Ok(self.relay.subscribe(topic).await?)
     }
 
@@ -110,7 +82,7 @@ impl PairingManager {
     pub async fn ping(&self) -> Result<bool> {
         let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
         self.transport
-            .publish_request(t, RequestParams::PairPing(PairPingRequest {}))
+            .publish_request(t, RequestParams::PairPing(Default::default()))
             .await
     }
 

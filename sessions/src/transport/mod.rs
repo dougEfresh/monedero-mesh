@@ -1,153 +1,11 @@
-use crate::actors::{
-    Actors, AddRequest, InboundResponseActor, RequestHandlerActor, SendRequest, Subscribe,
-    TransportActor,
-};
-use crate::domain::{MessageId, SubscriptionId, Topic};
-use crate::relay::{Client, MessageIdGenerator};
-use crate::rpc::{
-    Payload, RelayProtocolMetadata, Request, RequestParams, Response, ResponseParams,
-    ResponseParamsSuccess, SessionDeleteRequest, SessionEventRequest, SessionExtendRequest,
-    SessionProposeRequest, SessionRequestRequest, SessionSettleRequest, SessionUpdateRequest,
-};
-use crate::{Atomic, Cipher, Settlement};
-use crate::{Message, Result};
+use crate::actors::{SendRequest, TransportActor};
+use crate::domain::Topic;
+use crate::rpc::{RequestParams, ResponseParams};
+use crate::Result;
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use tokio::sync::oneshot;
-use tokio::sync::oneshot::error::RecvError;
 use tokio::time::timeout;
-use tracing::{debug, error, info, warn, Instrument};
 use xtra::Address;
-
-pub trait Wired: Debug + Clone + PartialEq + Serialize + DeserializeOwned {}
-impl<T> Wired for T where T: Debug + Clone + PartialEq + Serialize + DeserializeOwned {}
-
-/// RpcRecv embeds the topic and id to all events. This gives listeners context about the broadcast [WireEvent](WireEvent)
-#[derive(Clone, Debug, Serialize)]
-pub struct RpcRecv<T: Wired> {
-    pub id: MessageId,
-    pub topic: Topic,
-    pub recv: T,
-}
-
-impl<T: Wired> RpcRecv<T> {
-    pub fn new(id: MessageId, topic: Topic, recv: T) -> Self {
-        Self { id, topic, recv }
-    }
-}
-
-/// Sign API request parameters.
-///
-/// https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
-/// https://specs.walletconnect.com/2.0/specs/clients/sign/data-structures
-#[derive(Clone, Debug, Serialize)]
-pub enum SessionRpcEvent {
-    Propose(RpcRecv<SessionProposeRequest>),
-    Settle(RpcRecv<SessionSettleRequest>),
-    Update(RpcRecv<SessionUpdateRequest>),
-    Extend(RpcRecv<SessionExtendRequest>),
-    Request(RpcRecv<SessionRequestRequest>),
-    Event(RpcRecv<SessionEventRequest>),
-    Delete(RpcRecv<SessionDeleteRequest>),
-    Ping(RpcRecv<()>),
-    Unknown(RpcRecv<()>),
-}
-
-/// Pairing RPC methods
-/// https://specs.walletconnect.com/2.0/specs/clients/core/pairing/rpc-methods
-#[derive(Clone, Debug, Serialize)]
-pub enum PairingRpcEvent {
-    Delete(RpcRecv<()>),
-    Extend(RpcRecv<()>),
-    Ping(RpcRecv<()>),
-    Unknown(RpcRecv<()>),
-}
-
-impl From<RpcRecv<RequestParams>> for SessionRpcEvent {
-    fn from(value: RpcRecv<RequestParams>) -> Self {
-        match value.recv {
-            RequestParams::SessionPropose(p) => {
-                SessionRpcEvent::Propose(RpcRecv::new(value.id, value.topic, p))
-            }
-            RequestParams::SessionSettle(p) => {
-                SessionRpcEvent::Settle(RpcRecv::new(value.id, value.topic, p))
-            }
-            RequestParams::SessionUpdate(p) => {
-                SessionRpcEvent::Update(RpcRecv::new(value.id, value.topic, p))
-            }
-            RequestParams::SessionExtend(p) => {
-                SessionRpcEvent::Extend(RpcRecv::new(value.id, value.topic, p))
-            }
-            RequestParams::SessionRequest(p) => {
-                SessionRpcEvent::Request(RpcRecv::new(value.id, value.topic, p))
-            }
-            RequestParams::SessionEvent(p) => {
-                SessionRpcEvent::Event(RpcRecv::new(value.id, value.topic, p))
-            }
-            RequestParams::SessionDelete(p) => {
-                SessionRpcEvent::Delete(RpcRecv::new(value.id, value.topic, p))
-            }
-            RequestParams::SessionPing(p) => {
-                SessionRpcEvent::Ping(RpcRecv::new(value.id, value.topic, p))
-            }
-            _ => SessionRpcEvent::Unknown(RpcRecv::new(value.id, value.topic, ())),
-        }
-    }
-}
-
-impl From<RpcRecv<RequestParams>> for PairingRpcEvent {
-    fn from(value: RpcRecv<RequestParams>) -> Self {
-        match value.recv {
-            RequestParams::PairDelete(_) => {
-                PairingRpcEvent::Delete(RpcRecv::new(value.id, value.topic, ()))
-            }
-            RequestParams::PairExtend(_) => {
-                PairingRpcEvent::Extend(RpcRecv::new(value.id, value.topic, ()))
-            }
-            RequestParams::PairPing(_) => {
-                PairingRpcEvent::Ping(RpcRecv::new(value.id, value.topic, ()))
-            }
-            _ => PairingRpcEvent::Unknown(RpcRecv::new(value.id, value.topic, ())),
-        }
-    }
-}
-
-// A collection of low level events (socket) and high level decrypted session/pairing RPC calls
-#[derive(Clone, Debug, Serialize)]
-pub enum WireEvent {
-    Connected,
-    Disconnect,
-    // Raw message before decrypt
-    MessageRecv(Message),
-    // Decrypted messages
-    RequestRecv(RpcRecv<RequestParams>),
-    ResponseRecv(RpcRecv<ResponseParams>),
-
-    // Replay back to a request
-    SendResponse(RpcRecv<ResponseParamsSuccess>),
-
-    // Rpc Session requests
-    SessionRpc(SessionRpcEvent),
-
-    // Pairing topic events
-    PairingRpc(PairingRpcEvent),
-
-    // Final settlement
-    //SessionSettled(SessionTransport),
-
-    // Errors
-    DisconnectFromHandler,
-    DecryptError(Message, Arc<str>),
-    SettlementFailed,
-
-    Shutdown,
-}
 
 #[derive(Clone)]
 pub(crate) struct TopicTransport {
@@ -157,10 +15,6 @@ pub(crate) struct TopicTransport {
 impl TopicTransport {
     pub(crate) fn new(transport_actor: Address<TransportActor>) -> Self {
         Self { transport_actor }
-    }
-
-    pub async fn subscribe(&self, topic: Topic) -> Result<SubscriptionId> {
-        self.transport_actor.send(Subscribe(topic)).await?
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -180,7 +34,7 @@ impl TopicTransport {
                     ResponseParams::Success(v) => Ok(serde_json::from_value(v)?),
                     ResponseParams::Err(v) => Err(crate::Error::RpcError(v)),
                 },
-                Err(e) => Err(crate::Error::ResponseChannelError(id)),
+                Err(_) => Err(crate::Error::ResponseChannelError(id)),
             };
         }
         Err(crate::Error::ResponseTimeout)
@@ -206,65 +60,9 @@ impl Display for SessionTransport {
 }
 
 impl SessionTransport {
-    /*
-    pub async fn publish_response(&self, id: MessageId, resp: ResponseParamsSuccess) -> Result<()> {
-        self.transport
-            .publish_response(id, self.topic.clone(), resp)
-            .await
-    }
-     */
     pub async fn publish_request<R: DeserializeOwned>(&self, params: RequestParams) -> Result<R> {
         self.transport
             .publish_request(self.topic.clone(), params)
             .await
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct PendingRequests {
-    requests: Atomic<HashMap<MessageId, oneshot::Sender<Result<Value>>>>,
-    generator: MessageIdGenerator,
-}
-
-impl PendingRequests {
-    pub fn new() -> Self {
-        Self {
-            //settlement: Arc::new(Mutex::new(HashMap::new())),
-            requests: Arc::new(Mutex::new(HashMap::new())),
-            generator: MessageIdGenerator::new(),
-        }
-    }
-}
-
-impl PendingRequests {
-    pub fn add(&self) -> Result<(MessageId, oneshot::Receiver<Result<Value>>)> {
-        let id = self.generator.next();
-        let (tx, rx) = oneshot::channel::<Result<Value>>();
-        {
-            let mut pending_requests = self.requests.lock().unwrap();
-            pending_requests.insert(id, tx);
-        }
-        Ok((id, rx))
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, params))]
-    pub fn handle_response(&self, id: &MessageId, params: ResponseParams) {
-        match self.requests.lock() {
-            Ok(mut l) => match l.remove(id) {
-                Some(sender) => {
-                    let res: Result<Value> = match params {
-                        ResponseParams::Success(v) => Ok(v),
-                        ResponseParams::Err(v) => Err(crate::Error::RpcError(v)),
-                    };
-                    let _ = sender.send(res);
-                }
-                None => {
-                    error!("no matching id {id} to handle {params:#?}");
-                }
-            },
-            Err(_) => {
-                warn!("poison lock!!");
-            }
-        };
     }
 }

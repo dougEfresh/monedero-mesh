@@ -18,8 +18,6 @@ use crate::{Cipher, Pairing, PairingManager};
 use crate::{Dapp, Result, Wallet};
 pub(crate) use inbound::{AddRequest, InboundResponseActor};
 pub(crate) use request::RequestHandlerActor;
-use serde::de::DeserializeOwned;
-use std::future::Future;
 use tracing::debug;
 pub(crate) use transport::TransportActor;
 use xtra::{Address, Mailbox};

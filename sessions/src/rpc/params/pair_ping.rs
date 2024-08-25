@@ -2,7 +2,6 @@
 //! #wc_pairingPing
 
 use super::IrnMetadata;
-use crate::domain::{MessageId, Topic};
 use crate::rpc::{TAG_PAIR_PING_REQUEST, TAG_PAIR_PING_RESPONSE};
 use serde::{Deserialize, Serialize};
 
@@ -18,18 +17,9 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
     prompt: false,
 };
 
-#[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PairPingRequest {}
-
-/*
-#[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
-pub struct PairRpcPing {
-    pub id: MessageId,
-    pub topic: Topic,
-    pub request: PairPingRequest
-}
- */
 
 #[cfg(test)]
 mod tests {

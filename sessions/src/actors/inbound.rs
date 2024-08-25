@@ -1,9 +1,7 @@
-use crate::domain::{MessageId, Topic};
+use crate::domain::MessageId;
 use crate::relay::MessageIdGenerator;
-use crate::rpc::{RequestParams, Response, ResponseParams};
+use crate::rpc::Response;
 use dashmap::DashMap;
-use serde_json::Value;
-use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 use tracing::{debug, error, warn};
@@ -51,7 +49,9 @@ impl Handler<Response> for InboundResponseActor {
 mod test {
     use super::*;
     use crate::actors::inbound::{AddRequest, InboundResponseActor};
-    use crate::rpc::{RelayProtocolHelpers, ResponseParamsSuccess, SessionProposeResponse};
+    use crate::rpc::{
+        RelayProtocolHelpers, ResponseParams, ResponseParamsSuccess, SessionProposeResponse,
+    };
     use anyhow::format_err;
     use std::time::Duration;
     use xtra::prelude::*;

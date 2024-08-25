@@ -8,8 +8,7 @@ use hkdf::Hkdf;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tracing::debug;
 use walletconnect_sdk::rpc::auth::ed25519_dalek::{SecretKey, VerifyingKey};
 use walletconnect_sdk::rpc::domain::{DecodedTopic, Topic};
@@ -93,7 +92,7 @@ impl Cipher {
         _pairing_topic: Option<Topic>,
     ) -> Result<Self, CipherError> {
         let storage_pairing_key = Self::storage_key_pairing();
-        let mut pairings = DashMap::new();
+        let pairings = DashMap::new();
         if let Some(pairing) = storage.get::<Pairing>(storage_pairing_key)? {
             pairings.insert(pairing.topic.clone(), Arc::new(pairing));
         }

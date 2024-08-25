@@ -8,11 +8,14 @@ pub use error::ClientError;
 use std::borrow::Cow;
 use std::sync::Arc;
 use std::time::Duration;
+#[cfg(not(feature = "mock"))]
+use walletconnect_sdk::client::websocket::Client as WcClient;
+#[cfg(not(feature = "mock"))]
+use walletconnect_sdk::client::websocket::ConnectionHandler as WcHandler;
+#[cfg(not(feature = "mock"))]
 use walletconnect_sdk::client::websocket::PublishedMessage;
-pub use walletconnect_sdk::client::websocket::{
-    Client as WcClient, ConnectionHandler as WcHandler,
-};
 use walletconnect_sdk::client::Authorization;
+#[cfg(not(feature = "mock"))]
 pub use walletconnect_sdk::client::ConnectionOptions as WcOptions;
 pub use walletconnect_sdk::client::MessageIdGenerator;
 use walletconnect_sdk::rpc::auth::SerializedAuthToken;
@@ -91,15 +94,19 @@ pub struct Client {
     #[cfg(feature = "mock")]
     wc: mock::Mocker,
 }
+
+#[cfg(not(feature = "mock"))]
 struct WrapperHandler<T: ConnectionHandler> {
     handler: T,
 }
+#[cfg(not(feature = "mock"))]
 impl<T: ConnectionHandler> WrapperHandler<T> {
     fn new(handler: T) -> Self {
         Self { handler }
     }
 }
 
+#[cfg(not(feature = "mock"))]
 impl<T: ConnectionHandler> WcHandler for WrapperHandler<T> {
     fn connected(&mut self) {
         self.handler.connected()
@@ -179,7 +186,7 @@ impl Client {
     }
 
     #[cfg(feature = "mock")]
-    pub async fn connect(&self, opts: &ConnectionOptions) -> Result<()> {
+    pub async fn connect(&self, _opts: &ConnectionOptions) -> Result<()> {
         self.wc.connect().await
     }
 

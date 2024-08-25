@@ -1,20 +1,17 @@
-use crate::actors::{SendRequest, SessionSettled};
+use crate::actors::SessionSettled;
 use crate::rpc::{
-    Controller, Metadata, Proposer, RequestParams, Response, ResponseParamsError,
-    ResponseParamsSuccess, RpcResponsePayload, SdkErrors, SessionProposeRequest,
-    SessionProposeResponse, SessionSettleRequest, SettleNamespace, SettleNamespaces,
+    Controller, Metadata, RequestParams, ResponseParamsError, ResponseParamsSuccess,
+    RpcResponsePayload, SdkErrors, SessionProposeRequest, SessionProposeResponse,
+    SessionSettleRequest, SettleNamespace, SettleNamespaces,
 };
-use crate::{rpc, Pairing, PairingManager, Result};
+use crate::{Pairing, PairingManager, Result};
 use std::collections::{BTreeMap, BTreeSet};
-use std::future::Future;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::time::Duration;
-use tokio::sync::oneshot::error::RecvError;
-use tokio::time::error::Elapsed;
-use tokio::time::timeout;
 use tracing::{info, warn};
 use xtra::prelude::*;
+
 const SUPPORTED_ACCOUNT: &str = "0xBA5BA3955463ADcc7aa3E33bbdfb8A68e0933dD8";
 
 #[derive(Clone, xtra::Actor)]

@@ -1,19 +1,17 @@
 use crate::actors::{Actors, SessionSettled};
 use crate::domain::Topic;
 use crate::rpc::{
-    ProposeNamespaces, RelayProtocol, RequestParams, ResponseParamsSuccess, RpcResponsePayload,
-    SessionProposeRequest, SessionProposeResponse, SessionSettleRequest,
+    ProposeNamespaces, RequestParams, ResponseParamsSuccess, RpcResponsePayload,
+    SessionProposeRequest, SessionProposeResponse,
 };
 use crate::session::ClientSession;
-use crate::transport::{SessionTransport, TopicTransport};
 use crate::Result;
 use crate::{Pairing, PairingManager};
 use dashmap::DashMap;
-use std::future::Future;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use tokio::sync::oneshot;
 use tokio::sync::oneshot::Sender;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 use x25519_dalek::PublicKey;
 use xtra::{Context, Handler};
 
@@ -65,7 +63,7 @@ impl Handler<SessionSettled> for Dapp {
 fn handle_error(dapp: Dapp, e: crate::Error) {
     debug!("session settlement failed {}", e);
     if let Some(topic) = dapp.manager.topic() {
-        if let Some((_, mut tx)) = dapp.pending_proposals.remove(&topic) {
+        if let Some((_, tx)) = dapp.pending_proposals.remove(&topic) {
             if let Err(_) = tx.send(Err(e)) {
                 warn!("proposal channel is gone!");
             }

@@ -1,23 +1,20 @@
 use crate::rpc::{PairDeleteRequest, PairPingRequest, ResponseParamsSuccess, RpcResponsePayload};
-use crate::{PairingManager, SocketEvent, WireEvent};
+use crate::{PairingManager, SocketEvent};
 use backoff::future::retry;
-use backoff::{ExponentialBackoff, ExponentialBackoffBuilder};
-use std::future::Future;
+use backoff::ExponentialBackoffBuilder;
 use std::time::Duration;
-use tokio::sync::broadcast;
 use tracing::{info, warn};
 use xtra::prelude::*;
 
 async fn handle_socket_close(mgr: PairingManager) {
-    //info!("reconnecting after 3 seconds");
-
+    info!("reconnecting");
     //tokio::time::sleep(Duration::from_secs(3)).await;
 
     let backoff = ExponentialBackoffBuilder::new()
         .with_max_elapsed_time(Some(Duration::from_secs(60)))
         .with_initial_interval(Duration::from_secs(3))
         .build();
-    retry(backoff, || async {
+    let _ = retry(backoff, || async {
         info!("attempting reconnect");
         Ok(mgr.open_socket().await?)
     })

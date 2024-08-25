@@ -1,21 +1,16 @@
 use crate::actors::session::SessionRequestHandlerActor;
 use crate::actors::{RegisterDapp, RegisterWallet, SessionSettled, TransportActor};
-use crate::domain::{MessageId, Topic};
+use crate::domain::Topic;
 use crate::relay::Client;
 use crate::rpc::{
-    ErrorParams, PairDeleteRequest, PairPingRequest, Request, RequestParams, Response,
-    ResponseParams, ResponseParamsError, ResponseParamsSuccess, RpcErrorResponse, RpcRequest,
-    RpcResponse, RpcResponsePayload,
+    ErrorParams, PairDeleteRequest, PairPingRequest, RequestParams, ResponseParamsError,
+    ResponseParamsSuccess, RpcRequest, RpcResponse, RpcResponsePayload,
 };
-use crate::transport::{PairingRpcEvent, RpcRecv};
-use crate::{rpc, Cipher, Error, PairingManager, RegisteredManagers};
 use crate::{Dapp, Result, Wallet};
+use crate::{PairingManager, RegisteredManagers};
 use dashmap::DashMap;
-use serde_json::json;
-use std::collections::HashMap;
-use std::future::Future;
 use std::sync::Arc;
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 use xtra::prelude::*;
 
 #[derive(xtra::Actor)]
