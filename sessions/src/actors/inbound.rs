@@ -21,7 +21,7 @@ impl Handler<AddRequest> for InboundResponseActor {
     async fn handle(&mut self, _message: AddRequest, _ctx: &mut Context<Self>) -> Self::Return {
         let id = self.generator.next();
         let (tx, rx) = oneshot::channel::<Response>();
-        self.pending.insert(id.clone(), tx);
+        self.pending.insert(id, tx);
         (id, rx)
     }
 }
@@ -32,8 +32,8 @@ impl Handler<Response> for InboundResponseActor {
     async fn handle(&mut self, message: Response, _ctx: &mut Context<Self>) -> Self::Return {
         debug!("handing a response with message id {}", message.id);
         if let Some((_, tx)) = self.pending.remove(&message.id) {
-            let id = message.id.clone();
-            if let Err(_) = tx.send(message) {
+            let id = message.id;
+            if tx.send(message).is_err() {
                 warn!("oneshot channel for id {} hash closed", id);
             }
             return;
@@ -67,7 +67,6 @@ mod test {
             responder_public_key: "blah".to_string(),
             relay: Default::default(),
         });
-        let send_purpose = params.clone();
         let v = serde_json::to_value(params.clone())?;
         tokio::spawn(async move {
             let resp = Response::new(id, ResponseParams::Success(v));

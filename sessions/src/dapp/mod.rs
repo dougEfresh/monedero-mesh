@@ -49,7 +49,7 @@ impl Handler<SessionSettled> for Dapp {
                     ));
 
                     tokio::spawn(async move {
-                        if let Err(_) = tx.send(session) {
+                        if tx.send(session).is_err() {
                             warn!("failed to send final client session for settlement");
                         }
                     });
@@ -64,7 +64,7 @@ fn handle_error(dapp: Dapp, e: crate::Error) {
     debug!("session settlement failed {}", e);
     if let Some(topic) = dapp.manager.topic() {
         if let Some((_, tx)) = dapp.pending_proposals.remove(&topic) {
-            if let Err(_) = tx.send(Err(e)) {
+            if tx.send(Err(e)).is_err() {
                 warn!("proposal channel is gone!");
             }
             return;

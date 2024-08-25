@@ -32,5 +32,5 @@ impl Handler<ClientSession> for SessionRequestHandlerActor {
 impl Handler<RpcRequest> for SessionRequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {}
+    async fn handle(&mut self, _message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {}
 }

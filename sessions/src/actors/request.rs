@@ -101,14 +101,14 @@ async fn handle_pair_delete_request(
     responder: Address<TransportActor>,
     unknown: RpcResponse,
 ) {
-    let id = unknown.id.clone();
+    let id = unknown.id;
     let topic = unknown.topic.clone();
     let response: RpcResponse = match managers.get(&topic) {
         Some(mgr) => mgr
             .send(args)
             .await
             .map(|r| RpcResponse {
-                id: id.clone(),
+                id,
                 topic: topic.clone(),
                 payload: r,
             })
@@ -135,14 +135,14 @@ async fn handle_pair_request(
     responder: Address<TransportActor>,
     unknown: RpcResponse,
 ) {
-    let id = unknown.id.clone();
+    let id = unknown.id;
     let topic = unknown.topic.clone();
     let response: RpcResponse = match managers.get(&topic) {
         Some(mgr) => mgr
             .send(args)
             .await
             .map(|r| RpcResponse {
-                id: id.clone(),
+                id,
                 topic: topic.clone(),
                 payload: r,
             })
@@ -167,7 +167,7 @@ impl Handler<RpcRequest> for RequestHandlerActor {
     type Return = ();
 
     async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {
-        let id = message.payload.id.clone();
+        let id = message.payload.id;
         let topic = message.topic.clone();
         let responder = self.responder.clone();
         let managers = self.pair_managers.clone();
@@ -185,7 +185,7 @@ impl Handler<RpcRequest> for RequestHandlerActor {
             }
             RequestParams::PairExtend(_) => {
                 // TODO: complete
-                if let Err(_) = self
+                if self
                     .responder
                     .send(RpcResponse {
                         id,
@@ -195,6 +195,7 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                         )),
                     })
                     .await
+                    .is_err()
                 {
                     warn!("failed to send PairExtend response");
                 }

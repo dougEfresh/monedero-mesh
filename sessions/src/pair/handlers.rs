@@ -25,13 +25,10 @@ impl Handler<SocketEvent> for PairingManager {
     type Return = ();
 
     async fn handle(&mut self, message: SocketEvent, _ctx: &mut Context<Self>) -> Self::Return {
-        match message {
-            SocketEvent::ForceDisconnect => {
-                let mgr = self.clone();
-                //TODO check if already reconnecting
-                tokio::spawn(async move { handle_socket_close(mgr).await });
-            }
-            _ => {}
+        if message == SocketEvent::Disconnect {
+            let mgr = self.clone();
+            //TODO check if already reconnecting
+            tokio::spawn(async move { handle_socket_close(mgr).await });
         }
     }
 }
@@ -56,6 +53,7 @@ impl Handler<PairDeleteRequest> for PairingManager {
         _message: PairDeleteRequest,
         _ctx: &mut Context<Self>,
     ) -> Self::Return {
+        //TODO move to actor
         if let Some(pairing) = self.ciphers.pairing() {
             let relay = self.relay.clone();
             let ciphers = self.ciphers.clone();

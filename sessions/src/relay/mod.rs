@@ -1,4 +1,5 @@
 mod error;
+#[cfg(feature = "mock")]
 pub(crate) mod mock;
 pub mod relay_handler;
 

@@ -5,6 +5,9 @@ pub enum CipherError {
     #[error("Unknown topic {0:#?}")]
     UnknownTopic(Topic),
 
+    #[error("Unknown topic {0:#?}")]
+    UnknownSessionTopic(Topic),
+
     #[error("Encryption error")]
     EncryptionError,
 

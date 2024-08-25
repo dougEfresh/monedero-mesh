@@ -1,5 +1,7 @@
+use crate::actors::SessionSettled;
 use crate::crypto::error::CipherError;
 use crate::pairing_uri::Pairing;
+use crate::rpc::SessionSettleRequest;
 use crate::KvStorage;
 use chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, KeyInit, Nonce};
 use dashmap::DashMap;
@@ -106,6 +108,7 @@ impl Cipher {
     }
 
     fn init(&mut self) -> Result<(), CipherError> {
+        let mut session_expired = false;
         match self.pairing_key() {
             Some(pairing_key) => {
                 debug!("found existing pairing...restoring");
@@ -113,6 +116,15 @@ impl Cipher {
                 if let Some(sessions) = self.storage.get::<Vec<String>>(&sessions_key)? {
                     debug!("restoring {} sessions", sessions.len());
                     for s in sessions {
+                        // TODO: Do I need to copy the string?
+                        if self
+                            .is_expired(Topic::from(String::from(&s)))
+                            .ok()
+                            .unwrap_or(false)
+                        {
+                            session_expired = true;
+                            break;
+                        }
                         if let Some(controller_pk) = self
                             .storage
                             .get::<String>(format!("{CRYPTO_STORAGE_PREFIX_KEY}-{s}"))?
@@ -122,6 +134,10 @@ impl Cipher {
                             let _ = self.register(topic, expanded_key);
                         }
                     }
+                    if session_expired {
+                        tracing::info!("Session has expired, resetting storage");
+                        self.storage.clear();
+                    }
                 }
             }
             None => {
@@ -130,6 +146,22 @@ impl Cipher {
             }
         };
         Ok(())
+    }
+
+    pub(crate) fn settlement(&self, session: &SessionSettled) -> Result<(), CipherError> {
+        let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-settlement-{}", &session.0);
+        self.storage.set(sessions_key, session.1.clone())?;
+        Ok(())
+    }
+
+    pub(crate) fn is_expired(&self, topic: Topic) -> Result<bool, CipherError> {
+        let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-settlement-{}", topic);
+        let session: SessionSettleRequest = self
+            .storage
+            .get(sessions_key)?
+            .ok_or(CipherError::UnknownSessionTopic(topic))?;
+        let now = chrono::Utc::now().timestamp();
+        Ok(session.expiry < now as u64)
     }
 
     pub fn set_pairing(&self, pairing: Option<Pairing>) -> Result<(), CipherError> {
@@ -320,7 +352,7 @@ impl Cipher {
 mod tests {
     use super::*;
     use crate::crypto::session::SessionKey;
-    use crate::rpc::{PairPingRequest, Request, RequestParams, SessionExtendRequest};
+    use crate::rpc::{Controller, PairPingRequest, Request, RequestParams, SessionExtendRequest};
     use crate::storage::KvStorage;
     use anyhow::format_err;
     use std::str::FromStr;
@@ -444,6 +476,36 @@ mod tests {
         let restored_pairing = ciphers.pairing().ok_or(format_err!("pairing not here!"))?;
         assert_eq!(ciphers.len(), 1);
         assert_eq!(restored_pairing.topic, pairing_topic);
+
+        // Settlement
+        let session_key =
+            SessionKey::from_osrng(ciphers.public_key().ok_or(format_err!("shit"))?.as_bytes())?;
+        let responder_pk = session_key.public_key();
+        let (session_topic, _) = ciphers.create_common_topic(String::from(&responder_pk))?;
+
+        let now = chrono::Utc::now();
+        let future = now + chrono::Duration::hours(24);
+        let mut settlement = SessionSettleRequest {
+            relay: Default::default(),
+            controller: Controller {
+                public_key: ciphers
+                    .public_key_hex()
+                    .ok_or(CipherError::UnknownTopic(pairing_topic.clone()))?,
+                metadata: Default::default(),
+            },
+            namespaces: Default::default(),
+            expiry: future.timestamp() as u64,
+        };
+        ciphers.settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
+        assert!(!ciphers.is_expired(session_topic.clone())?);
+        let past = now - chrono::Duration::hours(1);
+        settlement.expiry = past.timestamp() as u64;
+        ciphers.settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
+        assert!(ciphers.is_expired(session_topic.clone())?);
+        drop(ciphers);
+        // restore should reset / clear storage due to expired session
+        let ciphers = Cipher::new(store.clone(), None)?;
+        assert!(ciphers.pairing().is_none());
 
         // New Pairing
         ciphers.set_pairing(Some(create_pairing()))?;

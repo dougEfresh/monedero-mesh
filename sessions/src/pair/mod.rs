@@ -51,9 +51,7 @@ impl PairingManager {
         };
 
         let socket_handler = xtra::spawn_tokio(mgr.clone(), Mailbox::unbounded());
-        if let Err(_) = actors.register_socket_handler(socket_handler).await {
-            warn!("failed to register socket handler!");
-        }
+        actors.register_socket_handler(socket_handler).await?;
         mgr.open_socket().await?;
         Ok(mgr)
     }
@@ -87,6 +85,7 @@ impl PairingManager {
     }
 
     pub async fn delete(&self) -> Result<bool> {
+        //TODO move to actor
         let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
         self.transport
             .publish_request::<bool>(t.clone(), RequestParams::PairDelete(Default::default()))

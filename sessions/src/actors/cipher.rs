@@ -1,4 +1,4 @@
-use crate::actors::ClearPairing;
+use crate::actors::{ClearPairing, SessionSettled};
 use crate::domain::Topic;
 use crate::rpc::{Proposer, SessionProposeResponse};
 use crate::Result;
@@ -22,6 +22,14 @@ impl Handler<Proposer> for CipherActor {
     async fn handle(&mut self, message: Proposer, _ctx: &mut Context<Self>) -> Self::Return {
         let (topic, _) = self.cipher.create_common_topic(message.public_key)?;
         Ok(topic)
+    }
+}
+
+impl Handler<SessionSettled> for CipherActor {
+    type Return = Result<()>;
+
+    async fn handle(&mut self, message: SessionSettled, _ctx: &mut Context<Self>) -> Self::Return {
+        Ok(self.cipher.settlement(&message)?)
     }
 }
 

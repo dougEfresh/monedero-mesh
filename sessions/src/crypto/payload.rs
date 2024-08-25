@@ -139,6 +139,7 @@ where
 }
 
 /// Decodes and decrypts the Type0 envelope payload.
+#[allow(clippy::unnecessary_fallible_conversions)]
 pub fn decode_and_decrypt_type0<T>(msg: T, key: &SymKey) -> Result<String, PayloadError>
 where
     T: AsRef<[u8]>,
@@ -165,6 +166,7 @@ where
     Ok(String::from_utf8(decrypted)?)
 }
 
+#[allow(clippy::unnecessary_fallible_conversions)]
 fn encrypt(nonce: &Nonce, payload: Payload<'_, '_>, key: &SymKey) -> Result<Vec<u8>, PayloadError> {
     let cipher = ChaCha20Poly1305::new(
         key.try_into()
@@ -187,6 +189,7 @@ fn encode(envelope_type: EnvelopeType, sealed: &[u8], init_vec: &InitVec) -> Str
     }
 }
 
+#[allow(clippy::unnecessary_fallible_conversions)]
 fn decrypt(nonce: &Nonce, payload: Payload<'_, '_>, key: &SymKey) -> Result<Vec<u8>, PayloadError> {
     let cipher = ChaCha20Poly1305::new(
         key.try_into()

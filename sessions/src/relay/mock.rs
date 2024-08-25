@@ -13,7 +13,7 @@ type ClientId = Topic;
 use once_cell::sync::Lazy;
 use tracing::{debug, info, warn};
 
-pub(crate) static MOCK_FACTORY: Lazy<MockerFactory> = Lazy::new(|| MockerFactory::new());
+pub(crate) static MOCK_FACTORY: Lazy<MockerFactory> = Lazy::new(MockerFactory::new);
 // Special topic that indicates force disconnect
 pub(crate) static DISCONNECT_TOPIC: Lazy<Topic> =
     Lazy::new(|| Topic::from("92b2701dbdbb72abea51591a06d41e7d76ebfe18e1a1ca5680a5ac6e3717c6d9"));
@@ -189,7 +189,7 @@ impl Display for Mocker {
 
 async fn pending_messages(mocker: Mocker) {
     let mut w = mocker.pending.write().await;
-    if (*w).len() == 0 {
+    if (*w).is_empty() {
         return;
     }
     let pending: Vec<(ClientId, Message)> = w.drain(..).collect();
@@ -198,10 +198,14 @@ async fn pending_messages(mocker: Mocker) {
     for (id, m) in pending {
         tokio::time::sleep(Duration::from_millis(800)).await;
         debug!("sending message id {id}");
-        if let Err(_) = mocker.tx.send(MockPayload {
-            id,
-            event: MockEvents::Payload(m),
-        }) {
+        if mocker
+            .tx
+            .send(MockPayload {
+                id,
+                event: MockEvents::Payload(m),
+            })
+            .is_err()
+        {
             warn!("mock broadcast channel closed");
             return;
         }
@@ -290,12 +294,13 @@ impl Mocker {
     }
 }
 
+#[cfg(feature = "mock")]
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
     use crate::domain::ProjectId;
     use crate::relay::{CloseFrame, ConnectionOptions};
-    use crate::{Atomic, RELAY_ADDRESS};
+    use crate::Atomic;
     use assert_matches::assert_matches;
     use std::sync::Mutex;
     use std::time::Duration;

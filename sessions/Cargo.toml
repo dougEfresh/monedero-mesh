@@ -8,7 +8,7 @@ unsafe_code = "forbid"
 unused = "deny"
 unused_variables = "deny"
 unused_imports = "deny"
-dead_code = "deny"
+dead_code = "allow"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

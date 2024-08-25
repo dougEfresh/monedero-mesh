@@ -131,7 +131,7 @@ impl Handler<SendRequest> for TransportActor {
                 topic,
                 Arc::from(encrypted),
                 irn_metadata.tag,
-                ttl.clone(),
+                ttl,
                 irn_metadata.prompt,
             )
             .await?;

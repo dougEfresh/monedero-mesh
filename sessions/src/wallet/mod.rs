@@ -5,7 +5,7 @@ use crate::rpc::{
     SessionSettleRequest, SettleNamespace, SettleNamespaces,
 };
 use crate::{Pairing, PairingManager, Result};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::time::Duration;
@@ -43,8 +43,8 @@ async fn send_settlement(wallet: Wallet, request: SessionProposeRequest, public_
             .iter()
             .map(|c| format!("{}:{}", c, SUPPORTED_ACCOUNT))
             .collect(),
-        methods: BTreeSet::from(ns.methods),
-        events: BTreeSet::from(ns.events),
+        methods: ns.methods,
+        events: ns.events,
         extensions: None,
     };
     settled.insert(String::from("eip155"), eip);

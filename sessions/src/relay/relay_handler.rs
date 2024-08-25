@@ -42,13 +42,13 @@ impl RelayHandler {
 
 impl ConnectionHandler for RelayHandler {
     fn connected(&mut self) {
-        if let Err(_) = self.socket_tx.send(SocketEvent::Connected) {
+        if self.socket_tx.send(SocketEvent::Connected).is_err() {
             warn!("failed to send socket event");
         }
     }
 
     fn disconnected(&mut self, _frame: Option<CloseFrame<'static>>) {
-        if let Err(_) = self.socket_tx.send(SocketEvent::ForceDisconnect) {
+        if self.socket_tx.send(SocketEvent::ForceDisconnect).is_err() {
             warn!("failed to send socket event");
         }
     }
@@ -98,8 +98,8 @@ async fn event_loop_socket(
 ) {
     info!("started event loop for sockets");
     while let Some(r) = rx.recv().await {
-        if let Err(_) = actor.send(r).await {
-            warn!("[socket] actor channel has closed");
+        if let Err(e) = actor.send(r).await {
+            warn!("[socket] actor channel has closed: {e}");
             return;
         }
     }
@@ -124,8 +124,8 @@ async fn event_loop_res(
 ) {
     info!("started event loop for response");
     while let Some(r) = rx.recv().await {
-        if let Err(_) = actor.send(r).await {
-            warn!("actor channel has closed");
+        if let Err(e) = actor.send(r).await {
+            warn!("actor channel has closed: {e}");
             return;
         }
     }
