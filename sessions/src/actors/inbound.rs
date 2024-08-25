@@ -6,7 +6,7 @@ use serde_json::Value;
 use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::oneshot;
-use tracing::{error, warn};
+use tracing::{debug, error, warn};
 use xtra::{Context, Handler};
 
 #[derive(Default, xtra::Actor)]
@@ -32,10 +32,11 @@ impl Handler<Response> for InboundResponseActor {
     type Return = ();
 
     async fn handle(&mut self, message: Response, _ctx: &mut Context<Self>) -> Self::Return {
+        debug!("handing a response with message id {}", message.id);
         if let Some((_, tx)) = self.pending.remove(&message.id) {
             let id = message.id.clone();
             if let Err(_) = tx.send(message) {
-                warn!("oneshot channel for id {} ", id);
+                warn!("oneshot channel for id {} hash closed", id);
             }
             return;
         }
@@ -57,7 +58,7 @@ mod test {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
     async fn test_payload_response() -> anyhow::Result<()> {
-        crate::tests::init_tracing();
+        crate::test::init_tracing();
         let addr = xtra::spawn_tokio(InboundResponseActor::default(), Mailbox::unbounded());
         let (id, rx) = addr.send(AddRequest).await?;
         let addr_resp = addr.clone();

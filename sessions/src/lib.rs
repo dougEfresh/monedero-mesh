@@ -13,7 +13,6 @@ mod storage;
 mod transport;
 mod wallet;
 
-use crate::domain::MessageId;
 use crate::relay::ConnectionHandler;
 use crate::rpc::SessionSettleRequest;
 use crate::session::ClientSession;
@@ -26,14 +25,19 @@ pub use pairing_uri::Pairing;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex, Once, OnceLock};
+use std::time::Duration;
 pub use storage::KvStorage;
 use tokio::sync::broadcast;
 pub use transport::WireEvent;
 pub use wallet::Wallet;
-pub use walletconnect_sdk::client::error::ClientError;
+use walletconnect_sdk::rpc::auth::ed25519_dalek::SigningKey;
+use walletconnect_sdk::rpc::auth::{AuthToken, SerializedAuthToken};
 pub type EventChannel = broadcast::Receiver<WireEvent>;
 pub type EventClientSession = tokio::sync::oneshot::Receiver<Result<ClientSession>>;
 pub type Atomic<T> = Arc<Mutex<T>>;
+pub use actors::{Actors, RegisteredManagers};
+pub use domain::*;
+pub use relay::ClientError;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum SocketEvent {
@@ -59,11 +63,6 @@ impl Display for SocketEvent {
     }
 }
 
-//#[trait_variant::make(Send)]
-pub trait SocketHandler {
-    fn event(&self, event: SocketEvent);
-}
-
 pub type Result<T> = std::result::Result<T, Error>;
 #[allow(dead_code)]
 static INIT: Once = Once::new();
@@ -78,8 +77,25 @@ pub(crate) fn send_event(tx: &broadcast::Sender<WireEvent>, event: WireEvent) {
     }
 }
 
+pub fn auth_token(url: impl Into<String>) -> SerializedAuthToken {
+    let key = SigningKey::generate(&mut rand::thread_rng());
+    AuthToken::new(url)
+        .aud(RELAY_ADDRESS)
+        .ttl(Duration::from_secs(60 * 60))
+        .as_jwt(&key)
+        .unwrap()
+}
+
+pub(crate) fn shorten_topic(id: &Topic) -> String {
+    let mut id = format!("{}", id);
+    if id.len() > 10 {
+        id = String::from(&id[0..9]);
+    }
+    id
+}
+
 #[cfg(test)]
-pub(crate) mod tests {
+pub(crate) mod test {
     use crate::actors::{Actors, RegisteredManagers};
     use crate::domain::ProjectId;
     use crate::relay::mock::test::auth;
@@ -102,6 +118,7 @@ pub(crate) mod tests {
         tokio::time::sleep(Duration::from_millis(ms)).await;
     }
 
+    /*
     pub(crate) async fn init_test_components(pair: bool) -> anyhow::Result<TestStuff> {
         init_tracing();
         let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
@@ -157,6 +174,7 @@ pub(crate) mod tests {
 
         Ok(())
     }
+     */
 
     pub(crate) fn init_tracing() {
         INIT.call_once(|| {

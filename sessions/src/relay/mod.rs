@@ -1,5 +1,6 @@
 mod error;
 pub(crate) mod mock;
+pub mod relay_handler;
 
 use crate::domain::{Message, ProjectId, SubscriptionId, Topic};
 use crate::RELAY_ADDRESS;

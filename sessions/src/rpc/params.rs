@@ -17,6 +17,8 @@ pub use {
     session_update::*, shared_types::*,
 };
 
+use crate::rpc::sdkerrors::SdkError;
+use crate::rpc::SdkErrors;
 use {
     paste::paste,
     serde::{Deserialize, Serialize},
@@ -259,6 +261,16 @@ pub enum ResponseParamsError {
 
 impl_relay_protocol_metadata!(ResponseParamsError, response);
 impl_relay_protocol_helpers!(ResponseParamsError);
+
+impl From<SdkErrors> for ErrorParams {
+    fn from(value: SdkErrors) -> Self {
+        let e: SdkError = value.into();
+        ErrorParams {
+            code: Some(e.code),
+            message: String::from(e.message),
+        }
+    }
+}
 
 impl TryFrom<ResponseParamsError> for ResponseParams {
     type Error = ParamsError;

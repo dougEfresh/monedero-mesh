@@ -1,4 +1,5 @@
-use crate::actors::{RegisterDapp, RegisterWallet, TransportActor};
+use crate::actors::session::SessionRequestHandlerActor;
+use crate::actors::{RegisterDapp, RegisterWallet, SessionSettled, TransportActor};
 use crate::domain::{MessageId, Topic};
 use crate::relay::Client;
 use crate::rpc::{
@@ -7,14 +8,14 @@ use crate::rpc::{
     RpcResponse, RpcResponsePayload,
 };
 use crate::transport::{PairingRpcEvent, RpcRecv};
-use crate::{rpc, Cipher, Error, PairingManager};
+use crate::{rpc, Cipher, Error, PairingManager, RegisteredManagers};
 use crate::{Dapp, Result, Wallet};
 use dashmap::DashMap;
 use serde_json::json;
 use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
-use tracing::{error, warn};
+use tracing::{debug, error, warn};
 use xtra::prelude::*;
 
 #[derive(xtra::Actor)]
@@ -23,14 +24,13 @@ pub(crate) struct RequestHandlerActor {
     dapps: Arc<DashMap<Topic, Address<Dapp>>>,
     wallets: Arc<DashMap<Topic, Address<Wallet>>>,
     responder: Address<TransportActor>,
+    session_handler: Address<SessionRequestHandlerActor>,
 }
-
-pub(crate) struct RegisteredManagers;
 
 impl Handler<RegisterWallet> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RegisterWallet, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: RegisterWallet, _ctx: &mut Context<Self>) -> Self::Return {
         let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
         self.wallets.insert(message.0, addr);
     }
@@ -39,7 +39,7 @@ impl Handler<RegisterWallet> for RequestHandlerActor {
 impl Handler<RegisterDapp> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RegisterDapp, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: RegisterDapp, _ctx: &mut Context<Self>) -> Self::Return {
         let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
         self.dapps.insert(message.0, addr);
     }
@@ -74,24 +74,28 @@ impl Handler<RegisterTopicManager> for RequestHandlerActor {
 }
 
 impl Handler<Client> for RequestHandlerActor {
-    type Return = crate::Result<()>;
+    type Return = Result<()>;
 
-    async fn handle(&mut self, message: Client, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: Client, _ctx: &mut Context<Self>) -> Self::Return {
         self.send_client(message).await
     }
 }
 
 impl RequestHandlerActor {
-    pub(crate) fn new(responder: Address<TransportActor>) -> Self {
+    pub(crate) fn new(
+        responder: Address<TransportActor>,
+        session_handler: Address<SessionRequestHandlerActor>,
+    ) -> Self {
         Self {
             pair_managers: Arc::new(DashMap::new()),
             responder,
+            session_handler,
             dapps: Arc::new(DashMap::new()),
             wallets: Arc::new(DashMap::new()),
         }
     }
 
-    pub(crate) async fn send_client(&self, relay: Client) -> crate::Result<()> {
+    pub(crate) async fn send_client(&self, relay: Client) -> Result<()> {
         Ok(self.responder.send(relay).await?)
     }
 }
@@ -172,6 +176,7 @@ impl Handler<RpcRequest> for RequestHandlerActor {
         let topic = message.topic.clone();
         let responder = self.responder.clone();
         let managers = self.pair_managers.clone();
+        debug!("handing request {id}");
         match message.payload.params {
             RequestParams::PairDelete(args) => {
                 let unknown = RpcResponse::unknown(
@@ -209,7 +214,25 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                     handle_pair_request(args, managers, responder, unknown).await
                 });
             }
-            RequestParams::SessionPropose(args) => {}
+
+            RequestParams::SessionPropose(args) => {
+                let unknown = RpcResponse::unknown(
+                    id,
+                    topic.clone(),
+                    ResponseParamsError::SessionPropose(ErrorParams::unknown()),
+                );
+                let response: RpcResponse = match self.wallets.get(&topic) {
+                    None => unknown,
+                    Some(wallet) => wallet
+                        .send(args)
+                        .await
+                        .map(|payload| RpcResponse { id, topic, payload })
+                        .unwrap_or(unknown),
+                };
+                if let Err(e) = self.responder.send(response).await {
+                    warn!("responder actor is not responding {e}");
+                }
+            }
             RequestParams::SessionSettle(args) => {
                 let unknown = RpcResponse::unknown(
                     id,
@@ -219,34 +242,20 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                 let response: RpcResponse = match self.dapps.get(&topic) {
                     None => unknown,
                     Some(dapp) => dapp
-                        .send(args)
+                        .send(SessionSettled(topic.clone(), args))
                         .await
-                        .map(|r| RpcResponse {
-                            id,
-                            topic,
-                            payload: r,
-                        })
+                        .map(|payload| RpcResponse { id, topic, payload })
                         .unwrap_or(unknown),
                 };
                 if let Err(e) = self.responder.send(response).await {
                     warn!("responder actor is not responding {e}");
                 }
             }
-            RequestParams::SessionUpdate(_) => {}
-            RequestParams::SessionExtend(_) => {}
-            RequestParams::SessionRequest(_) => {}
-            RequestParams::SessionEvent(_) => {}
-            RequestParams::SessionDelete(_) => {}
-            RequestParams::SessionPing(_) => {}
+            _ => {
+                if let Err(e) = self.session_handler.send(message).await {
+                    warn!("failed to send to session handler actor {e}");
+                }
+            }
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
-    async fn test_request_actor() -> anyhow::Result<()> {
-        Ok(())
     }
 }

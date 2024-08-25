@@ -1,4 +1,4 @@
-use crate::{Atomic, PairingManager, SocketEvent, SocketHandler};
+use crate::{Atomic, PairingManager, SocketEvent};
 use std::future::Future;
 use std::sync::{Arc, Mutex};
 use tokio::sync::RwLock;

@@ -1,5 +1,7 @@
 use crate::rpc::{PairDeleteRequest, PairPingRequest, ResponseParamsSuccess, RpcResponsePayload};
-use crate::{PairingManager, SocketEvent, SocketHandler, WireEvent};
+use crate::{PairingManager, SocketEvent, WireEvent};
+use backoff::future::retry;
+use backoff::{ExponentialBackoff, ExponentialBackoffBuilder};
 use std::future::Future;
 use std::time::Duration;
 use tokio::sync::broadcast;
@@ -7,19 +9,25 @@ use tracing::{info, warn};
 use xtra::prelude::*;
 
 async fn handle_socket_close(mgr: PairingManager) {
-    info!("reconnecting after 3 seconds");
-    tokio::time::sleep(Duration::from_secs(3)).await;
-    if let Err(e) = mgr.socket_open().await {
-        // backoff
+    //info!("reconnecting after 3 seconds");
 
-        tracing::error!("failed to reconnect {e}");
-    }
+    //tokio::time::sleep(Duration::from_secs(3)).await;
+
+    let backoff = ExponentialBackoffBuilder::new()
+        .with_max_elapsed_time(Some(Duration::from_secs(60)))
+        .with_initial_interval(Duration::from_secs(3))
+        .build();
+    retry(backoff, || async {
+        info!("attempting reconnect");
+        Ok(mgr.open_socket().await?)
+    })
+    .await;
 }
 
 impl Handler<SocketEvent> for PairingManager {
     type Return = ();
 
-    async fn handle(&mut self, message: SocketEvent, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: SocketEvent, _ctx: &mut Context<Self>) -> Self::Return {
         match message {
             SocketEvent::ForceDisconnect => {
                 let mgr = self.clone();

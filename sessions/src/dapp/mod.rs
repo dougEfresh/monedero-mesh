@@ -1,11 +1,11 @@
-use crate::actors::Actors;
+use crate::actors::{Actors, SessionSettled};
 use crate::domain::Topic;
 use crate::rpc::{
     ProposeNamespaces, RelayProtocol, RequestParams, ResponseParamsSuccess, RpcResponsePayload,
     SessionProposeRequest, SessionProposeResponse, SessionSettleRequest,
 };
 use crate::session::ClientSession;
-use crate::transport::TopicTransport;
+use crate::transport::{SessionTransport, TopicTransport};
 use crate::Result;
 use crate::{Pairing, PairingManager};
 use dashmap::DashMap;
@@ -13,7 +13,7 @@ use std::future::Future;
 use std::sync::{Arc, RwLock};
 use tokio::sync::oneshot;
 use tokio::sync::oneshot::Sender;
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 use x25519_dalek::PublicKey;
 use xtra::{Context, Handler};
 
@@ -23,14 +23,10 @@ pub struct Dapp {
     pending_proposals: Arc<DashMap<Topic, Sender<Result<ClientSession>>>>,
 }
 
-impl Handler<SessionSettleRequest> for Dapp {
+impl Handler<SessionSettled> for Dapp {
     type Return = RpcResponsePayload;
 
-    async fn handle(
-        &mut self,
-        message: SessionSettleRequest,
-        _ctx: &mut Context<Self>,
-    ) -> Self::Return {
+    async fn handle(&mut self, message: SessionSettled, _ctx: &mut Context<Self>) -> Self::Return {
         match self.manager.topic() {
             None => {
                 warn!("pairing topic is unknown, cannot complete settlement");
@@ -45,8 +41,21 @@ impl Handler<SessionSettleRequest> for Dapp {
                     RpcResponsePayload::Success(ResponseParamsSuccess::SessionSettle(false))
                 }
                 Some((_, tx)) => {
-                    let _ = tx.send(Err(crate::Error::NoPairingTopic));
-                    RpcResponsePayload::Success(ResponseParamsSuccess::SessionSettle(false))
+                    let session = self
+                        .manager
+                        .actors()
+                        .register_settlement(self.manager.topic_transport(), message)
+                        .await;
+                    let resp = RpcResponsePayload::Success(ResponseParamsSuccess::SessionSettle(
+                        session.is_ok(),
+                    ));
+
+                    tokio::spawn(async move {
+                        if let Err(_) = tx.send(session) {
+                            warn!("failed to send final client session for settlement");
+                        }
+                    });
+                    resp
                 }
             },
         }
@@ -59,11 +68,10 @@ fn handle_error(dapp: Dapp, e: crate::Error) {
         if let Some((_, mut tx)) = dapp.pending_proposals.remove(&topic) {
             if let Err(_) = tx.send(Err(e)) {
                 warn!("proposal channel is gone!");
-                return;
             }
-        } else {
-            warn!("could not find receiver for settlement")
+            return;
         }
+        warn!("could not find receiver for settlement")
     } else {
         warn!("no pairing topic available!");
     }
@@ -76,7 +84,8 @@ async fn begin_settlement_flow(dapp: Dapp, actors: Actors, params: RequestParams
         .await
     {
         Ok(response) => {
-            if let Err(e) = actors.register_proposal_pk(dapp.clone(), response).await {
+            info!("registering controller's public key");
+            if let Err(e) = actors.register_wallet_pk(dapp.clone(), response).await {
                 handle_error(dapp, e)
             }
         }
@@ -90,6 +99,13 @@ fn public_key(pairing: &Pairing) -> String {
 }
 
 impl Dapp {
+    pub fn new(manager: PairingManager) -> Self {
+        Self {
+            manager,
+            pending_proposals: Arc::new(DashMap::new()),
+        }
+    }
+
     pub async fn propose(
         &self,
         namespaces: ProposeNamespaces,

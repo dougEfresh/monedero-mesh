@@ -6,9 +6,10 @@ use crate::actors::Actors;
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::{Client, ConnectionHandler, ConnectionOptions};
 use crate::rpc::{
-    ErrorParams, Metadata, PairDeleteRequest, PairPingRequest, ProposeNamespaces, Proposer,
-    RelayProtocol, Request, RequestParams, Response, ResponseParams, ResponseParamsError,
-    ResponseParamsSuccess, RpcResponse, RpcResponsePayload, SessionProposeRequest,
+    ErrorParams, Metadata, PairDeleteRequest, PairExtendRequest, PairPingRequest,
+    ProposeNamespaces, Proposer, RelayProtocol, Request, RequestParams, Response, ResponseParams,
+    ResponseParamsError, ResponseParamsSuccess, RpcResponse, RpcResponsePayload,
+    SessionProposeRequest,
 };
 use crate::session::{ClientSession, RelayHandler};
 use crate::transport::{PendingRequests, RpcRecv, TopicTransport};
@@ -82,7 +83,7 @@ impl PairingManager {
         if let Err(_) = actors.register_socket_handler(socket_handler).await {
             warn!("failed to register socket handler!");
         }
-        mgr.socket_open().await?;
+        mgr.open_socket().await?;
         Ok(mgr)
     }
 
@@ -90,11 +91,11 @@ impl PairingManager {
         self.ciphers.clone()
     }
 
-    pub(crate) async fn subscribe(&self, topic: Topic) -> Result<(SubscriptionId)> {
+    pub async fn subscribe(&self, topic: Topic) -> Result<(SubscriptionId)> {
         Ok(self.relay.subscribe(topic).await?)
     }
 
-    pub(crate) fn actors(&self) -> Actors {
+    pub fn actors(&self) -> Actors {
         self.actors.clone()
     }
 
@@ -123,9 +124,23 @@ impl PairingManager {
         Ok(true)
     }
 
+    // Epoch
+    pub async fn extend(&self, expiry: u64) -> Result<bool> {
+        let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
+        self.transport
+            .publish_request::<bool>(
+                t.clone(),
+                RequestParams::PairExtend(PairExtendRequest { expiry }),
+            )
+            .await
+    }
+
     pub async fn set_pairing(&self, pairing: Pairing) -> Result<()> {
         let cipher = self.actors.cipher_actor();
         cipher.send(pairing.clone()).await??;
+        self.actors
+            .register_mgr(pairing.topic.clone(), self.clone())
+            .await?;
         self.subscribe(pairing.topic.clone()).await?;
         Ok(())
     }
@@ -136,22 +151,24 @@ impl PairingManager {
     }
 
     pub async fn shutdown(&self) -> Result<()> {
-        //self.broadcast_tx.send(WireEvent::Shutdown).unwrap();
-        self.socket_disconnect().await
+        self.disconnect_socket().await
     }
 
-    pub async fn socket_open(&self) -> Result<()> {
+    pub async fn open_socket(&self) -> Result<()> {
         info!("opening websocket");
         self.relay.connect(&self.opts).await?;
         Ok(())
     }
 
-    pub async fn socket_disconnect(&self) -> Result<()> {
+    pub async fn disconnect_socket(&self) -> Result<()> {
         info!("closing websocket");
         if let Err(err) = self.relay.disconnect().await {
             warn!("failed to close socket {err}");
         }
-        //self.broadcast_tx.send(WireEvent::Disconnect).map_err(|_| crate::Error::LockError)?;
         Ok(())
+    }
+
+    pub(crate) fn topic_transport(&self) -> TopicTransport {
+        self.transport.clone()
     }
 }

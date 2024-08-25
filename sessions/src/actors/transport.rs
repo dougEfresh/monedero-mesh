@@ -1,4 +1,4 @@
-use crate::actors::{AddRequest, InboundResponseActor, Subscribe};
+use crate::actors::{AddRequest, InboundResponseActor, SendRequest, Subscribe};
 use crate::crypto::CipherError;
 use crate::domain::{MessageId, SubscriptionId, Topic};
 use crate::relay::{Client, MessageIdGenerator};
@@ -6,6 +6,7 @@ use crate::rpc::{
     IrnMetadata, RelayProtocolMetadata, Request, RequestParams, Response, ResponseParams,
     RpcResponse, RpcResponsePayload,
 };
+use crate::transport::TopicTransport;
 use crate::Cipher;
 use crate::Result;
 use dashmap::DashMap;
@@ -15,7 +16,7 @@ use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::oneshot;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use xtra::{Address, Context, Handler};
 
 #[derive(Clone, xtra::Actor)]
@@ -32,22 +33,41 @@ async fn send_response(result: RpcResponse, cipher: Cipher, relay: Client) {
     };
 
     let response: Response = match result.payload {
-        RpcResponsePayload::Success(s) => Response::new(result.id, s.try_into().unwrap()),
-        RpcResponsePayload::Error(e) => Response::new(result.id, e.try_into().unwrap()),
+        RpcResponsePayload::Success(s) => {
+            let params = s.try_into();
+            if let Err(e) = params {
+                warn!("failed to deserialize response {e}");
+                return;
+            }
+            Response::new(result.id, params.unwrap())
+        }
+        RpcResponsePayload::Error(e) => {
+            let params = e.try_into();
+            if let Err(e) = params {
+                warn!("failed to deserialize error response {e}");
+                return;
+            }
+            Response::new(result.id, params.unwrap())
+        }
     };
 
     match cipher.encode(&result.topic, &response) {
         Ok(encrypted) => {
-            relay
+            if let Err(e) = relay
                 .publish(
-                    result.topic,
+                    result.topic.clone(),
                     Arc::from(encrypted),
                     irn_metadata.tag,
                     Duration::from_secs(irn_metadata.ttl),
                     irn_metadata.prompt,
                 )
                 .await
-                .unwrap();
+            {
+                error!(
+                    "failed to publish payload  error: '{e}' on topic {}",
+                    result.topic
+                );
+            }
         }
         Err(err) => {
             error!("failed to encrypt payload {err}");
@@ -55,8 +75,6 @@ async fn send_response(result: RpcResponse, cipher: Cipher, relay: Client) {
         }
     };
 }
-
-pub(crate) struct SendRequest(pub(crate) Topic, pub(crate) RequestParams);
 
 impl TransportActor {
     pub(crate) fn new(
@@ -140,7 +158,7 @@ mod test {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
     async fn test_send() -> anyhow::Result<()> {
-        crate::tests::init_tracing();
+        crate::test::init_tracing();
         let inbound = xtra::spawn_tokio(InboundResponseActor::default(), Mailbox::unbounded());
         let cipher: Cipher = Cipher::new(Arc::new(KvStorage::default()), None)?;
         let transport = TransportActor::new(cipher.clone(), inbound);

@@ -334,7 +334,7 @@ mod tests {
 
     #[test]
     pub fn test_cipher_encrypt() -> anyhow::Result<()> {
-        crate::tests::init_tracing();
+        crate::test::init_tracing();
         let dapp_store = KvStorage::file(temp_location())?;
         let wallet_store = KvStorage::file(temp_location())?;
         let dapp = Cipher::new(Arc::new(dapp_store), None)?;
@@ -400,7 +400,7 @@ mod tests {
     }
 
     fn test_storage(store: Arc<KvStorage>) -> anyhow::Result<()> {
-        crate::tests::init_tracing();
+        crate::test::init_tracing();
         let pairing = Arc::new(create_pairing());
         let pairing_key = pairing.params.sym_key.clone();
         let pairing_topic = pairing.topic.clone();

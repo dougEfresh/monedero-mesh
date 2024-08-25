@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::thread::spawn;
 use tokio::select;
 use tokio::sync::{broadcast, mpsc};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, trace, warn};
 use xtra::{Actor, Address};
 
 pub struct RelayHandler {
@@ -62,7 +62,7 @@ impl ConnectionHandler for RelayHandler {
             warn!("\ntag={} skip handling", message.tag);
             return;
         }
-        debug!("decoding {}", message.id);
+        trace!("decoding {}", message.id);
         match self
             .cipher
             .decode::<Payload>(&message.topic, &message.message)
@@ -72,10 +72,14 @@ impl ConnectionHandler for RelayHandler {
                     topic: message.topic,
                     payload: req,
                 };
-                self.req_tx.send(rpc).unwrap();
+                if let Err(e) = self.req_tx.send(rpc) {
+                    warn!("[relay handler] request channel is broken, error: {e}");
+                }
             }
             Ok(Payload::Response(res)) => {
-                self.res_tx.send(res).unwrap();
+                if let Err(e) = self.res_tx.send(res) {
+                    warn!("[relay handler] response channel is broken, error: {e}");
+                }
             }
             Err(err) => {
                 error!("failed to decode message id {} ({err})", message.id);
@@ -128,89 +132,5 @@ async fn event_loop_res(
             warn!("actor channel has closed");
             return;
         }
-    }
-}
-
-#[cfg(feature = "mock")]
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::relay::mock::DISCONNECT_TOPIC;
-    use crate::tests::yield_ms;
-    use assert_matches::assert_matches;
-
-    /*
-    #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
-    async fn test_relay_connection_state() -> anyhow::Result<()> {
-        let test_components = crate::tests::init_test_components(false).await?;
-        let actors = test_components.dapp_actors;
-        let dapp_cipher = test_components.dapp_cipher;
-
-        actors.register_socket_handler(socket_state.clone()).await?;
-
-        let mut handler = RelayHandler::new(dapp_cipher, actors);
-        yield_ms(500).await;
-        assert_eq!(SocketEvent::Disconnect, socket_state.get_state());
-        handler.connected();
-        yield_ms(500).await;
-        assert_eq!(SocketEvent::Connected, socket_state.get_state());
-        handler.disconnected(None);
-        yield_ms(500).await;
-        assert_eq!(SocketEvent::ForceDisconnect, socket_state.get_state());
-
-        handler.connected();
-        yield_ms(500).await;
-        handler.inbound_error(ClientError::Disconnected);
-        yield_ms(500).await;
-        assert_eq!(SocketEvent::ForceDisconnect, socket_state.get_state());
-
-        handler.connected();
-        yield_ms(500).await;
-        handler.outbound_error(ClientError::Disconnected);
-        yield_ms(500).await;
-        assert_eq!(SocketEvent::ForceDisconnect, socket_state.get_state());
-        Ok(())
-    }
-     */
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
-    async fn test_relay_request() -> anyhow::Result<()> {
-        let test_components = crate::tests::init_test_components(true).await?;
-        Ok(())
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-    async fn test_relay_pair_ping() -> anyhow::Result<()> {
-        let test_components = crate::tests::init_test_components(true).await?;
-        let dapp = test_components.dapp;
-        dapp.ping().await?;
-        Ok(())
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-    async fn test_relay_pair_delete() -> anyhow::Result<()> {
-        let test_components = crate::tests::init_test_components(true).await?;
-        let dapp = test_components.dapp;
-        dapp.delete().await?;
-        let c = dapp.ciphers();
-        yield_ms(2000).await;
-        assert!(c.pairing().is_none());
-        Ok(())
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-    async fn test_relay_disconnect() -> anyhow::Result<()> {
-        let test_components = crate::tests::init_test_components(true).await?;
-        let dapp = test_components.dapp;
-        dapp.subscribe(DISCONNECT_TOPIC.clone()).await?;
-        yield_ms(555).await;
-        assert_matches!(
-            dapp.ping().await,
-            Err(crate::Error::ConnectError(ClientError::Disconnected))
-        );
-        yield_ms(3300).await;
-        // should have reconnected
-        dapp.ping().await?;
-        Ok(())
     }
 }

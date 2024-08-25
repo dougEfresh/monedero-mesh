@@ -10,11 +10,11 @@ use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::{broadcast, mpsc, RwLock};
 type ClientId = Topic;
 
 use once_cell::sync::Lazy;
-use tracing::info;
+use tracing::{debug, info, warn};
 
 pub(crate) static MOCK_FACTORY: Lazy<MockerFactory> = Lazy::new(|| MockerFactory::new());
 // Special topic that indicates force disconnect
@@ -25,7 +25,7 @@ pub(crate) struct Mocker {
     pub client_id: ClientId,
     tx: broadcast::Sender<MockPayload>,
     topics: Arc<DashMap<Topic, SubscriptionId>>,
-    //pending: Arc<Mutex<VecDeque<Message>>>,
+    pending: Arc<RwLock<VecDeque<(ClientId, Message)>>>,
     connected: Arc<AtomicBool>,
     connect_event: MockPayload,
     disconnect_event: MockPayload,
@@ -83,7 +83,7 @@ async fn event_loop<T: ConnectionHandler>(
     mocker: Mocker,
     mut handler: T,
 ) {
-    tracing::info!("[{}] created mocker event loop", mocker);
+    info!("[{}] created mocker event loop", mocker);
     loop {
         match rx.recv().await {
             Err(_) => tracing::error!("got recv error for mock broadcast {mocker}"),
@@ -104,11 +104,15 @@ async fn event_loop<T: ConnectionHandler>(
                         continue;
                     }
                     if !mocker.connected.load(Ordering::Relaxed) {
-                        tracing::debug!("[{}] not connected", mocker);
+                        debug!("[{}] not connected", mocker);
                         continue;
                     }
                     if !mocker.my_topic(&message.topic) {
-                        tracing::debug!("[{}] subscribed to topic {}", mocker, message.topic);
+                        debug!("[{}] subscribed to topic {}", mocker, message.topic);
+                        {
+                            let mut w = mocker.pending.write().await;
+                            (*w).push_back((payload.id, message));
+                        }
                         continue;
                     }
                     handler.message_received(message);
@@ -135,6 +139,7 @@ impl Mocker {
             tx,
             topics: Arc::new(Default::default()),
             connected: Arc::new(AtomicBool::new(false)),
+            pending: Arc::new(RwLock::new(VecDeque::new())),
             generator,
             connect_event: MockPayload {
                 id: id.clone(),
@@ -198,6 +203,27 @@ impl Display for Mocker {
     }
 }
 
+async fn pending_messages(mocker: Mocker) {
+    let mut w = mocker.pending.write().await;
+    if (*w).len() == 0 {
+        return;
+    }
+    let pending: Vec<(ClientId, Message)> = w.drain(..).collect();
+    drop(w);
+    info!("sending {} messages from pending queue ", pending.len());
+    for (id, m) in pending {
+        tokio::time::sleep(Duration::from_millis(800)).await;
+        debug!("sending message id {id}");
+        if let Err(_) = mocker.tx.send(MockPayload {
+            id,
+            event: MockEvents::Payload(m),
+        }) {
+            warn!("mock broadcast channel closed");
+            return;
+        }
+    }
+}
+
 impl Mocker {
     #[tracing::instrument(level = "info", skip(message))]
     pub async fn publish(
@@ -227,7 +253,8 @@ impl Mocker {
             event: MockEvents::Payload(msg),
             id: self.client_id.clone(),
         };
-        if self.tx.send(payload).ok().is_none() {
+        if let Err(e) = self.tx.send(payload) {
+            warn!("mock broadcast channel is done {e}");
             return Err(ClientError::TxSendError);
         }
         Ok(())
@@ -245,6 +272,8 @@ impl Mocker {
         }
         let id = SubscriptionId::generate();
         self.topics.insert(topic, id.clone());
+        let mocker = self.clone();
+        tokio::spawn(async move { pending_messages(mocker).await });
         Ok(id)
     }
 
@@ -261,7 +290,8 @@ impl Mocker {
             MockEvents::Disconnect => self.connected.store(false, Ordering::Relaxed),
             _ => {}
         }
-        if self.tx.send(mock_payload).ok().is_none() {
+        if let Err(e) = self.tx.send(mock_payload) {
+            warn!("[mock] failed to broadcast connection state {e}");
             return Err(ClientError::TxSendError);
         }
         Ok(())
@@ -369,7 +399,7 @@ pub(crate) mod test {
         fn message_received(&mut self, message: Message) {
             let l = self.messages.lock();
             if let Ok(mut lock) = l {
-                lock.push_front(message)
+                lock.push_back(message)
             }
         }
 
@@ -394,7 +424,7 @@ pub(crate) mod test {
     }
 
     fn setup() -> (TestClient, TestClient) {
-        crate::tests::init_tracing();
+        crate::test::init_tracing();
         let factory = MockerFactory::new();
         let dapp = TestClient::new(&factory);
         let wallet = TestClient::new(&factory);

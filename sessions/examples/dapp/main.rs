@@ -7,22 +7,23 @@ mod msg;
 mod runner;
 mod ui;
 
-use sessions;
 use std::collections::BTreeMap;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
+use walletconnect_sessions;
 
 use crate::log::initialize_logging;
-use sessions::rpc::{ProposeNamespace, ProposeNamespaces};
-use sessions::WalletConnectBuilder;
-use sessions::{KvStorage, PairingManager, RELAY_ADDRESS};
 use std::time::Duration;
 use tokio::{select, signal};
 use walletconnect_sdk::rpc::auth::ed25519_dalek::SigningKey;
 use walletconnect_sdk::rpc::auth::AuthToken;
 use walletconnect_sdk::rpc::domain::ProjectId;
+use walletconnect_sessions::rpc::{ProposeNamespace, ProposeNamespaces};
+use walletconnect_sessions::WalletConnectBuilder;
+use walletconnect_sessions::{KvStorage, PairingManager, RELAY_ADDRESS};
 
+/*
 async fn do_dapp_stuff(pairing_mgr: PairingManager) {
     info!("Running dapp - hit control-c to terminate");
     let required: Vec<alloy_chains::Chain> = vec![alloy_chains::Chain::sepolia()];
@@ -56,6 +57,8 @@ async fn do_dapp_stuff(pairing_mgr: PairingManager) {
     tokio::time::sleep(Duration::from_secs(10)).await;
 }
 
+ */
+
 async fn dapp() -> anyhow::Result<()> {
     info!("starting sanity test");
     let key = SigningKey::generate(&mut rand::thread_rng());
@@ -70,7 +73,7 @@ async fn dapp() -> anyhow::Result<()> {
     let builder = builder.store(store);
     let pairing_mgr = builder.build().await?;
     //pairing_mgr.socket_open().await?;
-    tokio::spawn(do_dapp_stuff(pairing_mgr.clone()));
+    //tokio::spawn(do_dapp_stuff(pairing_mgr.clone()));
 
     let ctrl_c = signal::ctrl_c();
     let mut term = signal::unix::signal(signal::unix::SignalKind::terminate())?;

@@ -24,7 +24,7 @@ pub struct PairDeleteRequest {
 
 impl Default for PairDeleteRequest {
     fn default() -> Self {
-        crate::rpc::USER_DISCONNECTED.into()
+        crate::rpc::sdkerrors::USER_DISCONNECTED.into()
     }
 }
 

@@ -15,7 +15,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -162,29 +162,6 @@ impl TopicTransport {
     pub async fn subscribe(&self, topic: Topic) -> Result<SubscriptionId> {
         self.transport_actor.send(Subscribe(topic)).await?
     }
-    /*
-    pub async fn publish_response(
-        &self,
-        id: MessageId,
-        topic: Topic,
-        resp: ResponseParamsSuccess,
-    ) -> Result<()> {
-        let irn_metadata = resp.irn_metadata();
-        let response = Response::new(id, resp.try_into()?);
-        let encrypted = self.ciphers.encode(&topic, &response)?;
-        self.relay
-            .publish(
-                topic,
-                Arc::from(encrypted),
-                irn_metadata.tag,
-                Duration::from_secs(irn_metadata.ttl),
-                irn_metadata.prompt,
-            )
-            .await?;
-        Ok(())
-    }
-
-     */
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn publish_request<R: DeserializeOwned>(
@@ -214,6 +191,18 @@ impl TopicTransport {
 pub(crate) struct SessionTransport {
     pub(crate) topic: Topic,
     pub(crate) transport: TopicTransport,
+}
+
+impl Debug for SessionTransport {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "topic={}", crate::shorten_topic(&self.topic))
+    }
+}
+
+impl Display for SessionTransport {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "topic={}", crate::shorten_topic(&self.topic))
+    }
 }
 
 impl SessionTransport {
