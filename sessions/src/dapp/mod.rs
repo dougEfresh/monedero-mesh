@@ -1,7 +1,7 @@
 use crate::actors::{Actors, SessionSettled};
 use crate::domain::Topic;
 use crate::rpc::{
-    ProposeNamespaces, RequestParams, ResponseParamsSuccess, RpcResponsePayload,
+    ProposeFuture, ProposeNamespaces, RequestParams, ResponseParamsSuccess, RpcResponsePayload,
     SessionProposeRequest, SessionProposeResponse,
 };
 use crate::session::ClientSession;
@@ -107,17 +107,18 @@ impl Dapp {
     pub async fn propose(
         &self,
         namespaces: ProposeNamespaces,
-    ) -> Result<(Pairing, oneshot::Receiver<Result<ClientSession>>)> {
+    ) -> Result<(Pairing, ProposeFuture<Result<ClientSession>>)> {
         let pairing = Pairing::default();
         self.manager.set_pairing(pairing.clone()).await?;
 
         let (tx, rx) = oneshot::channel::<Result<ClientSession>>();
+
         let actors = self.manager.actors();
         let pk = public_key(&pairing);
         let params = RequestParams::SessionPropose(SessionProposeRequest::new(pk, namespaces));
         self.pending_proposals.insert(pairing.topic.clone(), tx);
         let dapp = self.clone();
         tokio::spawn(async move { begin_settlement_flow(dapp, actors, params).await });
-        Ok((pairing, rx))
+        Ok((pairing, ProposeFuture::new(rx)))
     }
 }

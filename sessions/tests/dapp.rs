@@ -1,16 +1,15 @@
-use assert_matches::assert_matches;
 use std::collections::BTreeMap;
 use std::ops::Deref;
-use std::str::FromStr;
 use std::sync::Once;
 use std::time::Duration;
 use tokio::time::timeout;
-use tracing::info;
+use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
-use walletconnect_sessions::rpc::{ProposeNamespace, ProposeNamespaces};
+use walletconnect_sessions::rpc::{ProposeFuture, ProposeNamespace, ProposeNamespaces};
+use walletconnect_sessions::Result;
 use walletconnect_sessions::{
-    auth_token, Actors, Dapp, ProjectId, Topic, Wallet, WalletConnectBuilder,
+    auth_token, Actors, ClientSession, Dapp, ProjectId, Wallet, WalletConnectBuilder,
 };
 
 #[allow(dead_code)]
@@ -69,6 +68,19 @@ fn namespaces() -> ProposeNamespaces {
     ProposeNamespaces(namespaces)
 }
 
+async fn await_wallet_pair(rx: ProposeFuture<Result<ClientSession>>) {
+    match timeout(Duration::from_secs(5), rx).await {
+        Ok(s) => match s {
+            Ok(result) => match result {
+                Err(e) => error!("wallet got client session error: {e}"),
+                Ok(_) => info!("wallet got client session"),
+            },
+            Err(e) => error!("wallet got an recv channel client session: {e}"),
+        },
+        Err(e) => error!("timout for wallet to recv client session: {e}"),
+    }
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_dapp_settlement() -> anyhow::Result<()> {
     let t = init_test_components().await?;
@@ -76,10 +88,11 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
     let wallet = t.wallet;
     let (pairing, rx) = dapp.propose(namespaces()).await?;
     info!("got pairing topic {pairing}");
-    wallet.pair(pairing.to_string()).await?;
-    info!("wallet has been paired");
+    let (_, wallet_rx) = wallet.pair(pairing.to_string()).await?;
+    tokio::spawn(async move { await_wallet_pair(wallet_rx).await });
     let session = timeout(Duration::from_secs(5), rx).await???;
     info!("settlement complete");
+    // let wallet get their ClientSessoin
     yield_ms(1000).await;
     assert!(session.namespaces.deref().contains_key("eip155"));
     Ok(())

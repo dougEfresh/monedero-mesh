@@ -24,7 +24,7 @@ pub enum SdkErrors {
     WcMethodUnsupported,
 }
 
-impl<'a> From<SdkErrors> for SdkError<'_> {
+impl<'a> From<SdkErrors> for SdkError<'a> {
     fn from(value: SdkErrors) -> Self {
         match value {
             SdkErrors::InvalidMethod => INVALID_METHOD,

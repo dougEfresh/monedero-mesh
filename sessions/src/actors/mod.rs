@@ -48,11 +48,12 @@ impl Actors {
         settlement: SessionSettled,
     ) -> Result<ClientSession> {
         let session_transport = SessionTransport {
-            topic: settlement.0,
+            topic: settlement.0.clone(),
             transport,
         };
-        let client_session = ClientSession::new(session_transport, settlement.1.namespaces);
+        let client_session = ClientSession::new(session_transport, settlement.1.namespaces.clone());
         self.session_actor.send(client_session.clone()).await?;
+        self.cipher_actor.send(settlement).await??;
         Ok(client_session)
     }
 

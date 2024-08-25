@@ -4,6 +4,7 @@
 mod params;
 mod sdkerrors;
 
+use std::future::Future;
 use {
     serde::{Deserialize, Serialize},
     std::{fmt::Debug, sync::Arc},
@@ -181,5 +182,31 @@ impl Response {
         }
 
         Ok(())
+    }
+}
+
+use pin_project_lite::pin_project;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use tokio::sync::oneshot;
+
+pin_project! {
+    pub struct ProposeFuture<T> {
+        #[pin]
+        receiver: oneshot::Receiver<T>,
+    }
+}
+
+impl<T> ProposeFuture<T> {
+    pub fn new(receiver: oneshot::Receiver<T>) -> Self {
+        Self { receiver }
+    }
+}
+
+impl<T> Future for ProposeFuture<T> {
+    type Output = Result<T, oneshot::error::RecvError>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.project().receiver.poll(cx)
     }
 }

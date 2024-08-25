@@ -1,14 +1,17 @@
 use crate::actors::SessionSettled;
 use crate::rpc::{
-    Controller, Metadata, RequestParams, ResponseParamsError, ResponseParamsSuccess,
+    Controller, Metadata, ProposeFuture, RequestParams, ResponseParamsError, ResponseParamsSuccess,
     RpcResponsePayload, SdkErrors, SessionProposeRequest, SessionProposeResponse,
     SessionSettleRequest, SettleNamespace, SettleNamespaces,
 };
-use crate::{Pairing, PairingManager, Result};
+use crate::{ClientSession, Pairing, PairingManager, Result, Topic};
+use dashmap::DashMap;
 use std::collections::BTreeMap;
 use std::ops::Deref;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::oneshot;
 use tracing::{info, warn};
 use xtra::prelude::*;
 
@@ -17,6 +20,7 @@ const SUPPORTED_ACCOUNT: &str = "0xBA5BA3955463ADcc7aa3E33bbdfb8A68e0933dD8";
 #[derive(Clone, xtra::Actor)]
 pub struct Wallet {
     manager: PairingManager,
+    pending_proposals: Arc<DashMap<Topic, oneshot::Sender<Result<ClientSession>>>>,
 }
 
 async fn send_settlement(wallet: Wallet, request: SessionProposeRequest, public_key: String) {
@@ -64,21 +68,33 @@ async fn send_settlement(wallet: Wallet, request: SessionProposeRequest, public_
         namespaces: SettleNamespaces(settled),
         expiry: future.timestamp() as u64,
     };
-    match actors
+    let result_session: Result<ClientSession> = match actors
         .register_settlement(
             wallet.manager.topic_transport(),
             SessionSettled(session_topic, session_settlement.clone()),
         )
         .await
     {
-        Err(e) => warn!("failed to register settlement for wallet {e}"),
+        Err(e) => Err(e),
         Ok(client_session) => {
             let request = RequestParams::SessionSettle(session_settlement);
-            if let Err(e) = client_session.publish_request::<bool>(request).await {
-                warn!("failed to send session settlement: {e}");
+            match client_session.publish_request::<bool>(request).await {
+                Err(e) => Err(e),
+                Ok(true) => Ok(client_session),
+                Ok(false) => Err(crate::Error::SettlementRejected),
             }
         }
+    };
+
+    // This must be Some, otherwise the settlement would have bomb way before
+    let topic = wallet.manager.topic().unwrap();
+    if let Some((_, tx)) = wallet.pending_proposals.remove(&topic) {
+        if tx.send(result_session).is_err() {
+            warn!("receiver for wallet client session has dropped");
+        }
+        return;
     }
+    warn!("No channel found for pairing topic {topic} ");
 }
 
 fn verify_settlement(
@@ -138,15 +154,24 @@ impl Handler<SessionProposeRequest> for Wallet {
 
 impl Wallet {
     pub fn new(manager: PairingManager) -> Self {
-        Self { manager }
+        Self {
+            manager,
+            pending_proposals: Default::default(),
+        }
     }
 
-    pub async fn pair(&self, uri: String) -> Result<Pairing> {
+    pub async fn pair(
+        &self,
+        uri: String,
+    ) -> Result<(Pairing, ProposeFuture<Result<ClientSession>>)> {
         let pairing = Pairing::from_str(&uri)?;
         self.manager
             .actors()
             .register_wallet_pairing(self.clone(), pairing.clone())
             .await?;
-        Ok(pairing)
+        let (tx, rx) = oneshot::channel::<Result<ClientSession>>();
+        self.pending_proposals.insert(pairing.topic.clone(), tx);
+
+        Ok((pairing, ProposeFuture::new(rx)))
     }
 }
