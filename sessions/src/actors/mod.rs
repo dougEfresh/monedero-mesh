@@ -40,6 +40,7 @@ pub(crate) struct RegisterWallet(pub Topic, pub Wallet);
 pub struct RegisteredManagers;
 pub(crate) struct SendRequest(pub(crate) Topic, pub(crate) RequestParams);
 pub(crate) struct SessionSettled(pub Topic, pub SessionSettleRequest);
+pub(crate) struct SessionPing;
 
 impl Actors {
     pub(crate) async fn register_settlement(

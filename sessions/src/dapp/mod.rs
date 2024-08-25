@@ -1,8 +1,9 @@
-use crate::actors::{Actors, SessionSettled};
+mod session_settle;
+
+use crate::actors::Actors;
 use crate::domain::Topic;
 use crate::rpc::{
-    ProposeFuture, ProposeNamespaces, RequestParams, ResponseParamsSuccess, RpcResponsePayload,
-    SessionProposeRequest, SessionProposeResponse,
+    ProposeFuture, ProposeNamespaces, RequestParams, SessionProposeRequest, SessionProposeResponse,
 };
 use crate::session::ClientSession;
 use crate::Result;
@@ -13,51 +14,11 @@ use tokio::sync::oneshot;
 use tokio::sync::oneshot::Sender;
 use tracing::{debug, info, warn};
 use x25519_dalek::PublicKey;
-use xtra::{Context, Handler};
 
 #[derive(Clone, xtra::Actor)]
 pub struct Dapp {
     manager: PairingManager,
     pending_proposals: Arc<DashMap<Topic, Sender<Result<ClientSession>>>>,
-}
-
-impl Handler<SessionSettled> for Dapp {
-    type Return = RpcResponsePayload;
-
-    async fn handle(&mut self, message: SessionSettled, _ctx: &mut Context<Self>) -> Self::Return {
-        match self.manager.topic() {
-            None => {
-                warn!("pairing topic is unknown, cannot complete settlement");
-                RpcResponsePayload::Success(ResponseParamsSuccess::SessionSettle(false))
-            }
-            Some(pairing_topic) => match self.pending_proposals.remove(&pairing_topic) {
-                None => {
-                    warn!(
-                        "no one to send client session pairing_topic={}",
-                        pairing_topic
-                    );
-                    RpcResponsePayload::Success(ResponseParamsSuccess::SessionSettle(false))
-                }
-                Some((_, tx)) => {
-                    let session = self
-                        .manager
-                        .actors()
-                        .register_settlement(self.manager.topic_transport(), message)
-                        .await;
-                    let resp = RpcResponsePayload::Success(ResponseParamsSuccess::SessionSettle(
-                        session.is_ok(),
-                    ));
-
-                    tokio::spawn(async move {
-                        if tx.send(session).is_err() {
-                            warn!("failed to send final client session for settlement");
-                        }
-                    });
-                    resp
-                }
-            },
-        }
-    }
 }
 
 fn handle_error(dapp: Dapp, e: crate::Error) {

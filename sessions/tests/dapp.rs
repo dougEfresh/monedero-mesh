@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::ops::Deref;
 use std::sync::Once;
 use std::time::Duration;
 use tokio::time::timeout;
@@ -81,8 +80,7 @@ async fn await_wallet_pair(rx: ProposeFuture<Result<ClientSession>>) {
     }
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_dapp_settlement() -> anyhow::Result<()> {
+async fn pair_dapp_wallet() -> anyhow::Result<ClientSession> {
     let t = init_test_components().await?;
     let dapp = t.dapp;
     let wallet = t.wallet;
@@ -91,9 +89,22 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
     let (_, wallet_rx) = wallet.pair(pairing.to_string()).await?;
     tokio::spawn(async move { await_wallet_pair(wallet_rx).await });
     let session = timeout(Duration::from_secs(5), rx).await???;
-    info!("settlement complete");
-    // let wallet get their ClientSessoin
+    // let wallet get their ClientSession
     yield_ms(1000).await;
-    assert!(session.namespaces.deref().contains_key("eip155"));
+    Ok(session)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_dapp_settlement() -> anyhow::Result<()> {
+    let session = pair_dapp_wallet().await?;
+    info!("settlement complete");
+    assert!(session.namespaces.contains_key("eip155"));
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_dapp_ping() -> anyhow::Result<()> {
+    let session = pair_dapp_wallet().await?;
+    assert!(session.ping().await?);
     Ok(())
 }

@@ -171,6 +171,7 @@ impl Handler<RpcRequest> for RequestHandlerActor {
         let topic = message.topic.clone();
         let responder = self.responder.clone();
         let managers = self.pair_managers.clone();
+        let session_handlers = self.session_handler.clone();
         debug!("handing request {id}");
         match message.payload.params {
             RequestParams::PairDelete(args) => {
@@ -248,9 +249,11 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                 }
             }
             _ => {
-                if let Err(e) = self.session_handler.send(message).await {
-                    warn!("failed to send to session handler actor {e}");
-                }
+                tokio::spawn(async move {
+                    if let Err(e) = session_handlers.send(message).await {
+                        warn!("failed to send to session handler actor {e}");
+                    }
+                });
             }
         }
     }

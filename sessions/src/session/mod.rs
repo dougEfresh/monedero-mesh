@@ -5,6 +5,8 @@ use crate::Topic;
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
 
+mod session_ping;
+
 /// https://specs.walletconnect.com/2.0/specs/clients/sign/session-proposal
 ///
 /// New session as the result of successful session proposal.
@@ -33,5 +35,9 @@ impl ClientSession {
 
     pub async fn publish_request<R: DeserializeOwned>(&self, params: RequestParams) -> Result<R> {
         self.transport.publish_request(params).await
+    }
+
+    pub async fn ping(&self) -> Result<bool> {
+        self.publish_request(RequestParams::SessionPing(())).await
     }
 }
