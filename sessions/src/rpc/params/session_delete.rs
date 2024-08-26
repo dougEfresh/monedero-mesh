@@ -24,6 +24,15 @@ pub struct SessionDeleteRequest {
     pub message: String,
 }
 
+impl Default for SessionDeleteRequest {
+    fn default() -> Self {
+        Self {
+            code: crate::rpc::sdkerrors::USER_DISCONNECTED.code,
+            message: String::from(crate::rpc::sdkerrors::USER_DISCONNECTED.message),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

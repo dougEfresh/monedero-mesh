@@ -1,3 +1,4 @@
+use assert_matches::assert_matches;
 use std::collections::BTreeMap;
 use std::sync::Once;
 use std::time::Duration;
@@ -5,6 +6,7 @@ use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
+use walletconnect_sessions::crypto::CipherError;
 use walletconnect_sessions::rpc::{ProposeFuture, ProposeNamespace, ProposeNamespaces};
 use walletconnect_sessions::Result;
 use walletconnect_sessions::{
@@ -106,5 +108,18 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
 async fn test_dapp_ping() -> anyhow::Result<()> {
     let session = pair_dapp_wallet().await?;
     assert!(session.ping().await?);
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_dapp_delete() -> anyhow::Result<()> {
+    let session = pair_dapp_wallet().await?;
+    assert!(session.delete().await?);
+    assert_matches!(
+        session.ping().await,
+        Err(walletconnect_sessions::Error::CipherError(
+            CipherError::UnknownTopic(_)
+        ))
+    );
     Ok(())
 }

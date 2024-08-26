@@ -26,6 +26,7 @@ wasm = [
 [dependencies]
 aead = { workspace = true }
 alloy-chains = {workspace = true}
+async-trait = { version = "0.1.81"}
 backoff = {version = "0.4.0", features = ["tokio"]} ## wasm support
 base64 = { workspace = true }
 #base64-url = { workspace = true }

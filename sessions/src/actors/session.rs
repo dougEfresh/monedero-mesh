@@ -1,5 +1,8 @@
 use crate::actors::{SessionPing, TransportActor};
-use crate::rpc::{ErrorParams, RequestParams, ResponseParamsError, RpcRequest, RpcResponse};
+use crate::rpc::{
+    ErrorParams, RequestParams, ResponseParamsError, ResponseParamsSuccess, RpcRequest,
+    RpcResponse, RpcResponsePayload,
+};
 use crate::session::ClientSession;
 use crate::Topic;
 use dashmap::DashMap;
@@ -37,14 +40,81 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
 
     async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {
         match message.payload.params {
-            RequestParams::SessionUpdate(_) => {}
-            RequestParams::SessionExtend(_) => {}
-            RequestParams::SessionRequest(_) => {}
-            RequestParams::SessionEvent(_) => {}
-            RequestParams::SessionDelete(_) => {}
+            RequestParams::SessionUpdate(args) => {
+                tracing::info!("SessionEvent request {args:#?}");
+                let response = RpcResponse {
+                    id: message.payload.id,
+                    topic: message.topic,
+                    payload: RpcResponsePayload::Success(ResponseParamsSuccess::SessionUpdate(
+                        true,
+                    )),
+                };
+                if let Err(e) = self.responder.send(response).await {
+                    warn!("responder actor is not responding {e}");
+                }
+            }
+            RequestParams::SessionExtend(args) => {
+                tracing::info!("SessionEvent request {args:#?}");
+                let response = RpcResponse {
+                    id: message.payload.id,
+                    topic: message.topic,
+                    payload: RpcResponsePayload::Success(ResponseParamsSuccess::SessionExtend(
+                        true,
+                    )),
+                };
+                if let Err(e) = self.responder.send(response).await {
+                    warn!("responder actor is not responding {e}");
+                }
+            }
+            RequestParams::SessionRequest(args) => {
+                tracing::info!("SessionEvent request {args:#?}");
+                let response = RpcResponse {
+                    id: message.payload.id,
+                    topic: message.topic,
+                    payload: RpcResponsePayload::Success(ResponseParamsSuccess::SessionRequest(
+                        true,
+                    )),
+                };
+                if let Err(e) = self.responder.send(response).await {
+                    warn!("responder actor is not responding {e}");
+                }
+            }
+            RequestParams::SessionEvent(args) => {
+                tracing::info!("SessionEvent request {args:#?}");
+                let response = RpcResponse {
+                    id: message.payload.id,
+                    topic: message.topic,
+                    payload: RpcResponsePayload::Success(ResponseParamsSuccess::SessionEvent(true)),
+                };
+                if let Err(e) = self.responder.send(response).await {
+                    warn!("responder actor is not responding {e}");
+                }
+            }
+            RequestParams::SessionDelete(args) => {
+                let unknown = RpcResponse::unknown(
+                    message.payload.id,
+                    message.topic.clone(),
+                    ResponseParamsError::SessionDelete(ErrorParams::unknown()),
+                );
+                let response: RpcResponse = match self.sessions.get(&message.topic) {
+                    None => unknown,
+                    Some(cs) => cs
+                        .send(args)
+                        .await
+                        .map(|payload| RpcResponse {
+                            id: message.payload.id,
+                            topic: message.topic,
+                            payload,
+                        })
+                        .unwrap_or(unknown),
+                };
+                if let Err(e) = self.responder.send(response).await {
+                    warn!("responder actor is not responding {e}");
+                }
+            }
             RequestParams::SessionPing(_) => {
                 let unknown = RpcResponse::unknown(
-                    message.payload.id.clone(),
+                    message.payload.id,
                     message.topic.clone(),
                     ResponseParamsError::SessionPing(ErrorParams::unknown()),
                 );

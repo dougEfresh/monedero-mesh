@@ -18,7 +18,7 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PairDeleteRequest {
-    pub code: u64,
+    pub code: i64,
     pub message: String,
 }
 

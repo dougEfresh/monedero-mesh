@@ -266,7 +266,8 @@ impl From<SdkErrors> for ErrorParams {
     fn from(value: SdkErrors) -> Self {
         let e: SdkError = value.into();
         ErrorParams {
-            code: Some(e.code),
+            // this really should fit
+            code: Some(e.code.try_into().unwrap()),
             message: String::from(e.message),
         }
     }

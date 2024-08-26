@@ -1,4 +1,4 @@
-use crate::actors::{AddRequest, InboundResponseActor, SendRequest, Subscribe};
+use crate::actors::{AddRequest, InboundResponseActor, SendRequest, Subscribe, Unsubscribe};
 use crate::domain::{MessageId, SubscriptionId};
 use crate::relay::Client;
 use crate::rpc::{
@@ -79,6 +79,15 @@ impl TransportActor {
             inbound_response_actor,
             relay: None,
         }
+    }
+}
+
+impl Handler<Unsubscribe> for TransportActor {
+    type Return = Result<()>;
+
+    async fn handle(&mut self, message: Unsubscribe, _ctx: &mut Context<Self>) -> Self::Return {
+        let relay = self.relay.as_ref().ok_or(crate::Error::NoClient)?;
+        Ok(relay.unsubscribe(message.0).await?)
     }
 }
 

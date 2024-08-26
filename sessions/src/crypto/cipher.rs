@@ -71,7 +71,7 @@ impl std::fmt::Display for DecodedSymKey {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, xtra::Actor)]
 pub struct Cipher {
     ciphers: CipherSessionKeyStore,
     pairing: AtomicPairing,
@@ -79,21 +79,26 @@ pub struct Cipher {
 }
 
 impl Cipher {
-    fn storage_key_pairing() -> String {
+    fn storage_pairing() -> String {
         format!("{CRYPTO_STORAGE_PREFIX_KEY}-pairingtopic")
     }
 
-    fn storage_key_sessions() -> String {
+    fn storage_sessions() -> String {
         format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions")
     }
+    fn storage_session_key(topic: &Topic) -> String {
+        format!("{CRYPTO_STORAGE_PREFIX_KEY}-{topic}")
+    }
+}
 
+impl Cipher {
     /// Create a new Cipher keystore base on pairing_topic or generate a new one
     /// https://specs.walletconnect.com/2.0/specs/clients/core/pairing/pairing-uri
     pub fn new(
         storage: Arc<KvStorage>,
         _pairing_topic: Option<Topic>,
     ) -> Result<Self, CipherError> {
-        let storage_pairing_key = Self::storage_key_pairing();
+        let storage_pairing_key = Self::storage_pairing();
         let pairings = DashMap::new();
         if let Some(pairing) = storage.get::<Pairing>(storage_pairing_key)? {
             pairings.insert(pairing.topic.clone(), Arc::new(pairing));
@@ -127,7 +132,7 @@ impl Cipher {
                         }
                         if let Some(controller_pk) = self
                             .storage
-                            .get::<String>(format!("{CRYPTO_STORAGE_PREFIX_KEY}-{s}"))?
+                            .get::<String>(Self::storage_session_key(&Topic::from(s)))?
                         {
                             let (topic, expanded_key) =
                                 Self::derive_sym_key(pairing_key.clone(), controller_pk)?;
@@ -164,12 +169,22 @@ impl Cipher {
         Ok(session.expiry < now as u64)
     }
 
+    pub(crate) fn delete_session(&self, topic: &Topic) -> Result<(), CipherError> {
+        self.storage.delete(Self::storage_session_key(topic))?;
+        if let Some(sessions) = self.storage.get::<Vec<Topic>>(Self::storage_sessions())? {
+            let new_sessions: Vec<Topic> = sessions.into_iter().filter(|t| t == topic).collect();
+            self.storage.set(Self::storage_sessions(), new_sessions)?;
+        }
+        self.ciphers.remove(topic);
+        Ok(())
+    }
+
     pub fn set_pairing(&self, pairing: Option<Pairing>) -> Result<(), CipherError> {
         self.reset();
         if let Some(new_pair) = pairing {
             debug!("setting pairing topic to {}", new_pair.topic);
             self.storage
-                .set::<Pairing>(Self::storage_key_pairing(), new_pair.clone())?;
+                .set::<Pairing>(Self::storage_pairing(), new_pair.clone())?;
             self.pairing
                 .insert(new_pair.topic.clone(), Arc::new(new_pair.clone()));
             let key = new_pair.params.sym_key.clone();
@@ -208,7 +223,7 @@ impl Cipher {
 
     pub fn pairing(&self) -> Option<Pairing> {
         self.storage
-            .get(Self::storage_key_pairing())
+            .get(Self::storage_pairing())
             .ok()
             .unwrap_or_else(|| None)
     }
@@ -227,12 +242,12 @@ impl Cipher {
 
     fn update_sessions(&self, controller_pk: String, topic: Topic) -> Result<(), CipherError> {
         // TODO: May need to lock this entire operation
-        let sessions_key = Self::storage_key_sessions();
-        let mut sessions: Vec<String> = self.storage.get(&sessions_key)?.unwrap_or_default();
-        sessions.push(topic.to_string());
-        self.storage.set(&sessions_key, sessions)?;
-        let topic_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-{topic}");
-        self.storage.set(topic_key, controller_pk)?;
+        let sessions_storage_key = Self::storage_sessions();
+        let mut sessions: Vec<Topic> = self.storage.get(&sessions_storage_key)?.unwrap_or_default();
+        sessions.push(topic.clone());
+        self.storage.set(&sessions_storage_key, sessions)?;
+        self.storage
+            .set(Self::storage_session_key(&topic), controller_pk)?;
         Ok(())
     }
 
@@ -333,7 +348,7 @@ impl Cipher {
     }
 
     #[allow(dead_code)]
-    fn len(&self) -> usize {
+    fn session_topics(&self) -> usize {
         self.ciphers.len()
     }
 
@@ -441,7 +456,7 @@ mod tests {
         ciphers
             .pairing()
             .ok_or(format_err!("pairing should be here"))?;
-        assert_eq!(ciphers.len(), 1);
+        assert_eq!(ciphers.session_topics(), 1);
         assert_eq!(ciphers.pairing.len(), 1);
         drop(ciphers);
 
@@ -459,22 +474,32 @@ mod tests {
         let session_key =
             SessionKey::from_osrng(ciphers.public_key().ok_or(format_err!("shit"))?.as_bytes())?;
         let responder_pk = session_key.public_key();
-        let (t, _) = ciphers.create_common_topic(String::from(&responder_pk))?;
-        assert_eq!(t, session_key.generate_topic());
+        let (session_topic, _) = ciphers.create_common_topic(String::from(&responder_pk))?;
+        assert_eq!(session_topic, session_key.generate_topic());
+        assert_eq!(ciphers.session_topics(), 1);
 
         // Validate Sessions in Store
         let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
         let sessions: Vec<String> = store.get::<Vec<String>>(kv)?.unwrap();
-        assert_eq!(ciphers.len(), sessions.len());
-        let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-{t}");
+        assert_eq!(ciphers.session_topics(), sessions.len());
+        let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-{session_topic}");
         let stored_pk: String = store.get(kv)?.unwrap();
         assert_eq!(stored_pk, responder_pk);
+
+        // Delete session
+        ciphers.delete_session(&session_topic)?;
+        assert_eq!(ciphers.session_topics(), 0);
+        assert!(store
+            .get::<Topic>(Cipher::storage_session_key(&session_topic))?
+            .is_none());
+        // put session back
+        let _ = ciphers.create_common_topic(String::from(&responder_pk))?;
         drop(ciphers);
 
         // Restore sessions
         let ciphers = Cipher::new(store.clone(), None)?;
         let restored_pairing = ciphers.pairing().ok_or(format_err!("pairing not here!"))?;
-        assert_eq!(ciphers.len(), 1);
+        assert_eq!(ciphers.session_topics(), 1);
         assert_eq!(restored_pairing.topic, pairing_topic);
 
         // Settlement
@@ -512,7 +537,7 @@ mod tests {
         let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
         let sessions = store.get::<Vec<String>>(kv)?;
         assert!(sessions.is_none());
-        let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-{t}");
+        let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-{session_topic}");
         let stored_pk = store.get::<String>(kv)?;
         assert!(stored_pk.is_none());
         let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-pairingtopic");
@@ -524,7 +549,7 @@ mod tests {
         let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
         let sessions = store.get::<Vec<String>>(kv)?;
         assert!(sessions.is_none());
-        let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-{t}");
+        let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-{session_topic}");
         let stored_pk = store.get::<String>(kv)?;
         assert!(stored_pk.is_none());
         let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-pairingtopic");

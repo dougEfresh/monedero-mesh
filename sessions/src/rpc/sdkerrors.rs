@@ -53,7 +53,7 @@ impl<'a> From<SdkErrors> for SdkError<'a> {
 }
 
 pub struct SdkError<'a> {
-    pub code: u64,
+    pub code: i64,
     pub message: &'a str,
 }
 
@@ -69,7 +69,7 @@ impl<'a> From<SdkError<'a>> for PairDeleteRequest {
 impl<'a> From<SdkError<'a>> for ErrorParams {
     fn from(value: SdkError) -> Self {
         Self {
-            code: Some(value.code),
+            code: Some(value.code as u64),
             message: String::from(value.message),
         }
     }

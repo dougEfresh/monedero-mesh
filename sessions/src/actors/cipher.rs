@@ -1,4 +1,4 @@
-use crate::actors::{ClearPairing, SessionSettled};
+use crate::actors::{ClearPairing, DeleteSession, SessionSettled};
 use crate::domain::Topic;
 use crate::rpc::{Proposer, SessionProposeResponse};
 use crate::Result;
@@ -13,6 +13,15 @@ pub struct CipherActor {
 impl CipherActor {
     pub fn new(cipher: Cipher) -> Self {
         Self { cipher }
+    }
+}
+
+impl Handler<DeleteSession> for CipherActor {
+    type Return = Result<()>;
+
+    async fn handle(&mut self, message: DeleteSession, _ctx: &mut Context<Self>) -> Self::Return {
+        self.cipher.delete_session(&message.0)?;
+        Ok(())
     }
 }
 

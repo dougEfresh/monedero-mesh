@@ -2,7 +2,7 @@ use walletconnect_sdk::rpc::domain::{ClientIdDecodingError, Topic};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CipherError {
-    #[error("Unknown topic {0:#?}")]
+    #[error("Unknown topic {0:#?}. Was the session closed/deleted?")]
     UnknownTopic(Topic),
 
     #[error("Unknown topic {0:#?}")]

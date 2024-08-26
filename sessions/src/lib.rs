@@ -13,6 +13,7 @@ mod transport;
 mod wallet;
 
 pub use crate::session::ClientSession;
+use async_trait::async_trait;
 pub use crypto::cipher::Cipher;
 pub use dapp::Dapp;
 pub use domain::Message;
@@ -27,6 +28,7 @@ pub use wallet::Wallet;
 use walletconnect_sdk::rpc::auth::ed25519_dalek::SigningKey;
 use walletconnect_sdk::rpc::auth::{AuthToken, SerializedAuthToken};
 pub type Atomic<T> = Arc<Mutex<T>>;
+use crate::rpc::SessionDeleteRequest;
 pub use actors::{Actors, RegisteredManagers};
 pub use domain::*;
 pub use relay::ClientError;
@@ -68,6 +70,23 @@ pub fn auth_token(url: impl Into<String>) -> SerializedAuthToken {
         .ttl(Duration::from_secs(60 * 60))
         .as_jwt(&key)
         .unwrap()
+}
+
+/*
+#[trait_variant::make(Send + Sync)]
+pub trait SessionDeleteHandler {
+    async fn handle(&self, _request: SessionDeleteRequest);
+}
+ */
+
+pub struct NoopSessionDeleteHandler;
+impl SessionDeleteHandler for NoopSessionDeleteHandler {}
+
+#[async_trait]
+pub trait SessionDeleteHandler: Send + Sync + 'static {
+    async fn handle(&self, request: SessionDeleteRequest) {
+        tracing::info!("Session delete request {:#?}", request)
+    }
 }
 
 pub(crate) fn shorten_topic(id: &Topic) -> String {

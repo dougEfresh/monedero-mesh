@@ -1,4 +1,4 @@
-use crate::actors::{SendRequest, TransportActor};
+use crate::actors::{SendRequest, TransportActor, Unsubscribe};
 use crate::domain::Topic;
 use crate::rpc::{RequestParams, ResponseParams};
 use crate::Result;
@@ -10,6 +10,12 @@ use xtra::Address;
 #[derive(Clone)]
 pub(crate) struct TopicTransport {
     transport_actor: Address<TransportActor>,
+}
+
+impl TopicTransport {
+    pub(crate) async fn unsubscribe(&self, topic: Topic) -> Result<()> {
+        self.transport_actor.send(Unsubscribe(topic)).await?
+    }
 }
 
 impl TopicTransport {
@@ -45,6 +51,12 @@ impl TopicTransport {
 pub(crate) struct SessionTransport {
     pub(crate) topic: Topic,
     pub(crate) transport: TopicTransport,
+}
+
+impl SessionTransport {
+    pub(crate) async fn unsubscribe(&self) -> Result<()> {
+        self.transport.unsubscribe(self.topic.clone()).await
+    }
 }
 
 impl Debug for SessionTransport {

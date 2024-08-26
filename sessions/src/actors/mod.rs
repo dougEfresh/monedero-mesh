@@ -5,7 +5,7 @@ mod session;
 mod socket;
 mod transport;
 
-use crate::actors::cipher::CipherActor;
+pub(crate) use crate::actors::cipher::CipherActor;
 use crate::actors::request::RegisterTopicManager;
 use crate::actors::session::SessionRequestHandlerActor;
 pub(crate) use crate::actors::socket::SocketActor;
@@ -14,10 +14,11 @@ use crate::relay::Client;
 use crate::rpc::{Proposer, RequestParams, SessionProposeResponse, SessionSettleRequest};
 use crate::session::ClientSession;
 use crate::transport::{SessionTransport, TopicTransport};
-use crate::{Cipher, Pairing, PairingManager};
+use crate::{Cipher, NoopSessionDeleteHandler, Pairing, PairingManager};
 use crate::{Dapp, Result, Wallet};
 pub(crate) use inbound::{AddRequest, InboundResponseActor};
 pub(crate) use request::RequestHandlerActor;
+
 use tracing::debug;
 pub(crate) use transport::TransportActor;
 use xtra::{Address, Mailbox};
@@ -35,12 +36,14 @@ pub struct Actors {
 
 pub(crate) struct ClearPairing;
 pub(crate) struct Subscribe(pub Topic);
+pub(crate) struct Unsubscribe(pub Topic);
 pub(crate) struct RegisterDapp(pub Topic, pub Dapp);
 pub(crate) struct RegisterWallet(pub Topic, pub Wallet);
 pub struct RegisteredManagers;
 pub(crate) struct SendRequest(pub(crate) Topic, pub(crate) RequestParams);
 pub(crate) struct SessionSettled(pub Topic, pub SessionSettleRequest);
 pub(crate) struct SessionPing;
+pub(crate) struct DeleteSession(pub Topic);
 
 impl Actors {
     pub(crate) async fn register_settlement(
@@ -52,7 +55,12 @@ impl Actors {
             topic: settlement.0.clone(),
             transport,
         };
-        let client_session = ClientSession::new(session_transport, settlement.1.namespaces.clone());
+        let client_session = ClientSession::new(
+            self.cipher_actor.clone(),
+            session_transport,
+            settlement.1.namespaces.clone(),
+            NoopSessionDeleteHandler,
+        );
         self.session_actor.send(client_session.clone()).await?;
         self.cipher_actor.send(settlement).await??;
         Ok(client_session)
