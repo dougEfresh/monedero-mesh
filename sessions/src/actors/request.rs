@@ -3,17 +3,17 @@ use crate::actors::{RegisterDapp, RegisterWallet, SessionSettled, TransportActor
 use crate::domain::Topic;
 use crate::rpc::{
     ErrorParams, PairDeleteRequest, PairPingRequest, RequestParams, ResponseParamsError,
-    ResponseParamsSuccess, RpcRequest, RpcResponse, RpcResponsePayload,
+    ResponseParamsSuccess, RpcRequest, RpcResponse, RpcResponsePayload, SessionProposeRequest,
 };
-use crate::{Dapp, Result, Wallet};
+use crate::{Dapp, MessageId, Result, Wallet};
 use crate::{PairingManager, RegisteredManagers};
 use dashmap::DashMap;
 use std::sync::Arc;
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 use walletconnect_relay::Client;
 use xtra::prelude::*;
 
-#[derive(xtra::Actor)]
+#[derive(Clone, xtra::Actor)]
 pub(crate) struct RequestHandlerActor {
     pair_managers: Arc<DashMap<Topic, Address<PairingManager>>>,
     dapps: Arc<DashMap<Topic, Address<Dapp>>>,
@@ -26,6 +26,7 @@ impl Handler<RegisterWallet> for RequestHandlerActor {
     type Return = ();
 
     async fn handle(&mut self, message: RegisterWallet, ctx: &mut Context<Self>) -> Self::Return {
+        info!("registering wallet for requests on topic {}", message.0);
         let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
         self.wallets.insert(message.0, addr);
     }
@@ -163,6 +164,20 @@ async fn handle_pair_request(
     }
 }
 
+async fn process_proposal(
+    actor: RequestHandlerActor,
+    id: MessageId,
+    topic: Topic,
+    req: SessionProposeRequest,
+) -> crate::Result<RpcResponse> {
+    let w = actor
+        .wallets
+        .get(&topic)
+        .ok_or(crate::Error::NoWalletHandler(topic.clone()))?;
+    let payload = w.send(req).await?;
+    Ok(RpcResponse { id, topic, payload })
+}
+
 impl Handler<RpcRequest> for RequestHandlerActor {
     type Return = ();
 
@@ -213,19 +228,20 @@ impl Handler<RpcRequest> for RequestHandlerActor {
             }
 
             RequestParams::SessionPropose(args) => {
+                info!("got session proposal");
                 let unknown = RpcResponse::unknown(
                     id,
                     topic.clone(),
                     ResponseParamsError::SessionPropose(ErrorParams::unknown()),
                 );
-                let response: RpcResponse = match self.wallets.get(&topic) {
-                    None => unknown,
-                    Some(wallet) => wallet
-                        .send(args)
-                        .await
-                        .map(|payload| RpcResponse { id, topic, payload })
-                        .unwrap_or(unknown),
-                };
+                let response: RpcResponse =
+                    match process_proposal(self.clone(), id, topic, args).await {
+                        Ok(r) => r,
+                        Err(e) => {
+                            warn!("failed to get proposal response: {e}");
+                            unknown
+                        }
+                    };
                 if let Err(e) = self.responder.send(response).await {
                     warn!("responder actor is not responding {e}");
                 }

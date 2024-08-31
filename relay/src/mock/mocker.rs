@@ -25,6 +25,7 @@ pub struct Mocker {
     pending: Arc<RwLock<VecDeque<Message>>>,
     connected: Arc<AtomicBool>,
     generator: MessageIdGenerator,
+    pending_tx: mpsc::UnboundedSender<Message>,
 }
 
 impl Mocker {
@@ -36,6 +37,7 @@ impl Mocker {
         rx: mpsc::UnboundedReceiver<Message>,
     ) -> Self {
         let (socket_tx, socket_rx) = mpsc::unbounded_channel::<ConnectionState>();
+        let (pending_tx, pending_rx) = mpsc::unbounded_channel::<Message>();
         let mocker = Self {
             client_id,
             tx,
@@ -44,16 +46,23 @@ impl Mocker {
             connected: Arc::new(AtomicBool::new(false)),
             pending: Arc::new(RwLock::new(VecDeque::new())),
             generator,
+            pending_tx,
         };
         let event_handler = mocker.clone();
+
         tokio::spawn(async move {
-            event_loop(rx, socket_rx, event_handler, handler).await;
+            event_loop(rx, socket_rx, pending_rx, event_handler, handler).await;
         });
         mocker
     }
 
     fn my_topic(&self, topic: &Topic) -> bool {
         self.topics.contains_key(topic)
+    }
+
+    async fn queue(&self, message: Message) {
+        info!("queuing message on unsubscribed topic");
+        self.pending.write().await.push_back(message);
     }
 
     fn fmt_common(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -159,6 +168,7 @@ impl Mocker {
 async fn event_loop<T: ConnectionHandler>(
     mut rx: mpsc::UnboundedReceiver<Message>,
     mut socket_rx: mpsc::UnboundedReceiver<ConnectionState>,
+    mut pending_rx: mpsc::UnboundedReceiver<Message>,
     mocker: Mocker,
     mut handler: T,
 ) {
@@ -178,10 +188,19 @@ async fn event_loop<T: ConnectionHandler>(
               }
             }
           },
+          Some(pending_message) = pending_rx.recv() => {
+                handler.message_received(pending_message);
+          }
           maybe_message = rx.recv() => {
             match maybe_message {
               None => return,
-              Some(msg) => handler.message_received(msg)
+              Some(msg) => {
+                        if !mocker.my_topic(&msg.topic) {
+                            mocker.queue(msg).await;
+                        } else {
+                            handler.message_received(msg);
+                        }
+                    }
             }
           }
         }
@@ -203,7 +222,7 @@ async fn pending_messages(mocker: Mocker) {
     for m in pending {
         tokio::time::sleep(Duration::from_millis(800)).await;
         debug!("{} sending message", mocker);
-        if mocker.tx.send(m).is_err() {
+        if mocker.pending_tx.send(m).is_err() {
             warn!("{} mock channel closed", mocker);
             return;
         }

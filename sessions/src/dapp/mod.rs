@@ -84,13 +84,14 @@ impl Dapp {
         }
     }
 
-    pub fn propose<T: SessionHandlers>(
+    pub async fn propose<T: SessionHandlers>(
         &self,
         handlers: T,
         chains: impl Into<Namespaces>,
     ) -> Result<(Pairing, ProposeFuture<Result<ClientSession>>)> {
         let namespaces: Namespaces = chains.into();
         let pairing = Pairing::default();
+        self.manager.set_pairing(pairing.clone()).await?;
         let rx = self.pending.add(pairing.topic.clone(), handlers);
         let pk = public_key(&pairing);
         let params = RequestParams::SessionPropose(SessionProposeRequest::new(

@@ -77,4 +77,7 @@ pub enum Error {
     #[cfg(feature = "mock")]
     #[error("Must supply ConnectionsOptions when mock feature is used")]
     InvalidateConnectionOpts,
+
+    #[error("No wallet found to handle request on topic {0:#?}")]
+    NoWalletHandler(Topic),
 }

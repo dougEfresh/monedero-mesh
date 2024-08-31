@@ -61,14 +61,9 @@ impl Actors {
 
     pub async fn register_wallet_pairing(&self, wallet: Wallet, pairing: Pairing) -> Result<()> {
         debug!("registering wallet to topic {}", pairing.topic);
-        self.cipher_actor.send(pairing.clone()).await??;
         self.request_actor
             .send(RegisterWallet(pairing.topic.clone(), wallet))
             .await?;
-        self.transport_actor
-            .send(Subscribe(pairing.topic))
-            .await??;
-
         Ok(())
     }
 

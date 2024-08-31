@@ -7,7 +7,7 @@ use xtra::{Context, Handler};
 
 impl Dapp {
     async fn process_settlement(&self, settled: SessionSettled) -> Result<()> {
-        self.pending.settled(&self.manager, settled).await?;
+        self.pending.settled(&self.manager, settled, false).await?;
         Ok(())
     }
 }

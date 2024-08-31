@@ -84,10 +84,13 @@ impl Wallet {
             namespaces: settled,
             expiry: future.timestamp(),
         };
-        self.pending
+
+        let c = self
+            .pending
             .settled(
                 &self.manager,
                 SessionSettled(session_topic.clone(), session_settlement.clone()),
+                true,
             )
             .await?;
         Ok(())
@@ -176,6 +179,7 @@ impl Wallet {
             .register_wallet_pairing(self.clone(), pairing.clone())
             .await?;
         let rx = self.pending.add(pairing.topic.clone(), handlers);
+        self.manager.set_pairing(pairing.clone()).await?;
         Ok((pairing, ProposeFuture::new(rx)))
     }
 }

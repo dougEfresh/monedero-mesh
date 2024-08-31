@@ -66,6 +66,7 @@ impl PendingSession {
         &self,
         mgr: &PairingManager,
         settled: SessionSettled,
+        send_to_peer: bool,
     ) -> Result<ClientSession> {
         let pairing_topic = mgr.topic().ok_or(Error::NoPairingTopic)?;
         let handlers = self.remove(&pairing_topic)?;
@@ -81,9 +82,15 @@ impl PendingSession {
             settled.1.namespaces.clone(),
             tx,
         );
+        let req = settled.1.clone();
         actors
             .register_settlement(client_session.clone(), settled)
             .await?;
+        if send_to_peer {
+            client_session
+                .publish_request::<bool>(RequestParams::SessionSettle(req))
+                .await?;
+        }
         handlers
             .tx
             .send(Ok(client_session.clone()))

@@ -38,13 +38,12 @@ pub(crate) async fn init_test_components() -> anyhow::Result<TestStuff> {
     let dapp_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Dapp);
     let wallet_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Wallet);
     let dapp_opts = ConnectionOptions::new(p.clone(), auth.clone(), dapp_id);
-    let wallet_opts = ConnectionOptions::new(p, auth, wallet_id);
-    let dapp_manager =
-        WalletConnectBuilder::new(p.clone(), auth_token("https://github.com/dougEfresh"))
-            .connect_opts(dapp_opts)
-            .build()
-            .await?;
-    let wallet_manager = WalletConnectBuilder::new(p, auth_token("https://github.com/dougEfresh"))
+    let wallet_opts = ConnectionOptions::new(p.clone(), auth.clone(), wallet_id);
+    let dapp_manager = WalletConnectBuilder::new(p.clone(), auth.clone())
+        .connect_opts(dapp_opts)
+        .build()
+        .await?;
+    let wallet_manager = WalletConnectBuilder::new(p, auth)
         .connect_opts(wallet_opts)
         .build()
         .await?;
@@ -113,19 +112,7 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
     let session = pair_dapp_wallet().await?;
     info!("settlement complete");
     assert!(session.namespaces.contains_key(&NamespaceName::Solana));
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_dapp_ping() -> anyhow::Result<()> {
-    let session = pair_dapp_wallet().await?;
     assert!(session.ping().await?);
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_dapp_delete() -> anyhow::Result<()> {
-    let session = pair_dapp_wallet().await?;
     assert!(session.delete().await?);
     assert_matches!(
         session.ping().await,

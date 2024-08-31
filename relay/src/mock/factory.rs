@@ -35,6 +35,7 @@ impl MockerFactory {
     ) -> Mocker {
         if let Ok(mut l) = self.broadcasters.lock() {
             if let Some((tx, rx)) = l.remove(connection_id) {
+                tracing::info!("found a pair for {}", connection_id);
                 return Mocker::new(
                     handler,
                     self.generator.clone(),
@@ -44,6 +45,7 @@ impl MockerFactory {
                 );
             }
             // create new channels, store the otherside in the hashmap
+            tracing::info!("creating new connection pair for mock {}", connection_id);
             let (dapp_tx, dapp_rx) = mpsc::unbounded_channel::<Message>();
             let (wallet_tx, wallet_rx) = mpsc::unbounded_channel::<Message>();
             return match &connection_id.1 {

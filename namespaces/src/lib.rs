@@ -1,4 +1,4 @@
-// ========================================================================================================
+// ===============================================================sus=========================================
 // https://specs.walletconnect.com/2.0/specs/clients/sign/namespaces#
 // rejecting-a-session-response
 // - validates namespaces match at least all requiredNamespaces

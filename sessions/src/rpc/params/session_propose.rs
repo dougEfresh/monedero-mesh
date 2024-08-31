@@ -42,6 +42,7 @@ pub struct SessionProposeRequest {
     pub relays: Vec<RelayProtocol>,
     pub proposer: Proposer,
     pub required_namespaces: Namespaces,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub optional_namespaces: Option<Namespaces>,
 }
 
