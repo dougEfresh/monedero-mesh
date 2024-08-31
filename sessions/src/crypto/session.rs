@@ -1,6 +1,6 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/session-proposal
 
-use walletconnect_sdk::rpc::domain::Topic;
+use crate::domain::Topic;
 use {
     hkdf::Hkdf,
     rand::{rngs::OsRng, CryptoRng, RngCore},

@@ -1,0 +1,121 @@
+use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
+use std::time::Duration;
+use walletconnect_sdk::client::websocket::ConnectionHandler as WcHandler;
+use walletconnect_sdk::client::websocket::{Client as WcClient, PublishedMessage};
+use walletconnect_sdk::client::ConnectionOptions as WcOptions;
+
+use crate::{ConnectionHandler, ConnectionOptions, Result, SubscriptionId, Topic};
+
+impl From<&ConnectionOptions> for WcOptions {
+    fn from(opts: &ConnectionOptions) -> Self {
+        Self {
+            address: String::from(&opts.address),
+            project_id: opts.project_id.clone(),
+            auth: opts.auth.clone(),
+            origin: None,
+            user_agent: None,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Client {
+    wc: WcClient,
+}
+
+impl Debug for Client {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[native]")
+    }
+}
+
+impl Display for Client {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[native]")
+    }
+}
+
+struct WrapperHandler<T: ConnectionHandler> {
+    handler: T,
+}
+
+impl<T: ConnectionHandler> WrapperHandler<T> {
+    fn new(handler: T) -> Self {
+        Self { handler }
+    }
+}
+
+impl<T: ConnectionHandler> WcHandler for WrapperHandler<T> {
+    fn connected(&mut self) {
+        self.handler.connected()
+    }
+
+    fn disconnected(
+        &mut self,
+        _frame: Option<walletconnect_sdk::client::websocket::CloseFrame<'static>>,
+    ) {
+        self.handler.disconnected(None);
+    }
+
+    fn message_received(&mut self, message: PublishedMessage) {
+        self.handler.message_received(message.into());
+    }
+
+    fn inbound_error(&mut self, err: walletconnect_sdk::client::error::ClientError) {
+        self.handler.inbound_error(err.into());
+    }
+
+    fn outbound_error(&mut self, err: walletconnect_sdk::client::error::ClientError) {
+        self.handler.outbound_error(err.into());
+    }
+}
+
+impl Client {
+    pub fn new(handler: impl ConnectionHandler) -> Self {
+        let wrapper = WrapperHandler::new(handler);
+        let wc = WcClient::new(wrapper);
+        Self { wc }
+    }
+}
+
+impl Client {
+    pub async fn publish(
+        &self,
+        topic: Topic,
+        message: impl Into<Arc<str>>,
+        tag: u32,
+        ttl: Duration,
+        prompt: bool,
+    ) -> crate::Result<()> {
+        self.wc.publish(topic, message, tag, ttl, prompt).await?;
+        Ok(())
+    }
+
+    pub async fn subscribe(&self, topic: Topic) -> Result<SubscriptionId> {
+        let id = self.wc.subscribe(topic).await?;
+        Ok(id)
+    }
+
+    pub async fn unsubscribe(&self, topic: Topic) -> Result<()> {
+        self.wc.unsubscribe(topic).await?;
+        Ok(())
+    }
+
+    pub async fn connect(&self, opts: &ConnectionOptions) -> Result<()> {
+        let wc: WcOptions = WcOptions {
+            address: String::from(&opts.address),
+            project_id: opts.project_id.clone(),
+            auth: opts.auth.clone(),
+            origin: None,
+            user_agent: None,
+        };
+        self.wc.connect(&wc).await?;
+        Ok(())
+    }
+
+    pub async fn disconnect(&self) -> Result<()> {
+        self.wc.disconnect().await.ok();
+        Ok(())
+    }
+}

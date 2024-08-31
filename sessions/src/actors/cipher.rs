@@ -19,7 +19,7 @@ impl CipherActor {
 impl Handler<DeleteSession> for CipherActor {
     type Return = Result<()>;
 
-    async fn handle(&mut self, message: DeleteSession, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: DeleteSession, ctx: &mut Context<Self>) -> Self::Return {
         self.cipher.delete_session(&message.0)?;
         Ok(())
     }
@@ -28,7 +28,7 @@ impl Handler<DeleteSession> for CipherActor {
 impl Handler<Proposer> for CipherActor {
     type Return = Result<Topic>;
 
-    async fn handle(&mut self, message: Proposer, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: Proposer, ctx: &mut Context<Self>) -> Self::Return {
         let (topic, _) = self.cipher.create_common_topic(message.public_key)?;
         Ok(topic)
     }
@@ -37,15 +37,15 @@ impl Handler<Proposer> for CipherActor {
 impl Handler<SessionSettled> for CipherActor {
     type Return = Result<()>;
 
-    async fn handle(&mut self, message: SessionSettled, _ctx: &mut Context<Self>) -> Self::Return {
-        Ok(self.cipher.settlement(&message)?)
+    async fn handle(&mut self, message: SessionSettled, ctx: &mut Context<Self>) -> Self::Return {
+        Ok(self.cipher.set_settlement(&message)?)
     }
 }
 
 impl Handler<Pairing> for CipherActor {
     type Return = Result<()>;
 
-    async fn handle(&mut self, message: Pairing, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: Pairing, ctx: &mut Context<Self>) -> Self::Return {
         self.cipher.set_pairing(Some(message))?;
         Ok(())
     }
@@ -54,7 +54,7 @@ impl Handler<Pairing> for CipherActor {
 impl Handler<ClearPairing> for CipherActor {
     type Return = Result<()>;
 
-    async fn handle(&mut self, _message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, _message: ClearPairing, ctx: &mut Context<Self>) -> Self::Return {
         self.cipher.set_pairing(None)?;
         Ok(())
     }
@@ -66,7 +66,7 @@ impl Handler<SessionProposeResponse> for CipherActor {
     async fn handle(
         &mut self,
         message: SessionProposeResponse,
-        _ctx: &mut Context<Self>,
+        ctx: &mut Context<Self>,
     ) -> Self::Return {
         let (topic, _) = self
             .cipher

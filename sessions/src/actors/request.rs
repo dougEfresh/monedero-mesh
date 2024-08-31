@@ -1,7 +1,6 @@
 use crate::actors::session::SessionRequestHandlerActor;
 use crate::actors::{RegisterDapp, RegisterWallet, SessionSettled, TransportActor};
 use crate::domain::Topic;
-use crate::relay::Client;
 use crate::rpc::{
     ErrorParams, PairDeleteRequest, PairPingRequest, RequestParams, ResponseParamsError,
     ResponseParamsSuccess, RpcRequest, RpcResponse, RpcResponsePayload,
@@ -11,6 +10,7 @@ use crate::{PairingManager, RegisteredManagers};
 use dashmap::DashMap;
 use std::sync::Arc;
 use tracing::{debug, warn};
+use walletconnect_relay::Client;
 use xtra::prelude::*;
 
 #[derive(xtra::Actor)]
@@ -25,7 +25,7 @@ pub(crate) struct RequestHandlerActor {
 impl Handler<RegisterWallet> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RegisterWallet, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: RegisterWallet, ctx: &mut Context<Self>) -> Self::Return {
         let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
         self.wallets.insert(message.0, addr);
     }
@@ -34,7 +34,7 @@ impl Handler<RegisterWallet> for RequestHandlerActor {
 impl Handler<RegisterDapp> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RegisterDapp, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: RegisterDapp, ctx: &mut Context<Self>) -> Self::Return {
         let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
         self.dapps.insert(message.0, addr);
     }
@@ -46,7 +46,7 @@ impl Handler<RegisteredManagers> for RequestHandlerActor {
     async fn handle(
         &mut self,
         _message: RegisteredManagers,
-        _ctx: &mut Context<Self>,
+        ctx: &mut Context<Self>,
     ) -> Self::Return {
         self.pair_managers.len()
     }
@@ -60,7 +60,7 @@ impl Handler<RegisterTopicManager> for RequestHandlerActor {
     async fn handle(
         &mut self,
         message: RegisterTopicManager,
-        _ctx: &mut Context<Self>,
+        ctx: &mut Context<Self>,
     ) -> Self::Return {
         tracing::info!("registering mgr for topic {}", message.0);
         let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
@@ -71,7 +71,7 @@ impl Handler<RegisterTopicManager> for RequestHandlerActor {
 impl Handler<Client> for RequestHandlerActor {
     type Return = Result<()>;
 
-    async fn handle(&mut self, message: Client, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: Client, ctx: &mut Context<Self>) -> Self::Return {
         self.send_client(message).await
     }
 }
@@ -166,7 +166,7 @@ async fn handle_pair_request(
 impl Handler<RpcRequest> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: RpcRequest, ctx: &mut Context<Self>) -> Self::Return {
         let id = message.payload.id;
         let topic = message.topic.clone();
         let responder = self.responder.clone();

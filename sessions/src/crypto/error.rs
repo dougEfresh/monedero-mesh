@@ -1,4 +1,4 @@
-use walletconnect_sdk::rpc::domain::{ClientIdDecodingError, Topic};
+use walletconnect_relay::{ClientIdDecodingError, Topic};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CipherError {

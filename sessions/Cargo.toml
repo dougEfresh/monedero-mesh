@@ -1,17 +1,17 @@
 [package]
 name = "walletconnect-sessions"
-version = "0.1.0"
-edition = "2021"
-
-[lints.rust]
-unsafe_code = "forbid"
-unused = "deny"
-unused_variables = "deny"
-unused_imports = "deny"
-dead_code = "allow"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
 
 [features]
 default = ["kv", "dashmap"]
@@ -56,8 +56,9 @@ tracing = { workspace = true}
 trait-variant = {workspace = true}
 url = { workspace = true }
 dashmap = {  version = "5.5", optional = true }
-x25519-dalek = { version = "2.0", features = ["static_secrets", "serde"] }
-walletconnect_sdk = { git = "https://github.com/WalletConnect/WalletConnectRust.git" }
+x25519-dalek = { version = "2", features = ["static_secrets", "serde"] }
+walletconnect-namespaces = { path = "../namespaces" }
+walletconnect-relay = { path = "../relay", features = ["mock"]}
 xtra = {workspace = true, features = ["macros", "tokio", "instrumentation"]}
 
 
@@ -65,7 +66,7 @@ xtra = {workspace = true, features = ["macros", "tokio", "instrumentation"]}
 wasm-bindgen = { version = "0.2", optional = true}
 web-sys = { version = "0.3", optional = true}
 getrandom = { version = "0.2", features = ["js"], optional = true}
-gloo-storage = { version = "0.3"}
+gloo-storage = { version = "0.3", optional = true}
 
 [[test]]
 name = "manager"

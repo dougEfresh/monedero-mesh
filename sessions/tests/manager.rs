@@ -2,10 +2,12 @@ use assert_matches::assert_matches;
 use std::str::FromStr;
 use std::sync::Once;
 use std::time::Duration;
+use tracing::info;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
+use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
 use walletconnect_sessions::ProjectId;
-use walletconnect_sessions::{auth_token, Actors, Topic};
+use walletconnect_sessions::{Actors, Topic};
 use walletconnect_sessions::{Cipher, Pairing, PairingManager, WalletConnectBuilder};
 
 #[allow(dead_code)]
@@ -26,13 +28,22 @@ pub(crate) async fn yield_ms(ms: u64) {
 
 pub(crate) async fn init_test_components(pair: bool) -> anyhow::Result<TestStuff> {
     init_tracing();
+    let shared_id = Topic::generate();
+    let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
+    let auth = auth_token("https://github.com/dougEfresh");
+    let dapp_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Dapp);
+    let wallet_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Wallet);
+    let dapp_opts = ConnectionOptions::new(p.clone(), auth.clone(), dapp_id);
+    let wallet_opts = ConnectionOptions::new(p, auth, wallet_id);
     let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
     let dapp =
         WalletConnectBuilder::new(p.clone(), auth_token(String::from("https://example.com")))
+            .connect_opts(dapp_opts)
             .build()
             .await?;
     let wallet =
         WalletConnectBuilder::new(p, auth_token(String::from("https://github.com/dougEfresh")))
+            .connect_opts(wallet_opts)
             .build()
             .await?;
     let dapp_actors = dapp.actors();
@@ -120,13 +131,14 @@ async fn test_relay_disconnect() -> anyhow::Result<()> {
     let disconnect_topic =
         Topic::from("92b2701dbdbb72abea51591a06d41e7d76ebfe18e1a1ca5680a5ac6e3717c6d9");
     dapp.subscribe(disconnect_topic.clone()).await?;
-    yield_ms(555).await;
+    yield_ms(1000).await;
     assert_matches!(
         dapp.ping().await,
         Err(walletconnect_sessions::Error::ConnectError(
             walletconnect_sessions::ClientError::Disconnected
         ))
     );
+    info!("waiting for reconnect");
     yield_ms(3300).await;
     // should have reconnected
     dapp.ping().await?;

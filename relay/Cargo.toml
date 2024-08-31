@@ -1,0 +1,58 @@
+[package]
+name = "walletconnect-relay"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+mock = [
+    "once_cell",
+    "dashmap"
+]
+wasm = [
+    "wasm-bindgen",
+    "web-sys",
+    "getrandom",
+]
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = [
+    "std",
+    "clock",
+    "serde"
+] }
+dashmap = {version = "5", optional = true}
+futures-util = { workspace = true }
+chacha20poly1305 = { workspace = true }
+once_cell = { version = "1", optional = true }
+rand = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-tungstenite = { version = "0.23", optional = false }
+tracing = { version = "0.1" }
+walletconnect_sdk = { git = "https://github.com/WalletConnect/WalletConnectRust.git" , features = ["rpc", "client"]}
+ed25519-dalek = { version = "2.1.1", features = ["rand_core"] }
+
+## wasm
+wasm-bindgen = { version = "0.2", optional = true}
+web-sys = { version = "0.3", optional = true}
+getrandom = { version = "0.2", features = ["js"], optional = true}
+
+[dev-dependencies]
+tokio = { version = "1" , features = ["full"] }
+anyhow = "1"
+tracing = { version = "0.1" }
+tracing-error = { version = "0.2.0"}
+dotenvy = {version = "0.15"}
+tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
+
+[[test]]
+name = "local"
+

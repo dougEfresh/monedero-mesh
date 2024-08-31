@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use tracing::debug;
-use walletconnect_sdk::rpc::auth::ed25519_dalek::{SecretKey, VerifyingKey};
-use walletconnect_sdk::rpc::domain::{DecodedTopic, Topic};
+use walletconnect_relay::ed25519_dalek::{SecretKey, VerifyingKey};
+use walletconnect_relay::{DecodedTopic, Topic};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 pub const MULTICODEC_ED25519_LENGTH: usize = 32;
@@ -86,8 +86,13 @@ impl Cipher {
     fn storage_sessions() -> String {
         format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions")
     }
+
     fn storage_session_key(topic: &Topic) -> String {
         format!("{CRYPTO_STORAGE_PREFIX_KEY}-{topic}")
+    }
+
+    fn storage_settlement(topic: &Topic) -> String {
+        format!("{CRYPTO_STORAGE_PREFIX_KEY}-settlement-{}", topic)
     }
 }
 
@@ -153,10 +158,31 @@ impl Cipher {
         Ok(())
     }
 
-    pub(crate) fn settlement(&self, session: &SessionSettled) -> Result<(), CipherError> {
-        let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-settlement-{}", &session.0);
+    pub(crate) fn set_settlement(&self, session: &SessionSettled) -> Result<(), CipherError> {
+        let sessions_key = Self::storage_settlement(&session.0);
         self.storage.set(sessions_key, session.1.clone())?;
         Ok(())
+    }
+
+    pub(crate) fn settlements(&self) -> Result<Vec<SessionSettled>, CipherError> {
+        if self.pairing.is_empty() || self.ciphers.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let sessions: Vec<Topic> = self
+            .storage
+            .get(&Self::storage_sessions())?
+            .unwrap_or_default();
+        let mut settled: Vec<SessionSettled> = Vec::new();
+        for topic in sessions {
+            if let Some(s) = self
+                .storage
+                .get::<SessionSettleRequest>(Self::storage_settlement(&topic))?
+            {
+                settled.push(SessionSettled(topic, s));
+            }
+        }
+        Ok(settled)
     }
 
     pub(crate) fn is_expired(&self, topic: Topic) -> Result<bool, CipherError> {
@@ -371,7 +397,7 @@ mod tests {
     use crate::storage::KvStorage;
     use anyhow::format_err;
     use std::str::FromStr;
-    use walletconnect_sdk::client::MessageIdGenerator;
+    use walletconnect_relay::MessageIdGenerator;
 
     fn temp_location() -> Option<String> {
         let topic = Topic::generate();
@@ -521,16 +547,21 @@ mod tests {
             namespaces: Default::default(),
             expiry: future.timestamp() as u64,
         };
-        ciphers.settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
+        ciphers.set_settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
         assert!(!ciphers.is_expired(session_topic.clone())?);
+
+        // get settlements
+        assert_eq!(1, ciphers.settlements()?.len());
+
         let past = now - chrono::Duration::hours(1);
         settlement.expiry = past.timestamp() as u64;
-        ciphers.settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
+        ciphers.set_settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
         assert!(ciphers.is_expired(session_topic.clone())?);
         drop(ciphers);
         // restore should reset / clear storage due to expired session
         let ciphers = Cipher::new(store.clone(), None)?;
         assert!(ciphers.pairing().is_none());
+        assert!(ciphers.settlements()?.is_empty());
 
         // New Pairing
         ciphers.set_pairing(Some(create_pairing()))?;

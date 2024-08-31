@@ -28,7 +28,7 @@ impl SessionRequestHandlerActor {
 impl Handler<ClientSession> for SessionRequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: ClientSession, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: ClientSession, ctx: &mut Context<Self>) -> Self::Return {
         let topic = message.topic();
         let addr = xtra::spawn_tokio(message, Mailbox::unbounded());
         self.sessions.insert(topic, addr);
@@ -38,7 +38,7 @@ impl Handler<ClientSession> for SessionRequestHandlerActor {
 impl Handler<RpcRequest> for SessionRequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: RpcRequest, ctx: &mut Context<Self>) -> Self::Return {
         match message.payload.params {
             RequestParams::SessionUpdate(args) => {
                 tracing::info!("SessionEvent request {args:#?}");

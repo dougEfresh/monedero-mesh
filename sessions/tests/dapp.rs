@@ -6,12 +6,13 @@ use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
+use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
 use walletconnect_sessions::crypto::CipherError;
-use walletconnect_sessions::rpc::{ProposeFuture, ProposeNamespace, ProposeNamespaces};
-use walletconnect_sessions::Result;
+use walletconnect_sessions::rpc::{ProposeNamespace, ProposeNamespaces};
 use walletconnect_sessions::{
-    auth_token, Actors, ClientSession, Dapp, ProjectId, Wallet, WalletConnectBuilder,
+    Actors, ClientSession, Dapp, ProjectId, ProposeFuture, Wallet, WalletConnectBuilder,
 };
+use walletconnect_sessions::{Result, Topic};
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();
@@ -29,12 +30,20 @@ pub(crate) async fn yield_ms(ms: u64) {
 
 pub(crate) async fn init_test_components() -> anyhow::Result<TestStuff> {
     init_tracing();
+    let shared_id = Topic::generate();
     let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
+    let auth = auth_token("https://github.com/dougEfresh");
+    let dapp_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Dapp);
+    let wallet_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Wallet);
+    let dapp_opts = ConnectionOptions::new(p.clone(), auth.clone(), dapp_id);
+    let wallet_opts = ConnectionOptions::new(p, auth, wallet_id);
     let dapp_manager =
         WalletConnectBuilder::new(p.clone(), auth_token("https://github.com/dougEfresh"))
+            .connect_opts(dapp_opts)
             .build()
             .await?;
     let wallet_manager = WalletConnectBuilder::new(p, auth_token("https://github.com/dougEfresh"))
+        .connect_opts(wallet_opts)
         .build()
         .await?;
     let dapp_actors = dapp_manager.actors();

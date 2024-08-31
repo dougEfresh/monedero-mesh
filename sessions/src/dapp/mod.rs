@@ -3,11 +3,12 @@ mod session_settle;
 use crate::actors::Actors;
 use crate::domain::Topic;
 use crate::rpc::{
-    ProposeFuture, ProposeNamespaces, RequestParams, SessionProposeRequest, SessionProposeResponse,
+    Metadata, ProposeNamespaces, RequestParams, SessionProposeRequest, SessionProposeResponse,
+    SettleNamespaces,
 };
 use crate::session::ClientSession;
-use crate::Result;
-use crate::{Pairing, PairingManager};
+use crate::transport::{SessionTransport, TopicTransport};
+use crate::{NoopSessionDeleteHandler, Pairing, PairingManager, ProposeFuture, Result};
 use dashmap::DashMap;
 use std::sync::Arc;
 use tokio::sync::oneshot;
@@ -19,6 +20,7 @@ use x25519_dalek::PublicKey;
 pub struct Dapp {
     manager: PairingManager,
     pending_proposals: Arc<DashMap<Topic, Sender<Result<ClientSession>>>>,
+    md: Metadata,
 }
 
 fn handle_error(dapp: Dapp, e: crate::Error) {
@@ -30,7 +32,7 @@ fn handle_error(dapp: Dapp, e: crate::Error) {
             }
             return;
         }
-        warn!("could not find receiver for settlement")
+        warn!("could not find receiver for settlement");
     } else {
         warn!("no pairing topic available!");
     }
@@ -57,26 +59,49 @@ fn public_key(pairing: &Pairing) -> String {
     data_encoding::HEXLOWER_PERMISSIVE.encode(pk.as_bytes())
 }
 
+fn restore_session(
+    tx: Sender<Result<ClientSession>>,
+    actors: Actors,
+    transport: SessionTransport,
+    namespaces: SettleNamespaces,
+) {
+    let session = ClientSession::new(
+        actors.cipher_actor(),
+        transport,
+        namespaces,
+        NoopSessionDeleteHandler,
+    );
+    if tx.send(Ok(session)).is_err() {
+        warn!("settlement oneshoot has closed");
+    }
+}
+
 impl Dapp {
-    pub fn new(manager: PairingManager) -> Self {
+    #[must_use]
+    pub fn new(manager: PairingManager, md: Metadata) -> Self {
         Self {
             manager,
             pending_proposals: Arc::new(DashMap::new()),
+            md,
         }
     }
 
-    pub async fn propose(
+    pub fn propose(
         &self,
         namespaces: ProposeNamespaces,
     ) -> Result<(Pairing, ProposeFuture<Result<ClientSession>>)> {
         let pairing = Pairing::default();
-        self.manager.set_pairing(pairing.clone()).await?;
-
         let (tx, rx) = oneshot::channel::<Result<ClientSession>>();
+
+        if let Some((transport, namespaces)) = self.manager.find_session(&namespaces)? {}
 
         let actors = self.manager.actors();
         let pk = public_key(&pairing);
-        let params = RequestParams::SessionPropose(SessionProposeRequest::new(pk, namespaces));
+        let params = RequestParams::SessionPropose(SessionProposeRequest::new(
+            self.md.clone(),
+            pk,
+            namespaces,
+        ));
         self.pending_proposals.insert(pairing.topic.clone(), tx);
         let dapp = self.clone();
         tokio::spawn(async move { begin_settlement_flow(dapp, actors, params).await });

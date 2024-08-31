@@ -6,7 +6,7 @@ use xtra::prelude::*;
 impl Handler<SessionPing> for ClientSession {
     type Return = RpcResponsePayload;
 
-    async fn handle(&mut self, _message: SessionPing, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, _message: SessionPing, ctx: &mut Context<Self>) -> Self::Return {
         RpcResponsePayload::Success(ResponseParamsSuccess::SessionPing(true))
     }
 }

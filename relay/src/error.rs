@@ -1,4 +1,4 @@
-use crate::domain::Topic;
+use crate::Topic;
 use walletconnect_sdk::rpc::rpc::{PublishError, SubscriptionError};
 
 #[derive(Debug, thiserror::Error)]

@@ -10,7 +10,6 @@ use crate::actors::request::RegisterTopicManager;
 use crate::actors::session::SessionRequestHandlerActor;
 pub(crate) use crate::actors::socket::SocketActor;
 use crate::domain::Topic;
-use crate::relay::Client;
 use crate::rpc::{Proposer, RequestParams, SessionProposeResponse, SessionSettleRequest};
 use crate::session::ClientSession;
 use crate::transport::{SessionTransport, TopicTransport};
@@ -18,6 +17,7 @@ use crate::{Cipher, NoopSessionDeleteHandler, Pairing, PairingManager};
 use crate::{Dapp, Result, Wallet};
 pub(crate) use inbound::{AddRequest, InboundResponseActor};
 pub(crate) use request::RequestHandlerActor;
+use walletconnect_relay::Client;
 
 use tracing::debug;
 pub(crate) use transport::TransportActor;

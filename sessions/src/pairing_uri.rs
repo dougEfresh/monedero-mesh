@@ -1,10 +1,10 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/core/pairing/pairing-uri
 
 use crate::crypto::cipher::DecodedSymKey;
+use crate::domain::{DecodedTopic, Topic};
 use crate::rpc::RELAY_PROTOCOL;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use walletconnect_sdk::rpc::domain::{DecodedTopic, Topic};
 use x25519_dalek::StaticSecret;
 use {
     regex::Regex,

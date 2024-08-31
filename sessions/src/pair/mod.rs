@@ -3,14 +3,19 @@ mod handlers;
 
 use crate::actors::Actors;
 use crate::domain::{SubscriptionId, Topic};
-use crate::relay::relay_handler::RelayHandler;
-use crate::relay::{Client, ConnectionOptions};
-use crate::rpc::{ErrorParams, PairExtendRequest, RequestParams};
-use crate::transport::TopicTransport;
-use crate::{Cipher, Pairing, Result};
+use crate::relay::RelayHandler;
+use crate::rpc::{
+    ErrorParams, PairExtendRequest, ProposeNamespaces, RequestParams, SessionSettleRequest,
+    SettleNamespaces,
+};
+use crate::transport::{SessionTransport, TopicTransport};
+use crate::{Cipher, ClientSession, Pairing, Result};
 pub use builder::WalletConnectBuilder;
 use serde::de::DeserializeOwned;
+use std::collections::BTreeSet;
+use std::ops::Deref;
 use tracing::{info, warn};
+use walletconnect_relay::{Client, ConnectionOptions};
 use xtra::prelude::*;
 
 pub trait PairHandler: Send + 'static {
@@ -32,7 +37,7 @@ impl PairingManager {
         let ciphers = actors.cipher().clone();
         let handler = RelayHandler::new(ciphers.clone(), actors.clone());
         #[cfg(feature = "mock")]
-        let relay = Client::mock(handler);
+        let relay = Client::new(handler, &opts.conn_pair);
 
         #[cfg(not(feature = "mock"))]
         let relay = Client::new(handler);
@@ -85,14 +90,62 @@ impl PairingManager {
     }
 
     pub async fn delete(&self) -> Result<bool> {
-        //TODO move to actor
         let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
         self.transport
             .publish_request::<bool>(t.clone(), RequestParams::PairDelete(Default::default()))
             .await?;
-        self.ciphers.set_pairing(None)?;
-        self.relay.unsubscribe(t).await?;
+        self.cleanup(t).await?;
         Ok(true)
+    }
+
+    pub(crate) fn find_session(
+        &self,
+        required: &ProposeNamespaces,
+    ) -> Result<Option<(SessionTransport, SettleNamespaces)>> {
+        if self.topic().is_none() {
+            return Ok(None);
+        }
+
+        let settlements = self.ciphers.settlements()?;
+
+        if settlements.is_empty() {
+            return Ok(None);
+        }
+        let required_namespaces: BTreeSet<String> = required.deref().keys().cloned().collect();
+        for s in settlements.into_iter() {
+            let settlement = s.1.namespaces.clone();
+            let topic = s.0.clone();
+            let settled_namespaces: BTreeSet<String> =
+                s.1.namespaces.deref().keys().cloned().collect();
+            if required_namespaces != settled_namespaces {
+                continue;
+            }
+            for ns in &required_namespaces {
+                let settled_space = s.1.namespaces.get(ns).unwrap();
+                let required_space = required.deref().get(ns).unwrap();
+                let settled_chains: Vec<String> = settled_space
+                    .accounts
+                    .iter()
+                    .map(|a| {
+                        let parts: Vec<&str> = a.split(":").collect();
+                        let mut chain: String = String::from("unknown");
+                        if parts.len() == 3 {
+                            chain = format!("{}:{}", parts[0], parts[1]);
+                        }
+                        chain
+                    })
+                    .collect();
+                let settled_chains: BTreeSet<String> = settled_chains.into_iter().collect();
+                if required_space.chains.eq(&settled_chains) {
+                    let transport = SessionTransport {
+                        topic,
+                        transport: self.transport.clone(),
+                    };
+                    return Ok(Some((transport, settlement)));
+                }
+            }
+        }
+        Ok(None)
     }
 
     // Epoch

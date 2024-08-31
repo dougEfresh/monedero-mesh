@@ -1,9 +1,8 @@
 use crate::actors::Actors;
 use crate::domain::ProjectId;
-use crate::relay::ConnectionOptions;
 use crate::{Cipher, KvStorage, PairingManager};
 use std::sync::Arc;
-use walletconnect_sdk::rpc::auth::SerializedAuthToken;
+use walletconnect_relay::{ConnectionOptions, SerializedAuthToken};
 
 pub struct WalletConnectBuilder {
     connect_opts: Option<ConnectionOptions>,
@@ -35,10 +34,17 @@ impl WalletConnectBuilder {
     }
 
     pub async fn build(&self) -> crate::Result<PairingManager> {
+        #[cfg(not(feature = "mock"))]
         let opts: ConnectionOptions = match self.connect_opts {
             Some(ref opts) => opts.clone(),
-            None => ConnectionOptions::new(self.project_id.clone(), self.auth.clone()).mock(true),
+            None => ConnectionOptions::new(self.project_id.clone(), self.auth.clone()),
         };
+
+        #[cfg(feature = "mock")]
+        let opts: ConnectionOptions = self
+            .connect_opts
+            .clone()
+            .ok_or(crate::Error::InvalidateConnectionOpts)?;
 
         #[cfg(not(feature = "mock"))]
         let store = match self.store.as_ref() {

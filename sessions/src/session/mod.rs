@@ -47,6 +47,7 @@ impl ClientSession {
     pub fn namespaces(&self) -> &SettleNamespaces {
         &self.namespaces
     }
+
     pub fn topic(&self) -> Topic {
         self.transport.topic.clone()
     }

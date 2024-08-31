@@ -1,10 +1,10 @@
 use crate::domain::MessageId;
-use crate::relay::MessageIdGenerator;
 use crate::rpc::Response;
 use dashmap::DashMap;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 use tracing::{debug, error, warn};
+use walletconnect_relay::MessageIdGenerator;
 use xtra::{Context, Handler};
 
 #[derive(Default, xtra::Actor)]
@@ -18,7 +18,7 @@ pub(crate) struct AddRequest;
 impl Handler<AddRequest> for InboundResponseActor {
     type Return = (MessageId, oneshot::Receiver<Response>);
 
-    async fn handle(&mut self, _message: AddRequest, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, _message: AddRequest, ctx: &mut Context<Self>) -> Self::Return {
         let id = self.generator.next();
         let (tx, rx) = oneshot::channel::<Response>();
         self.pending.insert(id, tx);
@@ -29,7 +29,7 @@ impl Handler<AddRequest> for InboundResponseActor {
 impl Handler<Response> for InboundResponseActor {
     type Return = ();
 
-    async fn handle(&mut self, message: Response, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: Response, ctx: &mut Context<Self>) -> Self::Return {
         debug!("handing a response with message id {}", message.id);
         if let Some((_, tx)) = self.pending.remove(&message.id) {
             let id = message.id;

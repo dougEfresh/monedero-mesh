@@ -21,19 +21,18 @@ pub use error::Error;
 pub use pair::{PairingManager, WalletConnectBuilder};
 pub use pairing_uri::Pairing;
 use std::fmt::{Display, Formatter};
+use std::future::Future;
 use std::sync::{Arc, Mutex, Once};
 use std::time::Duration;
 pub use storage::KvStorage;
 pub use wallet::Wallet;
-use walletconnect_sdk::rpc::auth::ed25519_dalek::SigningKey;
-use walletconnect_sdk::rpc::auth::{AuthToken, SerializedAuthToken};
 pub type Atomic<T> = Arc<Mutex<T>>;
 use crate::rpc::SessionDeleteRequest;
 pub use actors::{Actors, RegisteredManagers};
 pub use domain::*;
-pub use relay::ClientError;
+pub use walletconnect_relay::ClientError;
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {
     Connected,
     #[default]
@@ -44,13 +43,13 @@ pub enum SocketEvent {
 impl Display for SocketEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            SocketEvent::Connected => {
+            Self::Connected => {
                 write!(f, "connected")
             }
-            SocketEvent::Disconnect => {
+            Self::Disconnect => {
                 write!(f, "disconnected")
             }
-            SocketEvent::ForceDisconnect => {
+            Self::ForceDisconnect => {
                 write!(f, "force disconnect")
             }
         }
@@ -61,15 +60,35 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[allow(dead_code)]
 static INIT: Once = Once::new();
 
-pub const RELAY_ADDRESS: &str = "wss://relay.walletconnect.com";
+use pin_project_lite::pin_project;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use tokio::sync::oneshot;
 
-pub fn auth_token(url: impl Into<String>) -> SerializedAuthToken {
-    let key = SigningKey::generate(&mut rand::thread_rng());
-    AuthToken::new(url)
-        .aud(RELAY_ADDRESS)
-        .ttl(Duration::from_secs(60 * 60))
-        .as_jwt(&key)
-        .unwrap()
+pin_project! {
+    pub struct ProposeFuture<T> {
+        #[pin]
+        receiver: oneshot::Receiver<T>,
+    }
+}
+
+impl<T> ProposeFuture<T> {
+    #[must_use]
+    pub fn new(receiver: oneshot::Receiver<T>) -> Self {
+        Self { receiver }
+    }
+}
+
+impl<T> Future for ProposeFuture<T> {
+    type Output = Result<T>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.project().receiver.poll(cx) {
+            Poll::Ready(Ok(value)) => Poll::Ready(Ok(value)),
+            Poll::Ready(Err(_)) => Poll::Ready(Err(Error::ReceiveError)),
+            Poll::Pending => Poll::Pending,
+        }
+    }
 }
 
 /*
@@ -85,12 +104,12 @@ impl SessionDeleteHandler for NoopSessionDeleteHandler {}
 #[async_trait]
 pub trait SessionDeleteHandler: Send + Sync + 'static {
     async fn handle(&self, request: SessionDeleteRequest) {
-        tracing::info!("Session delete request {:#?}", request)
+        tracing::info!("Session delete request {:#?}", request);
     }
 }
 
 pub(crate) fn shorten_topic(id: &Topic) -> String {
-    let mut id = format!("{}", id);
+    let mut id = format!("{id}");
     if id.len() > 10 {
         id = String::from(&id[0..9]);
     }

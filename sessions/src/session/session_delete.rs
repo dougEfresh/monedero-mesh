@@ -20,7 +20,7 @@ impl Handler<SessionDeleteRequest> for ClientSession {
     async fn handle(
         &mut self,
         message: SessionDeleteRequest,
-        _ctx: &mut Context<Self>,
+        ctx: &mut Context<Self>,
     ) -> Self::Return {
         let session = self.clone();
         tokio::spawn(async move {

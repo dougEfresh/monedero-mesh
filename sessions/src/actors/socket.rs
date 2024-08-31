@@ -10,7 +10,7 @@ pub(crate) struct SocketActor {
 impl Handler<SocketEvent> for SocketActor {
     type Return = ();
 
-    async fn handle(&mut self, message: SocketEvent, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: SocketEvent, ctx: &mut Context<Self>) -> Self::Return {
         if let Some(handler) = self.address.as_ref() {
             if let Err(e) = handler.send(message).await {
                 warn!("failed to send socket event to handler: '{e}'");
@@ -27,7 +27,7 @@ impl Handler<Address<PairingManager>> for SocketActor {
     async fn handle(
         &mut self,
         message: Address<PairingManager>,
-        _ctx: &mut Context<Self>,
+        ctx: &mut Context<Self>,
     ) -> Self::Return {
         self.address = Some(message);
     }

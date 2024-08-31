@@ -1,11 +1,7 @@
-use walletconnect_sdk::client::websocket::PublishedMessage;
-use walletconnect_sdk::rpc::domain::{ClientIdDecodingError, MessageId};
-use walletconnect_sdk::rpc::rpc::{PublishError, SubscriptionError};
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("failed to decode payload from PublishedMessage {0:#?}")]
-    DecodeError(PublishedMessage),
+    #[error("Failed to receive the proposed value")]
+    ReceiveError,
 
     #[error("client is not initialized")]
     NoClient,
@@ -20,10 +16,7 @@ pub enum Error {
     ActorSendError(#[from] xtra::Error),
 
     #[error(transparent)]
-    ConnectError(#[from] crate::relay::ClientError),
-
-    #[error(transparent)]
-    ClientIdDecodingError(#[from] ClientIdDecodingError),
+    ConnectError(#[from] walletconnect_relay::ClientError),
 
     #[error(transparent)]
     CorruptedPacket(#[from] serde_json::error::Error),
@@ -31,14 +24,8 @@ pub enum Error {
     #[error("no session account")]
     NoSessionAccount,
 
-    #[error(transparent)]
-    SubscriptionError(#[from] walletconnect_sdk::client::error::Error<SubscriptionError>),
-
     #[error("failed to generate jwt key")]
     JwtError,
-
-    #[error(transparent)]
-    PublicationError(#[from] walletconnect_sdk::client::error::Error<PublishError>),
 
     #[error(transparent)]
     CipherError(#[from] crate::crypto::CipherError),
@@ -50,7 +37,7 @@ pub enum Error {
     SessionSettlementTimeout,
 
     #[error("Failed to recv response from request id: {0}")]
-    ResponseChannelError(MessageId),
+    ResponseChannelError(crate::domain::MessageId),
 
     #[error("Timeout waiting for session request")]
     SessionRequestTimeout,
@@ -81,4 +68,8 @@ pub enum Error {
 
     #[error(transparent)]
     PairingParseError(#[from] crate::pairing_uri::ParseError),
+
+    #[cfg(feature = "mock")]
+    #[error("Must supply ConnectionsOptions when mock feature is used")]
+    InvalidateConnectionOpts,
 }

@@ -43,12 +43,12 @@ pub struct SessionProposeRequest {
 }
 
 impl SessionProposeRequest {
-    pub fn new(pk: String, ns: ProposeNamespaces) -> Self {
+    pub fn new(metadata: Metadata, public_key: String, ns: ProposeNamespaces) -> Self {
         Self {
             relays: vec![RelayProtocol::default()],
             proposer: Proposer {
-                public_key: pk,
-                metadata: Default::default(),
+                public_key,
+                metadata,
             },
             required_namespaces: ns,
         }

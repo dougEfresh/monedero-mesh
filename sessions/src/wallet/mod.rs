@@ -1,10 +1,10 @@
 use crate::actors::SessionSettled;
 use crate::rpc::{
-    Controller, Metadata, ProposeFuture, RequestParams, ResponseParamsError, ResponseParamsSuccess,
+    Controller, Metadata, RequestParams, ResponseParamsError, ResponseParamsSuccess,
     RpcResponsePayload, SdkErrors, SessionProposeRequest, SessionProposeResponse,
     SessionSettleRequest, SettleNamespace, SettleNamespaces,
 };
-use crate::{ClientSession, Pairing, PairingManager, Result, Topic};
+use crate::{ClientSession, Pairing, PairingManager, ProposeFuture, Result, Topic};
 use dashmap::DashMap;
 use std::collections::BTreeMap;
 use std::ops::Deref;
@@ -141,7 +141,7 @@ impl Handler<SessionProposeRequest> for Wallet {
     async fn handle(
         &mut self,
         message: SessionProposeRequest,
-        _ctx: &mut Context<Self>,
+        ctx: &mut Context<Self>,
     ) -> Self::Return {
         let (accepted, my_pk, response) = verify_settlement(&message, self.manager.pair_key());
         if accepted {
