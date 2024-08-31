@@ -2,8 +2,9 @@
 //! #wc_sessionsettle
 
 use crate::rpc::params::Controller;
+use walletconnect_namespaces::Namespaces;
 use {
-    super::{IrnMetadata, RelayProtocol, SettleNamespaces},
+    super::{IrnMetadata, RelayProtocol},
     serde::{Deserialize, Serialize},
 };
 
@@ -19,16 +20,16 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
     prompt: false,
 };
 
-#[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone, Default)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionSettleRequest {
     pub relay: RelayProtocol,
     pub controller: Controller,
-    pub namespaces: SettleNamespaces,
+    pub namespaces: Namespaces,
     /// Unix timestamp.
     ///
     /// Expiry should be between .now() + TTL.
-    pub expiry: u64,
+    pub expiry: i64,
 }
 
 #[cfg(test)]

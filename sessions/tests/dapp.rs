@@ -6,11 +6,13 @@ use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
+use walletconnect_namespaces::{ChainId, ChainType, NamespaceName, Namespaces};
 use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
 use walletconnect_sessions::crypto::CipherError;
-use walletconnect_sessions::rpc::{ProposeNamespace, ProposeNamespaces};
+use walletconnect_sessions::rpc::Metadata;
 use walletconnect_sessions::{
-    Actors, ClientSession, Dapp, ProjectId, ProposeFuture, Wallet, WalletConnectBuilder,
+    Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture, Wallet,
+    WalletConnectBuilder,
 };
 use walletconnect_sessions::{Result, Topic};
 
@@ -48,7 +50,7 @@ pub(crate) async fn init_test_components() -> anyhow::Result<TestStuff> {
         .await?;
     let dapp_actors = dapp_manager.actors();
     let wallet_actors = wallet_manager.actors();
-    let dapp = Dapp::new(dapp_manager);
+    let dapp = Dapp::new(dapp_manager, Metadata::default());
     let wallet = Wallet::new(wallet_manager);
     yield_ms(500).await;
     let t = TestStuff {
@@ -71,13 +73,6 @@ pub(crate) fn init_tracing() {
     });
 }
 
-fn namespaces() -> ProposeNamespaces {
-    let mut namespaces: BTreeMap<String, ProposeNamespace> = BTreeMap::new();
-    let required: Vec<alloy_chains::Chain> = vec![alloy_chains::Chain::sepolia()];
-    namespaces.insert(String::from("eip155"), required.into());
-    ProposeNamespaces(namespaces)
-}
-
 async fn await_wallet_pair(rx: ProposeFuture<Result<ClientSession>>) {
     match timeout(Duration::from_secs(5), rx).await {
         Ok(s) => match s {
@@ -95,9 +90,17 @@ async fn pair_dapp_wallet() -> anyhow::Result<ClientSession> {
     let t = init_test_components().await?;
     let dapp = t.dapp;
     let wallet = t.wallet;
-    let (pairing, rx) = dapp.propose(namespaces()).await?;
+    let (pairing, rx) = dapp
+        .propose(
+            NoopSessionHandler,
+            &[
+                ChainId::EIP155(alloy_chains::Chain::holesky()),
+                ChainId::Solana(ChainType::Test),
+            ],
+        )
+        .await?;
     info!("got pairing topic {pairing}");
-    let (_, wallet_rx) = wallet.pair(pairing.to_string()).await?;
+    let (_, wallet_rx) = wallet.pair(pairing.to_string(), NoopSessionHandler).await?;
     tokio::spawn(async move { await_wallet_pair(wallet_rx).await });
     let session = timeout(Duration::from_secs(5), rx).await???;
     // let wallet get their ClientSession
@@ -109,7 +112,7 @@ async fn pair_dapp_wallet() -> anyhow::Result<ClientSession> {
 async fn test_dapp_settlement() -> anyhow::Result<()> {
     let session = pair_dapp_wallet().await?;
     info!("settlement complete");
-    assert!(session.namespaces.contains_key("eip155"));
+    assert!(session.namespaces.contains_key(&NamespaceName::Solana));
     Ok(())
 }
 

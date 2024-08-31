@@ -4,11 +4,8 @@ mod propose_namespaces;
 mod settle_namespaces;
 
 use crate::rpc::RELAY_PROTOCOL;
+pub use propose_namespaces::ProposeNamespaceError;
 use serde::{Deserialize, Serialize};
-pub use {
-    propose_namespaces::{ProposeNamespace, ProposeNamespaceError, ProposeNamespaces},
-    settle_namespaces::{SettleNamespace, SettleNamespaces},
-};
 
 /// The maximum number of topics allowed for a batch subscribe request.
 ///

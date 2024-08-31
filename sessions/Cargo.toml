@@ -14,7 +14,7 @@ workspace = true
 
 
 [features]
-default = ["kv", "dashmap"]
+default = ["kv"]
 kv = ["dep:kvx"]
 mock = []
 wasm = [
@@ -55,7 +55,7 @@ tokio = {workspace = true}
 tracing = { workspace = true}
 trait-variant = {workspace = true}
 url = { workspace = true }
-dashmap = {  version = "5.5", optional = true }
+dashmap = {  workspace = true }
 x25519-dalek = { version = "2", features = ["static_secrets", "serde"] }
 walletconnect-namespaces = { path = "../namespaces" }
 walletconnect-relay = { path = "../relay", features = ["mock"]}
@@ -67,14 +67,14 @@ wasm-bindgen = { version = "0.2", optional = true}
 web-sys = { version = "0.3", optional = true}
 getrandom = { version = "0.2", features = ["js"], optional = true}
 gloo-storage = { version = "0.3", optional = true}
-
-[[test]]
-name = "manager"
-required-features = ["mock"]
-
-[[test]]
-name = "dapp"
-required-features = ["mock"]
+#
+#[[test]]
+#name = "manager"
+#required-features = ["mock"]
+#
+#[[test]]
+#name = "dapp"
+#required-features = ["mock"]
 
 [[example]]
 name = "dapp"

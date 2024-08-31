@@ -48,22 +48,11 @@ pub(crate) struct DeleteSession(pub Topic);
 impl Actors {
     pub(crate) async fn register_settlement(
         &self,
-        transport: TopicTransport,
+        client_session: ClientSession,
         settlement: SessionSettled,
-    ) -> Result<ClientSession> {
-        let session_transport = SessionTransport {
-            topic: settlement.0.clone(),
-            transport,
-        };
-        let client_session = ClientSession::new(
-            self.cipher_actor.clone(),
-            session_transport,
-            settlement.1.namespaces.clone(),
-            NoopSessionDeleteHandler,
-        );
+    ) -> Result<()> {
         self.session_actor.send(client_session.clone()).await?;
-        self.cipher_actor.send(settlement).await??;
-        Ok(client_session)
+        self.cipher_actor.send(settlement).await?
     }
 
     pub async fn registered_managers(&self) -> Result<usize> {
@@ -89,9 +78,11 @@ impl Actors {
             .send(RegisterWallet(session_topic.clone(), wallet))
             .await?;
         // TODO: Do I need the subscriptionId?
-        self.transport_actor
+        let id = self
+            .transport_actor
             .send(Subscribe(session_topic.clone()))
             .await??;
+        tracing::info!("subscribed to topic {session_topic:#?} with id {id:#?}");
         Ok(session_topic)
     }
 
@@ -168,6 +159,7 @@ impl Actors {
     pub(crate) fn cipher(&self) -> Cipher {
         self.cipher.clone()
     }
+
     pub(crate) fn cipher_actor(&self) -> Address<CipherActor> {
         self.cipher_actor.clone()
     }

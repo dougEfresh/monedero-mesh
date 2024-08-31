@@ -66,6 +66,7 @@ impl<'a> From<SdkError<'a>> for PairDeleteRequest {
     }
 }
 
+#[allow(clippy::cast_sign_loss)]
 impl<'a> From<SdkError<'a>> for ErrorParams {
     fn from(value: SdkError) -> Self {
         Self {

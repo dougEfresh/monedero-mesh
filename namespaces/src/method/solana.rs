@@ -1,6 +1,7 @@
 //! See [solana](https://docs.walletconnect.com/advanced/multichain/rpc-reference/solana-rpc) methods
 
 use std::cmp::Ordering;
+use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -53,11 +54,11 @@ impl FromStr for SolanaMethod {
 
 impl SolanaMethod {
     #[must_use]
-    pub fn defaults() -> Vec<Method> {
-        vec![
+    pub fn defaults() -> BTreeSet<Method> {
+        BTreeSet::from([
             Method::Solana(Self::SignTransaction),
             Method::Solana(Self::SignMessage),
-        ]
+        ])
     }
 }
 

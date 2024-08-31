@@ -108,7 +108,7 @@ impl KvStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use walletconnect_sdk::rpc::domain::Topic;
+    use crate::domain::Topic;
 
     pub fn test_storage_kv(store: KvStorage) -> anyhow::Result<()> {
         let result = store.get::<String>("mine")?;

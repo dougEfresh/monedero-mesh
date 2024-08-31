@@ -10,6 +10,9 @@ pub enum Error {
     #[error("Invalid chain ID {0:#?}")]
     InvalidChainId(String),
 
+    #[error("Invalid event {0:#?}")]
+    InvalidEvent(String),
+
     #[error("chainId has incorrect syntax {0:#?}")]
     MalformedChainId(String),
 }

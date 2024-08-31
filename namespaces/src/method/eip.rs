@@ -1,6 +1,7 @@
 use crate::method::Method;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::cmp::Ordering;
+use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -56,15 +57,15 @@ impl Display for EipMethod {
 
 impl EipMethod {
     #[must_use]
-    pub fn defaults() -> Vec<Method> {
-        vec![
+    pub fn defaults() -> BTreeSet<Method> {
+        BTreeSet::from([
             Method::EIP155(Self::PersonalSign),
             Method::EIP155(Self::SendTransaction),
             Method::EIP155(Self::SignTransaction),
             Method::EIP155(Self::SignTypedDataV4),
             Method::EIP155(Self::SignTypedData),
             Method::EIP155(Self::Sign),
-        ]
+        ])
     }
 }
 

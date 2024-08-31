@@ -15,6 +15,12 @@ use std::str::FromStr;
 #[serde(transparent)]
 pub struct Methods(pub BTreeSet<Method>);
 
+impl Default for Methods {
+    fn default() -> Self {
+        Self(SolanaMethod::defaults())
+    }
+}
+
 #[derive(
     Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, SerializeDisplay, DeserializeFromStr,
 )]

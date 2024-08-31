@@ -1,9 +1,9 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionupdate
 
+use super::IrnMetadata;
 use serde::{Deserialize, Serialize};
-
-use super::{IrnMetadata, SettleNamespaces};
+use walletconnect_namespaces::Namespaces;
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1104,
@@ -20,7 +20,7 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionUpdateRequest {
-    pub namespaces: SettleNamespaces,
+    pub namespaces: Namespaces,
 }
 
 #[cfg(test)]

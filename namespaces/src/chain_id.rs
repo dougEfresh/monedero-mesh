@@ -25,6 +25,12 @@ pub enum ChainId {
 #[serde(transparent)]
 pub struct Chains(pub BTreeSet<ChainId>);
 
+impl Default for Chains {
+    fn default() -> Self {
+        Self(BTreeSet::from([ChainId::Solana(ChainType::Main)]))
+    }
+}
+
 impl Display for Chains {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut iter = self.0.iter();

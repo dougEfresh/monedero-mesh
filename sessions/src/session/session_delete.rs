@@ -22,6 +22,7 @@ impl Handler<SessionDeleteRequest> for ClientSession {
         message: SessionDeleteRequest,
         ctx: &mut Context<Self>,
     ) -> Self::Return {
+        /*
         let session = self.clone();
         tokio::spawn(async move {
             if session.delete_sender.send(message).await.is_err() {
@@ -33,6 +34,7 @@ impl Handler<SessionDeleteRequest> for ClientSession {
                 warn!("failed to cleanup own session {} {e}", session.topic());
             }
         });
+         */
         RpcResponsePayload::Success(ResponseParamsSuccess::SessionDelete(true))
     }
 }

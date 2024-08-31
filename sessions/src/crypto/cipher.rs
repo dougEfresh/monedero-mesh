@@ -192,7 +192,7 @@ impl Cipher {
             .get(sessions_key)?
             .ok_or(CipherError::UnknownSessionTopic(topic))?;
         let now = chrono::Utc::now().timestamp();
-        Ok(session.expiry < now as u64)
+        Ok(session.expiry < now)
     }
 
     pub(crate) fn delete_session(&self, topic: &Topic) -> Result<(), CipherError> {
@@ -393,7 +393,9 @@ impl Cipher {
 mod tests {
     use super::*;
     use crate::crypto::session::SessionKey;
-    use crate::rpc::{Controller, PairPingRequest, Request, RequestParams, SessionExtendRequest};
+    use crate::rpc::{
+        Controller, Metadata, PairPingRequest, Request, RequestParams, SessionExtendRequest,
+    };
     use crate::storage::KvStorage;
     use anyhow::format_err;
     use std::str::FromStr;
@@ -537,15 +539,13 @@ mod tests {
         let now = chrono::Utc::now();
         let future = now + chrono::Duration::hours(24);
         let mut settlement = SessionSettleRequest {
-            relay: Default::default(),
             controller: Controller {
                 public_key: ciphers
                     .public_key_hex()
                     .ok_or(CipherError::UnknownTopic(pairing_topic.clone()))?,
-                metadata: Default::default(),
+                metadata: Metadata::default(),
             },
-            namespaces: Default::default(),
-            expiry: future.timestamp() as u64,
+            ..Default::default()
         };
         ciphers.set_settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
         assert!(!ciphers.is_expired(session_topic.clone())?);
@@ -554,7 +554,7 @@ mod tests {
         assert_eq!(1, ciphers.settlements()?.len());
 
         let past = now - chrono::Duration::hours(1);
-        settlement.expiry = past.timestamp() as u64;
+        settlement.expiry = past.timestamp();
         ciphers.set_settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
         assert!(ciphers.is_expired(session_topic.clone())?);
         drop(ciphers);

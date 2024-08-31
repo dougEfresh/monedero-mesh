@@ -1,3 +1,5 @@
+use crate::Topic;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Failed to receive the proposed value")]
@@ -59,6 +61,9 @@ pub enum Error {
 
     #[error("No pairing topic available")]
     NoPairingTopic,
+
+    #[error("No pending handler for settlement on pairing topic {0:#?}")]
+    InvalidPendingHandler(Topic),
 
     #[error(transparent)]
     ParamsError(#[from] crate::rpc::ParamsError),

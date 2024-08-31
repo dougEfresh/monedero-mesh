@@ -1,50 +1,126 @@
-use crate::actors::{CipherActor, DeleteSession};
-use crate::rpc::{RequestParams, SessionDeleteRequest, SettleNamespaces};
+use crate::actors::{CipherActor, DeleteSession, SessionSettled};
+use crate::rpc::{RequestParams, SessionDeleteRequest};
 use crate::transport::SessionTransport;
-use crate::Topic;
+use crate::{Error, PairingManager, PairingTopic, SessionEvent, SessionHandlers, Topic};
 use crate::{Result, SessionDeleteHandler};
+use dashmap::DashMap;
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use tokio::sync::oneshot::Sender;
+use tokio::sync::{mpsc, oneshot};
 use tracing::{error, warn};
+use walletconnect_namespaces::Namespaces;
 use xtra::prelude::*;
 
 mod session_delete;
 mod session_ping;
+
+pub(crate) struct HandlerContainer {
+    pub tx: Sender<Result<ClientSession>>,
+    pub handlers: Arc<Box<dyn SessionHandlers>>,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct PendingSession {
+    pending: Arc<DashMap<PairingTopic, HandlerContainer>>,
+}
+
+impl PendingSession {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn add<T: SessionHandlers>(
+        &self,
+        topic: PairingTopic,
+        handlers: T,
+    ) -> oneshot::Receiver<Result<ClientSession>> {
+        let (tx, rx) = oneshot::channel::<Result<ClientSession>>();
+        let h = HandlerContainer {
+            tx,
+            handlers: Arc::new(Box::new(handlers)),
+        };
+        self.pending.insert(topic, h);
+        rx
+    }
+
+    pub fn error(&self, topic: &PairingTopic, err: Error) {
+        match self.remove(topic) {
+            Ok(handlers) => {
+                if handlers.tx.send(Err(err)).is_err() {
+                    warn!("settlement channel has closed! {topic}");
+                }
+            }
+            Err(_) => tracing::warn!("failed to find pairing topic {topic} in pending handlers"),
+        };
+    }
+    fn remove(&self, topic: &PairingTopic) -> Result<HandlerContainer> {
+        let (_, handler) = self
+            .pending
+            .remove(topic)
+            .ok_or(crate::Error::InvalidPendingHandler(topic.clone()))?;
+        Ok(handler)
+    }
+
+    pub async fn settled(
+        &self,
+        mgr: &PairingManager,
+        settled: SessionSettled,
+    ) -> Result<ClientSession> {
+        let pairing_topic = mgr.topic().ok_or(Error::NoPairingTopic)?;
+        let handlers = self.remove(&pairing_topic)?;
+        let actors = mgr.actors();
+        let session_transport = SessionTransport {
+            topic: settled.0.clone(),
+            transport: mgr.topic_transport(),
+        };
+        let (tx, rx) = mpsc::unbounded_channel::<SessionEvent>();
+        let client_session = ClientSession::new(
+            actors.cipher_actor(),
+            session_transport,
+            settled.1.namespaces.clone(),
+            tx,
+        );
+        actors
+            .register_settlement(client_session.clone(), settled)
+            .await?;
+        handlers
+            .tx
+            .send(Ok(client_session.clone()))
+            .map_err(|_| Error::SettlementRecvError)?;
+        Ok(client_session)
+    }
+}
 
 /// https://specs.walletconnect.com/2.0/specs/clients/sign/session-proposal
 ///
 /// New session as the result of successful session proposal.
 #[derive(Clone, Actor)]
 pub struct ClientSession {
-    pub namespaces: Arc<SettleNamespaces>,
+    pub namespaces: Arc<Namespaces>,
     transport: SessionTransport,
     cipher_actor: Address<CipherActor>,
-    delete_sender: mpsc::Sender<SessionDeleteRequest>,
+    tx: mpsc::UnboundedSender<SessionEvent>,
 }
 
 impl ClientSession {
-    pub(crate) fn new<T: SessionDeleteHandler>(
+    pub(crate) fn new(
         cipher_actor: Address<CipherActor>,
         transport: SessionTransport,
-        namespaces: SettleNamespaces,
-        handler_delete: T,
+        namespaces: Namespaces,
+        tx: mpsc::UnboundedSender<SessionEvent>,
     ) -> Self {
-        let (delete_sender, delete_receiver) = mpsc::channel(32);
-        tokio::spawn(async move {
-            session_delete::handle_delete(handler_delete, delete_receiver).await;
-        });
         Self {
             transport,
             namespaces: Arc::new(namespaces),
-            delete_sender,
             cipher_actor,
+            tx,
         }
     }
 }
 
 impl ClientSession {
-    pub fn namespaces(&self) -> &SettleNamespaces {
+    pub fn namespaces(&self) -> &Namespaces {
         &self.namespaces
     }
 

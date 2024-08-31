@@ -1,15 +1,23 @@
+// ========================================================================================================
+// https://specs.walletconnect.com/2.0/specs/clients/sign/namespaces#
+// rejecting-a-session-response
+// - validates namespaces match at least all requiredNamespaces
+// ========================================================================================================
+
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 mod account;
 mod chain_id;
 mod error;
+mod event;
 mod method;
 mod name;
 
 pub use crate::account::*;
 pub use crate::chain_id::*;
+pub use crate::event::*;
 pub use crate::method::*;
 pub use crate::name::NamespaceName;
 pub use error::Error;
@@ -18,6 +26,14 @@ pub use error::Error;
 #[serde(transparent)]
 pub struct Namespaces(pub BTreeMap<NamespaceName, Namespace>);
 
+impl Default for Namespaces {
+    fn default() -> Self {
+        let mut ns = Self(BTreeMap::new());
+        ns.insert(NamespaceName::Solana, Namespace::default());
+        ns
+    }
+}
+
 impl Deref for Namespaces {
     type Target = BTreeMap<NamespaceName, Namespace>;
 
@@ -25,14 +41,20 @@ impl Deref for Namespaces {
         &self.0
     }
 }
+impl DerefMut for Namespaces {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+// const EIP_SUPPORTED_EVENTS: &[&str] = &["chainChanged", "accountsChanged"]
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Namespace {
     #[serde(skip_serializing_if = "Accounts::is_empty", default)]
     pub accounts: Accounts,
     pub chains: Chains,
     pub methods: Methods,
-    pub events: BTreeSet<String>,
+    pub events: Events,
     //#[serde(skip_serializing_if = "Option::is_none")]
     //#[serde(default)]
     //pub extensions: Option<Vec<Self>>,
@@ -59,7 +81,7 @@ where
             .into_iter()
             .map(|(namespace_name, chains)| {
                 let methods = Methods::from(&namespace_name);
-                let events = BTreeSet::new();
+                let events = Events::from(&namespace_name);
                 let accounts = Accounts(BTreeSet::new());
                 (
                     namespace_name,

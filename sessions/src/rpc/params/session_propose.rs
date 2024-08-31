@@ -1,8 +1,9 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionpropose
 
+use walletconnect_namespaces::Namespaces;
 use {
-    super::{IrnMetadata, Metadata, ProposeNamespaces, RelayProtocol},
+    super::{IrnMetadata, Metadata, RelayProtocol},
     serde::{Deserialize, Serialize},
 };
 
@@ -26,6 +27,7 @@ pub struct Proposer {
 }
 
 impl Proposer {
+    #[must_use]
     pub fn new(key: String, metadata: Metadata) -> Self {
         Self {
             public_key: key,
@@ -39,18 +41,25 @@ impl Proposer {
 pub struct SessionProposeRequest {
     pub relays: Vec<RelayProtocol>,
     pub proposer: Proposer,
-    pub required_namespaces: ProposeNamespaces,
+    pub required_namespaces: Namespaces,
+    pub optional_namespaces: Option<Namespaces>,
 }
 
 impl SessionProposeRequest {
-    pub fn new(metadata: Metadata, public_key: String, ns: ProposeNamespaces) -> Self {
+    pub fn new(
+        metadata: Metadata,
+        public_key: String,
+        required: Namespaces,
+        optional: Option<Namespaces>,
+    ) -> Self {
         Self {
             relays: vec![RelayProtocol::default()],
             proposer: Proposer {
                 public_key,
                 metadata,
             },
-            required_namespaces: ns,
+            required_namespaces: required,
+            optional_namespaces: optional,
         }
     }
 }

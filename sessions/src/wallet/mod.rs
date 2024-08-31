@@ -1,18 +1,24 @@
 use crate::actors::SessionSettled;
 use crate::rpc::{
-    Controller, Metadata, RequestParams, ResponseParamsError, ResponseParamsSuccess,
+    Controller, Metadata, RelayProtocol, RequestParams, ResponseParamsError, ResponseParamsSuccess,
     RpcResponsePayload, SdkErrors, SessionProposeRequest, SessionProposeResponse,
-    SessionSettleRequest, SettleNamespace, SettleNamespaces,
+    SessionSettleRequest,
 };
-use crate::{ClientSession, Pairing, PairingManager, ProposeFuture, Result, Topic};
-use dashmap::DashMap;
-use std::collections::BTreeMap;
+use crate::session::PendingSession;
+use crate::{
+    ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandlers, Topic,
+};
+use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::oneshot;
 use tracing::{info, warn};
+use walletconnect_namespaces::{
+    Account, Accounts, ChainId, Chains, EipMethod, Events, Method, Methods, Namespace,
+    NamespaceName, Namespaces, SolanaMethod,
+};
 use xtra::prelude::*;
 
 const SUPPORTED_ACCOUNT: &str = "0xBA5BA3955463ADcc7aa3E33bbdfb8A68e0933dD8";
@@ -20,81 +26,80 @@ const SUPPORTED_ACCOUNT: &str = "0xBA5BA3955463ADcc7aa3E33bbdfb8A68e0933dD8";
 #[derive(Clone, xtra::Actor)]
 pub struct Wallet {
     manager: PairingManager,
-    pending_proposals: Arc<DashMap<Topic, oneshot::Sender<Result<ClientSession>>>>,
+    pending: Arc<PendingSession>,
+}
+
+impl Wallet {
+    async fn send_settlement(
+        &self,
+        request: SessionProposeRequest,
+        public_key: String,
+    ) -> Result<()> {
+        let actors = self.manager.actors();
+        let session_topic = actors
+            .register_dapp_pk(self.clone(), request.proposer)
+            .await?;
+        let now = chrono::Utc::now();
+        let future = now + chrono::Duration::hours(24);
+        let mut settled: Namespaces = Namespaces(BTreeMap::new());
+        for (name, namespace) in request.required_namespaces.iter() {
+            let accounts: BTreeSet<Account> = namespace
+                .chains
+                .iter()
+                .map(|c| Account {
+                    address: String::from(SUPPORTED_ACCOUNT),
+                    chain: c.clone(),
+                })
+                .collect();
+
+            let methods = match name {
+                NamespaceName::EIP155 => EipMethod::defaults(),
+                NamespaceName::Solana => SolanaMethod::defaults(),
+                NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
+            };
+            settled.insert(
+                name.clone(),
+                Namespace {
+                    accounts: Accounts(accounts),
+                    chains: Chains(namespace.chains.iter().cloned().collect()),
+                    methods: Methods(methods),
+                    events: Events::default(),
+                },
+            );
+        }
+
+        let session_settlement = SessionSettleRequest {
+            relay: RelayProtocol::default(),
+            controller: Controller {
+                public_key,
+                metadata: Metadata {
+                    name: "mock wallet".to_string(),
+                    description: "mocked wallet".to_string(),
+                    url: "https://example.com".to_string(),
+                    icons: vec![],
+                    verify_url: None,
+                    redirect: None,
+                },
+            },
+            namespaces: settled,
+            expiry: future.timestamp(),
+        };
+        self.pending
+            .settled(
+                &self.manager,
+                SessionSettled(session_topic.clone(), session_settlement.clone()),
+            )
+            .await?;
+        Ok(())
+    }
 }
 
 async fn send_settlement(wallet: Wallet, request: SessionProposeRequest, public_key: String) {
     // give time for dapp to get my public key and subscribe
     tokio::time::sleep(Duration::from_millis(1000)).await;
-    info!("sending settlement {}", request.proposer.public_key);
-    let actors = wallet.manager.actors();
-    let session_topic = actors
-        .register_dapp_pk(wallet.clone(), request.proposer)
-        .await
-        .unwrap();
-    let now = chrono::Utc::now();
-    let future = now + chrono::Duration::hours(24);
-    let mut settled: BTreeMap<String, SettleNamespace> = BTreeMap::new();
-    if !request.required_namespaces.deref().contains_key("eip155") {
-        warn!("not sending settlement due to no eip155 chains");
-        return;
+    if let Err(e) = wallet.send_settlement(request, public_key).await {
+        warn!("failed to create ClientSession: '{e}'")
     }
-    let mut namespaces = request.required_namespaces.0;
-    let ns = namespaces.remove("eip155").unwrap();
-    let eip = SettleNamespace {
-        accounts: ns
-            .chains
-            .iter()
-            .map(|c| format!("{}:{}", c, SUPPORTED_ACCOUNT))
-            .collect(),
-        methods: ns.methods,
-        events: ns.events,
-        extensions: None,
-    };
-    settled.insert(String::from("eip155"), eip);
-    let session_settlement = SessionSettleRequest {
-        relay: Default::default(),
-        controller: Controller {
-            public_key,
-            metadata: Metadata {
-                name: "mock wallet".to_string(),
-                description: "mocked wallet".to_string(),
-                url: "https://example.com".to_string(),
-                icons: vec![],
-                verify_url: None,
-                redirect: None,
-            },
-        },
-        namespaces: SettleNamespaces(settled),
-        expiry: future.timestamp() as u64,
-    };
-    let result_session: Result<ClientSession> = match actors
-        .register_settlement(
-            wallet.manager.topic_transport(),
-            SessionSettled(session_topic, session_settlement.clone()),
-        )
-        .await
-    {
-        Err(e) => Err(e),
-        Ok(client_session) => {
-            let request = RequestParams::SessionSettle(session_settlement);
-            match client_session.publish_request::<bool>(request).await {
-                Err(e) => Err(e),
-                Ok(true) => Ok(client_session),
-                Ok(false) => Err(crate::Error::SettlementRejected),
-            }
-        }
-    };
-
-    // This must be Some, otherwise the settlement would have bomb way before
-    let topic = wallet.manager.topic().unwrap();
-    if let Some((_, tx)) = wallet.pending_proposals.remove(&topic) {
-        if tx.send(result_session).is_err() {
-            warn!("receiver for wallet client session has dropped");
-        }
-        return;
-    }
-    warn!("No channel found for pairing topic {topic} ");
 }
 
 fn verify_settlement(
@@ -111,8 +116,8 @@ fn verify_settlement(
         );
     }
     let pk = pk.unwrap();
-    let reject_chain = format!("eip155:{}", alloy_chains::Chain::goerli().id());
-    if let Some(ns) = proposal.required_namespaces.0.get("eip155") {
+    let reject_chain = ChainId::EIP155(alloy_chains::Chain::goerli());
+    if let Some(ns) = proposal.required_namespaces.0.get(&NamespaceName::EIP155) {
         if ns.chains.contains(&reject_chain) {
             return (
                 false,
@@ -128,7 +133,7 @@ fn verify_settlement(
         String::from(&pk),
         RpcResponsePayload::Success(ResponseParamsSuccess::SessionPropose(
             SessionProposeResponse {
-                relay: Default::default(),
+                relay: RelayProtocol::default(),
                 responder_public_key: pk,
             },
         )),
@@ -156,22 +161,21 @@ impl Wallet {
     pub fn new(manager: PairingManager) -> Self {
         Self {
             manager,
-            pending_proposals: Default::default(),
+            pending: Arc::new(PendingSession::new()),
         }
     }
 
-    pub async fn pair(
+    pub async fn pair<T: SessionHandlers>(
         &self,
         uri: String,
+        handlers: T,
     ) -> Result<(Pairing, ProposeFuture<Result<ClientSession>>)> {
         let pairing = Pairing::from_str(&uri)?;
         self.manager
             .actors()
             .register_wallet_pairing(self.clone(), pairing.clone())
             .await?;
-        let (tx, rx) = oneshot::channel::<Result<ClientSession>>();
-        self.pending_proposals.insert(pairing.topic.clone(), tx);
-
+        let rx = self.pending.add(pairing.topic.clone(), handlers);
         Ok((pairing, ProposeFuture::new(rx)))
     }
 }

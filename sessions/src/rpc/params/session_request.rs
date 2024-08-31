@@ -1,9 +1,9 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionrequest
 
-use serde::{Deserialize, Serialize};
-
 use super::IrnMetadata;
+use serde::{Deserialize, Serialize};
+use walletconnect_namespaces::ChainId;
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1108,
@@ -33,7 +33,7 @@ pub struct Request {
 #[serde(rename_all = "camelCase")]
 pub struct SessionRequestRequest {
     pub request: Request,
-    pub chain_id: String,
+    pub chain_id: ChainId,
 }
 
 #[cfg(test)]

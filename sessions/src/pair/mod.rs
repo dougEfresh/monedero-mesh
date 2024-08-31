@@ -4,10 +4,7 @@ mod handlers;
 use crate::actors::Actors;
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
-use crate::rpc::{
-    ErrorParams, PairExtendRequest, ProposeNamespaces, RequestParams, SessionSettleRequest,
-    SettleNamespaces,
-};
+use crate::rpc::{ErrorParams, PairExtendRequest, RequestParams, SessionSettleRequest};
 use crate::transport::{SessionTransport, TopicTransport};
 use crate::{Cipher, ClientSession, Pairing, Result};
 pub use builder::WalletConnectBuilder;
@@ -98,55 +95,57 @@ impl PairingManager {
         Ok(true)
     }
 
-    pub(crate) fn find_session(
-        &self,
-        required: &ProposeNamespaces,
-    ) -> Result<Option<(SessionTransport, SettleNamespaces)>> {
-        if self.topic().is_none() {
-            return Ok(None);
-        }
-
-        let settlements = self.ciphers.settlements()?;
-
-        if settlements.is_empty() {
-            return Ok(None);
-        }
-        let required_namespaces: BTreeSet<String> = required.deref().keys().cloned().collect();
-        for s in settlements.into_iter() {
-            let settlement = s.1.namespaces.clone();
-            let topic = s.0.clone();
-            let settled_namespaces: BTreeSet<String> =
-                s.1.namespaces.deref().keys().cloned().collect();
-            if required_namespaces != settled_namespaces {
-                continue;
+    /*
+        pub(crate) fn find_session(
+            &self,
+            required: &ProposeNamespaces,
+        ) -> Result<Option<(SessionTransport, SettleNamespaces)>> {
+            if self.topic().is_none() {
+                return Ok(None);
             }
-            for ns in &required_namespaces {
-                let settled_space = s.1.namespaces.get(ns).unwrap();
-                let required_space = required.deref().get(ns).unwrap();
-                let settled_chains: Vec<String> = settled_space
-                    .accounts
-                    .iter()
-                    .map(|a| {
-                        let parts: Vec<&str> = a.split(":").collect();
-                        let mut chain: String = String::from("unknown");
-                        if parts.len() == 3 {
-                            chain = format!("{}:{}", parts[0], parts[1]);
-                        }
-                        chain
-                    })
-                    .collect();
-                let settled_chains: BTreeSet<String> = settled_chains.into_iter().collect();
-                if required_space.chains.eq(&settled_chains) {
-                    let transport = SessionTransport {
-                        topic,
-                        transport: self.transport.clone(),
-                    };
-                    return Ok(Some((transport, settlement)));
+
+            let settlements = self.ciphers.settlements()?;
+
+            if settlements.is_empty() {
+                return Ok(None);
+            }
+            let required_namespaces: BTreeSet<String> = required.deref().keys().cloned().collect();
+            for s in settlements.into_iter() {
+                let settlement = s.1.namespaces.clone();
+                let topic = s.0.clone();
+                let settled_namespaces: BTreeSet<String> =
+                    s.1.namespaces.deref().keys().cloned().collect();
+                if required_namespaces != settled_namespaces {
+                    continue;
+                }
+                for ns in &required_namespaces {
+                    let settled_space = s.1.namespaces.get(ns).unwrap();
+                    let required_space = required.deref().get(ns).unwrap();
+                    let settled_chains: Vec<String> = settled_space
+                        .accounts
+                        .iter()
+                        .map(|a| {
+                            let parts: Vec<&str> = a.split(":").collect();
+                            let mut chain: String = String::from("unknown");
+                            if parts.len() == 3 {
+                                chain = format!("{}:{}", parts[0], parts[1]);
+                            }
+                            chain
+                        })
+                        .collect();
+                    let settled_chains: BTreeSet<String> = settled_chains.into_iter().collect();
+                    if required_space.chains.eq(&settled_chains) {
+                        let transport = SessionTransport {
+                            topic,
+                            transport: self.transport.clone(),
+                        };
+                        return Ok(Some((transport, settlement)));
+                    }
                 }
             }
+            Ok(None)
         }
-        Ok(None)
-    }
+    */
 
     // Epoch
     pub async fn extend(&self, expiry: u64) -> Result<bool> {

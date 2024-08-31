@@ -16,7 +16,8 @@ unsafe_code = "forbid"
 unused = "allow"
 unused_variables = "allow"
 unused_imports = "warn"
-dead_code = "warn"
+dead_code = "allow"
+missing_docs = "allow"
 
 [workspace.lints.clippy]
 enum_glob_use = "deny"
@@ -24,6 +25,9 @@ pedantic = "deny"
 nursery = "deny"
 unwrap_used = "deny"
 module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+must_use_candidate = "allow"
+doc_markdown = "allow"
 #dead_code = "allow"
 
 [workspace.dependencies]
@@ -34,6 +38,7 @@ base64 = "0.21"
 #base64-url = "2.0"
 chacha20poly1305 = "0.10"
 #chrono = "0.4"
+dashmap = {version = "5"}
 data-encoding = { version = "2"}
 derive_more = {version = "0.99"}
 futures-util = { version = "0.3" }
