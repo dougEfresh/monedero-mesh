@@ -1,7 +1,7 @@
 mod builder;
 mod handlers;
 
-use crate::actors::Actors;
+use crate::actors::{Actors, RegisterComponent, RegisterPairing};
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
 use crate::rpc::{ErrorParams, PairExtendRequest, RequestParams, SessionSettleRequest};
@@ -77,6 +77,10 @@ impl PairingManager {
 
     pub fn topic(&self) -> Option<Topic> {
         self.ciphers.pairing().map(|p| p.topic.clone())
+    }
+
+    pub fn pairing(&self) -> Option<Pairing> {
+        self.ciphers.pairing()
     }
 
     pub async fn ping(&self) -> Result<bool> {
@@ -159,12 +163,12 @@ impl PairingManager {
     }
 
     pub async fn set_pairing(&self, pairing: Pairing) -> Result<()> {
-        let cipher = self.actors.cipher_actor();
-        cipher.send(pairing.clone()).await??;
-        self.actors
-            .register_mgr(pairing.topic.clone(), self.clone())
-            .await?;
-        self.subscribe(pairing.topic.clone()).await?;
+        let register = RegisterPairing {
+            pairing,
+            mgr: self.clone(),
+            component: RegisterComponent::None,
+        };
+        self.actors.register_pairing(register).await?;
         Ok(())
     }
 

@@ -38,6 +38,7 @@ pub use rpc::SdkErrors;
 use walletconnect_namespaces::Event;
 pub use walletconnect_relay::ClientError;
 pub type PairingTopic = Topic;
+pub type SessionTopic = Topic;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {

@@ -234,14 +234,12 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                     topic.clone(),
                     ResponseParamsError::SessionPropose(ErrorParams::unknown()),
                 );
-                let response: RpcResponse =
-                    match process_proposal(self.clone(), id, topic, args).await {
-                        Ok(r) => r,
-                        Err(e) => {
-                            warn!("failed to get proposal response: {e}");
-                            unknown
-                        }
-                    };
+                let response: RpcResponse = process_proposal(self.clone(), id, topic, args)
+                    .await
+                    .unwrap_or_else(|e| {
+                        warn!("failed to get proposal response: {e}");
+                        unknown
+                    });
                 if let Err(e) = self.responder.send(response).await {
                     warn!("responder actor is not responding {e}");
                 }

@@ -13,7 +13,7 @@ use crate::domain::Topic;
 use crate::rpc::{Proposer, RequestParams, SessionProposeResponse, SessionSettleRequest};
 use crate::session::ClientSession;
 use crate::transport::{SessionTransport, TopicTransport};
-use crate::{Cipher, NoopSessionDeleteHandler, Pairing, PairingManager};
+use crate::{Cipher, NoopSessionDeleteHandler, Pairing, PairingManager, SessionTopic};
 use crate::{Dapp, Result, Wallet};
 pub(crate) use inbound::{AddRequest, InboundResponseActor};
 pub(crate) use request::RequestHandlerActor;
@@ -45,6 +45,18 @@ pub(crate) struct SessionSettled(pub Topic, pub SessionSettleRequest);
 pub(crate) struct SessionPing;
 pub(crate) struct DeleteSession(pub Topic);
 
+pub(crate) enum RegisterComponent {
+    WalletDappPublicKey(Wallet, Proposer),
+    WalletPairTopic(Wallet),
+    Dapp(Dapp, SessionProposeResponse),
+    None,
+}
+pub(crate) struct RegisterPairing {
+    pub pairing: Pairing,
+    pub mgr: PairingManager,
+    pub component: RegisterComponent,
+}
+
 impl Actors {
     pub(crate) async fn register_settlement(
         &self,
@@ -67,7 +79,45 @@ impl Actors {
         Ok(())
     }
 
-    pub async fn register_dapp_pk(&self, wallet: Wallet, proposer: Proposer) -> Result<Topic> {
+    pub(crate) async fn register_pairing(
+        &self,
+        register: RegisterPairing,
+    ) -> Result<Option<SessionTopic>> {
+        let pairing_topic = register.pairing.topic.clone();
+        //TODO check if pairing topic is different
+        if register.mgr.topic().is_none() {
+            self.cipher_actor.send(register.pairing.clone()).await??;
+            self.request_actor
+                .send(RegisterTopicManager(
+                    pairing_topic.clone(),
+                    register.mgr.clone(),
+                ))
+                .await?;
+            let sub_id = self
+                .transport_actor
+                .send(Subscribe(pairing_topic.clone()))
+                .await??;
+            tracing::info!("Subscribed to pairing topic {pairing_topic} sub id: {sub_id}");
+        }
+
+        match register.component {
+            RegisterComponent::WalletPairTopic(wallet) => {
+                self.register_wallet_pairing(wallet.clone(), register.pairing.clone())
+                    .await?;
+                Ok(None)
+            }
+            RegisterComponent::WalletDappPublicKey(wallet, proposer) => {
+                tracing::info!("registering wallet");
+                Ok(Some(self.register_dapp_pk(wallet, proposer).await?))
+            }
+            RegisterComponent::Dapp(dapp, settlement) => {
+                Ok(Some(self.register_wallet_pk(dapp, settlement).await?))
+            }
+            RegisterComponent::None => Ok(None),
+        }
+    }
+
+    async fn register_dapp_pk(&self, wallet: Wallet, proposer: Proposer) -> Result<Topic> {
         let session_topic = self.cipher_actor.send(proposer).await??;
         self.request_actor
             .send(RegisterWallet(session_topic.clone(), wallet))
@@ -81,7 +131,7 @@ impl Actors {
         Ok(session_topic)
     }
 
-    pub async fn register_wallet_pk(
+    async fn register_wallet_pk(
         &self,
         dapp: Dapp,
         controller: SessionProposeResponse,
@@ -95,13 +145,6 @@ impl Actors {
             .send(Subscribe(session_topic.clone()))
             .await??;
         Ok(session_topic)
-    }
-
-    pub async fn register_mgr(&self, topic: Topic, mgr: PairingManager) -> Result<()> {
-        Ok(self
-            .request_actor
-            .send(RegisterTopicManager(topic, mgr))
-            .await?)
     }
 }
 

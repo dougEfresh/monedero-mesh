@@ -118,6 +118,7 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                     message.topic.clone(),
                     ResponseParamsError::SessionPing(ErrorParams::unknown()),
                 );
+
                 let response: RpcResponse = match self.sessions.get(&message.topic) {
                     None => unknown,
                     Some(cs) => cs
