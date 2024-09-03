@@ -1,19 +1,23 @@
 mod builder;
 mod handlers;
+mod pairing;
 
-use crate::actors::{Actors, RegisterComponent, RegisterPairing};
+use crate::actors::{Actors, RegisterComponent, RegisterPairing, SessionSettled};
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
-use crate::rpc::{ErrorParams, PairExtendRequest, RequestParams, SessionSettleRequest};
+use crate::rpc::{ErrorParams, PairExtendRequest, PairPingRequest, RequestParams, SessionSettleRequest};
 use crate::transport::{SessionTransport, TopicTransport};
 use crate::{Cipher, ClientSession, Pairing, Result};
 pub use builder::WalletConnectBuilder;
 use serde::de::DeserializeOwned;
 use std::collections::BTreeSet;
+use std::future::Future;
 use std::ops::Deref;
+use std::time::Duration;
 use tracing::{info, warn};
 use walletconnect_relay::{Client, ConnectionOptions};
 use xtra::prelude::*;
+use walletconnect_namespaces::Namespaces;
 
 pub trait PairHandler: Send + 'static {
     fn ping(&mut self, topic: Topic);
@@ -53,13 +57,51 @@ impl PairingManager {
         };
 
         let socket_handler = xtra::spawn_tokio(mgr.clone(), Mailbox::unbounded());
-        actors.register_socket_handler(socket_handler).await?;
+        info!("Opening connection to wc relay");
         mgr.open_socket().await?;
+        actors.register_socket_handler(socket_handler).await?;
+        mgr.restore_saved_pairing().await;
         Ok(mgr)
     }
 
-    #[cfg(feature = "mock")]
-    pub fn ciphers(&self) -> Cipher {
+    async fn restore_saved_pairing(&self) {
+        if let Some(pairing) = self.pairing() {
+            info!("found existing topic {pairing}");
+            let r = RegisterPairing {
+                pairing,
+                mgr: self.clone(),
+                component: RegisterComponent::None,
+            };
+            if let Err(e) = self.actors.register_pairing(r).await {
+                warn!("failed to register pairing: {e}");
+                return
+            }
+            info!("Checking if peer is alive");
+            if !self.alive().await {
+                info!("clearing pairing topics and sessions");
+                self.actors.reset().await;
+            }
+        }
+    }
+
+    /// Check if other side is "alive"i
+    /// If the peer returns an RPC error then it is "alive"
+    /// Error only for network communication errors or relay server is down
+    pub(crate) async fn alive(&self) -> bool {
+        match tokio::time::timeout(Duration::from_secs(5), self.ping()).await {
+            Ok(r) => match r {
+                Ok(_) => true,
+                Err(crate::Error::RpcError(_)) => true,
+                Err(e) => {
+                    warn!("failed alive check: {e}");
+                    false
+                }
+            }
+            Err(_) => false
+        }
+    }
+
+    pub(crate) fn ciphers(&self) -> Cipher {
         self.ciphers.clone()
     }
 
@@ -86,8 +128,28 @@ impl PairingManager {
     pub async fn ping(&self) -> Result<bool> {
         let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
         self.transport
-            .publish_request(t, RequestParams::PairPing(Default::default()))
-            .await
+          .publish_request::<bool>(t, RequestParams::PairPing(PairPingRequest::default()))
+          .await
+    }
+
+    pub(crate) fn find_session(&self, namespaces: &Namespaces) -> Option<SessionSettled> {
+        if self.topic().is_none() {
+            return None;
+        }
+        let settlements = self.ciphers.settlements().unwrap_or_default();
+        if settlements.is_empty() {
+            return None;
+        }
+        let required_chains = namespaces.chains();
+        info!("required chains {}", required_chains);
+        for s in settlements {
+            let settled_chains = s.deref().namespaces.chains();
+            info!("settled chains {}", settled_chains);
+            if required_chains.is_subset(&settled_chains) {
+                return Some(s)
+            }
+        }
+        None
     }
 
     pub async fn delete(&self) -> Result<bool> {
@@ -98,58 +160,6 @@ impl PairingManager {
         self.cleanup(t).await?;
         Ok(true)
     }
-
-    /*
-        pub(crate) fn find_session(
-            &self,
-            required: &ProposeNamespaces,
-        ) -> Result<Option<(SessionTransport, SettleNamespaces)>> {
-            if self.topic().is_none() {
-                return Ok(None);
-            }
-
-            let settlements = self.ciphers.settlements()?;
-
-            if settlements.is_empty() {
-                return Ok(None);
-            }
-            let required_namespaces: BTreeSet<String> = required.deref().keys().cloned().collect();
-            for s in settlements.into_iter() {
-                let settlement = s.1.namespaces.clone();
-                let topic = s.0.clone();
-                let settled_namespaces: BTreeSet<String> =
-                    s.1.namespaces.deref().keys().cloned().collect();
-                if required_namespaces != settled_namespaces {
-                    continue;
-                }
-                for ns in &required_namespaces {
-                    let settled_space = s.1.namespaces.get(ns).unwrap();
-                    let required_space = required.deref().get(ns).unwrap();
-                    let settled_chains: Vec<String> = settled_space
-                        .accounts
-                        .iter()
-                        .map(|a| {
-                            let parts: Vec<&str> = a.split(":").collect();
-                            let mut chain: String = String::from("unknown");
-                            if parts.len() == 3 {
-                                chain = format!("{}:{}", parts[0], parts[1]);
-                            }
-                            chain
-                        })
-                        .collect();
-                    let settled_chains: BTreeSet<String> = settled_chains.into_iter().collect();
-                    if required_space.chains.eq(&settled_chains) {
-                        let transport = SessionTransport {
-                            topic,
-                            transport: self.transport.clone(),
-                        };
-                        return Ok(Some((transport, settlement)));
-                    }
-                }
-            }
-            Ok(None)
-        }
-    */
 
     // Epoch
     pub async fn extend(&self, expiry: u64) -> Result<bool> {
@@ -197,5 +207,25 @@ impl PairingManager {
 
     pub(crate) fn topic_transport(&self) -> TopicTransport {
         self.transport.clone()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use walletconnect_namespaces::*;
+
+    #[test]
+    fn test_namespace_compare() {
+        let settled_chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(AlloyChain::sepolia()), ChainId::EIP155(AlloyChain::holesky())]);
+        let required_chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(alloy_chains::Chain::sepolia())]);
+        assert!(required_chains.is_subset(&settled_chains));
+
+        let settled_chains = Chains::from([ChainId::Solana(ChainType::Main)]);
+        assert!(!required_chains.is_subset(&settled_chains));
+
+        let settled_chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(AlloyChain::sepolia())]);
+        let required_chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(AlloyChain::sepolia()), ChainId::EIP155(AlloyChain::holesky())]);
+        assert!(!required_chains.is_subset(&settled_chains));
+
     }
 }

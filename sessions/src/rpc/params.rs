@@ -199,7 +199,7 @@ pub enum ResponseParamsSuccess {
     SessionSettle(bool),
     SessionUpdate(bool),
     SessionExtend(bool),
-    SessionRequest(bool),
+    SessionRequest(Value),
     SessionEvent(bool),
     SessionDelete(bool),
     SessionPing(bool),

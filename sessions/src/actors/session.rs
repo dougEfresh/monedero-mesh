@@ -1,4 +1,4 @@
-use crate::actors::{SessionPing, TransportActor};
+use crate::actors::{ClearPairing, RequestHandlerActor, SessionPing, TransportActor};
 use crate::rpc::{
     ErrorParams, RequestParams, ResponseParamsError, ResponseParamsSuccess, RpcRequest,
     RpcResponse, RpcResponsePayload,
@@ -7,6 +7,7 @@ use crate::session::ClientSession;
 use crate::Topic;
 use dashmap::DashMap;
 use std::sync::Arc;
+use serde_json::json;
 use tracing::warn;
 use xtra::prelude::*;
 
@@ -22,6 +23,14 @@ impl SessionRequestHandlerActor {
             sessions: Default::default(),
             responder,
         }
+    }
+}
+
+impl Handler<ClearPairing> for SessionRequestHandlerActor {
+    type Return = ();
+
+    async fn handle(&mut self, message: ClearPairing, ctx: &mut Context<Self>) -> Self::Return {
+        self.sessions.clear();
     }
 }
 
@@ -72,7 +81,7 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                     id: message.payload.id,
                     topic: message.topic,
                     payload: RpcResponsePayload::Success(ResponseParamsSuccess::SessionRequest(
-                        true,
+                        json!({}),
                     )),
                 };
                 if let Err(e) = self.responder.send(response).await {

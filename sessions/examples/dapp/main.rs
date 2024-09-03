@@ -14,18 +14,25 @@ use walletconnect_sessions;
 use crate::log::initialize_logging;
 use std::time::Duration;
 use tokio::{select, signal};
-use walletconnect_sessions::rpc::{Metadata, ProposeNamespace, ProposeNamespaces};
-use walletconnect_sessions::{ClientSession, Dapp, KvStorage, WalletConnectBuilder};
-use walletconnect_sessions::{Pairing, ProjectId};
+use walletconnect_namespaces::{ChainId, ChainType, Chains};
+use walletconnect_sessions::{Metadata, Pairing, ProjectId, ClientSession, Dapp, KvStorage, WalletConnectBuilder, NoopSessionHandler};
 
 async fn propose(dapp: &Dapp) -> anyhow::Result<(Pairing, ClientSession)> {
-    let required: Vec<alloy_chains::Chain> = vec![alloy_chains::Chain::sepolia()];
-    let mut namespaces: BTreeMap<String, ProposeNamespace> = BTreeMap::new();
-    namespaces.insert(String::from("eip155"), required.into());
-    let (p, rx) = dapp.propose(ProposeNamespaces(namespaces)).await?;
-    println!("\n\n{pairing}\n\n");
+    let chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(alloy_chains::Chain::sepolia())]);
+    let (p, rx) = dapp.propose(NoopSessionHandler, &chains).await?;
+    println!("\n\n{p}\n\n");
     let session = rx.await??;
     Ok((p, session))
+}
+
+async fn pair_ping(dapp: Dapp) {
+    loop {
+        println!("pair ping");
+        if let Err(e) = dapp.pair_ping().await {
+            eprintln!("ping failed! {e}");
+        }
+        tokio::time::sleep(Duration::from_secs(30)).await;
+    }
 }
 
 async fn do_dapp_stuff(dapp: Dapp) {
@@ -38,18 +45,20 @@ async fn do_dapp_stuff(dapp: Dapp) {
         Ok((_, s)) => s,
     };
     info!("settled {:#?}", session.namespaces());
+    let pinger = dapp.clone();
+    tokio::spawn(pair_ping(pinger));
     loop {
-        tokio::time::sleep(Duration::from_secs(10)).await;
         println!("session ping");
         if let Err(e) = session.ping().await {
             eprintln!("ping failed! {e}");
         }
+        tokio::time::sleep(Duration::from_secs(15)).await;
     }
 }
 
 async fn dapp_test() -> anyhow::Result<()> {
     info!("starting sanity test");
-    let auth = walletconnect_sessions::auth_token("https://github.com/dougEfresh");
+    let auth = walletconnect_relay::auth_token("https://github.com/dougEfresh");
     let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
     let store = KvStorage::file(None)?;
     let builder = WalletConnectBuilder::new(p, auth);

@@ -2,7 +2,7 @@ use crate::actors::SessionSettled;
 use crate::crypto::error::CipherError;
 use crate::pairing_uri::Pairing;
 use crate::rpc::SessionSettleRequest;
-use crate::KvStorage;
+use crate::{KvStorage, SessionTopic};
 use chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, KeyInit, Nonce};
 use dashmap::DashMap;
 use derive_more::{AsMut, AsRef};
@@ -119,9 +119,15 @@ impl Cipher {
 
     fn init(&mut self) -> Result<(), CipherError> {
         let mut session_expired = false;
-        match self.pairing_key() {
-            Some(pairing_key) => {
+        match self.pairing() {
+            Some(pairing) => {
                 debug!("found existing pairing...restoring");
+                self.pairing.insert(pairing.topic.clone(), Arc::new(pairing.clone()));
+                let key = pairing.params.sym_key.clone();
+                self.ciphers.insert(
+                    pairing.topic.clone(),
+                    ChaCha20Poly1305::new((&key.to_bytes()).into()),
+                );
                 let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
                 if let Some(sessions) = self.storage.get::<Vec<String>>(&sessions_key)? {
                     debug!("restoring {} sessions", sessions.len());
@@ -140,7 +146,7 @@ impl Cipher {
                             .get::<String>(Self::storage_session_key(&Topic::from(s)))?
                         {
                             let (topic, expanded_key) =
-                                Self::derive_sym_key(pairing_key.clone(), controller_pk)?;
+                                Self::derive_sym_key(key.clone(), controller_pk)?;
                             let _ = self.register(topic, expanded_key);
                         }
                     }
@@ -158,9 +164,9 @@ impl Cipher {
         Ok(())
     }
 
-    pub(crate) fn set_settlement(&self, session: &SessionSettled) -> Result<(), CipherError> {
-        let sessions_key = Self::storage_settlement(&session.0);
-        self.storage.set(sessions_key, session.1.clone())?;
+    pub(crate) fn set_settlement(&self, topic: SessionTopic, settlement: SessionSettleRequest) -> Result<(), CipherError> {
+        let sessions_key = Self::storage_settlement(&topic);
+        self.storage.set(sessions_key, settlement)?;
         Ok(())
     }
 

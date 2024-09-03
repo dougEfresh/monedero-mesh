@@ -7,6 +7,15 @@ use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
 
+// old solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ
+const SOLANA_NEW: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+// const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
+const SOLANA: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
+/// This is actually Solana Dev
+const SOLANA_TEST_NEW: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
+//const SOLANA_TEST_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
+const SOLANA_TEST: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
+
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum ChainType {
     #[default]
@@ -24,6 +33,18 @@ pub enum ChainId {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Chains(pub BTreeSet<ChainId>);
+
+impl<const N: usize> From<[ChainId; N]> for Chains {
+    fn from(value: [ChainId; N]) -> Self {
+        Self(BTreeSet::from_iter(value.into_iter()))
+    }
+}
+
+impl FromIterator<ChainId> for Chains {
+    fn from_iter<T: IntoIterator<Item = ChainId>>(iter: T) -> Self {
+        Self(BTreeSet::from_iter(iter))
+    }
+}
 
 impl Default for Chains {
     fn default() -> Self {
@@ -99,15 +120,6 @@ impl Default for ChainId {
         Self::Solana(ChainType::Main)
     }
 }
-
-// old solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ
-const SOLANA_NEW: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
-// const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
-const SOLANA: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
-/// This is actually Solana Dev
-const SOLANA_TEST_NEW: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
-//const SOLANA_TEST_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
-const SOLANA_TEST: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
 
 impl FromStr for ChainId {
     type Err = crate::Error;

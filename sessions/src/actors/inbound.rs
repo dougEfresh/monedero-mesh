@@ -6,6 +6,7 @@ use tokio::sync::oneshot;
 use tracing::{debug, error, warn};
 use walletconnect_relay::MessageIdGenerator;
 use xtra::{Context, Handler};
+use crate::actors::ClearPairing;
 
 #[derive(Default, xtra::Actor)]
 pub(crate) struct InboundResponseActor {
@@ -15,10 +16,18 @@ pub(crate) struct InboundResponseActor {
 
 pub(crate) struct AddRequest;
 
+impl Handler<ClearPairing> for InboundResponseActor {
+    type Return = ();
+
+    async fn handle(&mut self, message: ClearPairing, ctx: &mut Context<Self>) -> Self::Return {
+        self.pending.clear();
+    }
+}
+
 impl Handler<AddRequest> for InboundResponseActor {
     type Return = (MessageId, oneshot::Receiver<Response>);
 
-    async fn handle(&mut self, _message: AddRequest, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: AddRequest, ctx: &mut Context<Self>) -> Self::Return {
         let id = self.generator.next();
         let (tx, rx) = oneshot::channel::<Response>();
         self.pending.insert(id, tx);

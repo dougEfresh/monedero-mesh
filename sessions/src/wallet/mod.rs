@@ -99,7 +99,8 @@ impl Wallet {
         self.pending
             .settled(
                 &self.manager,
-                SessionSettled(session_topic.clone(), session_settlement.clone()),
+                session_topic.clone(),
+                session_settlement.clone(),
                 true,
             )
             .await?;

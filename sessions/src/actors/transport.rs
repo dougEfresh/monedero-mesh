@@ -1,4 +1,4 @@
-use crate::actors::{AddRequest, InboundResponseActor, SendRequest, Subscribe, Unsubscribe};
+use crate::actors::{AddRequest, ClearPairing, InboundResponseActor, SendRequest, Subscribe, Unsubscribe};
 use crate::domain::{MessageId, SubscriptionId};
 use crate::rpc::{
     IrnMetadata, RelayProtocolMetadata, Request, Response, RpcResponse, RpcResponsePayload,
@@ -17,6 +17,18 @@ pub(crate) struct TransportActor {
     cipher: Cipher,
     relay: Option<Client>,
     inbound_response_actor: Address<InboundResponseActor>,
+}
+
+impl Handler<ClearPairing> for TransportActor {
+    type Return = ();
+
+    async fn handle(&mut self, message: ClearPairing, ctx: &mut Context<Self>) -> Self::Return {
+        // TODO: Do I unsubscribe?
+        self.cipher.reset();
+        if let Err(e) = self.inbound_response_actor.send(ClearPairing).await {
+            warn!("failed to clean inbound responder: {e}");
+        }
+    }
 }
 
 async fn send_response(result: RpcResponse, cipher: Cipher, relay: Client) {

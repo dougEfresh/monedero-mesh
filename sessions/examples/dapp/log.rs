@@ -20,10 +20,10 @@ pub fn initialize_logging() -> anyhow::Result<()> {
     );
 
     let file_subscriber = tracing_subscriber::fmt::layer()
-        .with_file(true)
-        .with_line_number(true)
+        .with_file(false)
+        .with_line_number(false)
         .with_writer(log_file)
-        .with_target(false)
+        .with_target(true)
         .with_span_events(FmtSpan::CLOSE)
         .with_ansi(false)
         .with_filter(tracing_subscriber::filter::EnvFilter::from_default_env());

@@ -21,6 +21,7 @@ pub use crate::event::*;
 pub use crate::method::*;
 pub use crate::name::NamespaceName;
 pub use error::Error;
+pub use alloy_chains::Chain as AlloyChain;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -58,6 +59,18 @@ pub struct Namespace {
     //#[serde(skip_serializing_if = "Option::is_none")]
     //#[serde(default)]
     //pub extensions: Option<Vec<Self>>,
+}
+
+impl Namespaces {
+  pub fn chains(&self) -> Chains {
+    let mut chains = BTreeSet::new();
+    for ns in self.deref().values().cloned() {
+      for c in ns.chains.iter() {
+        chains.insert(c.clone());
+      }
+    }
+    Chains(chains)
+  }
 }
 
 impl<'a, I> From<I> for Namespaces

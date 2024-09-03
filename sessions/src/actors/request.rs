@@ -1,5 +1,5 @@
 use crate::actors::session::SessionRequestHandlerActor;
-use crate::actors::{RegisterDapp, RegisterWallet, SessionSettled, TransportActor};
+use crate::actors::{ClearPairing, InboundResponseActor, RegisterDapp, RegisterWallet, SessionSettled, TransportActor};
 use crate::domain::Topic;
 use crate::rpc::{
     ErrorParams, PairDeleteRequest, PairPingRequest, RequestParams, ResponseParamsError,
@@ -22,6 +22,22 @@ pub(crate) struct RequestHandlerActor {
     session_handler: Address<SessionRequestHandlerActor>,
 }
 
+impl Handler<ClearPairing> for RequestHandlerActor {
+    type Return = ();
+
+    async fn handle(&mut self, message: ClearPairing, ctx: &mut Context<Self>) -> Self::Return {
+        if let Err(e) = self.responder.send(ClearPairing).await {
+            warn!("failed to cleanup transport actor: {e}");
+        }
+        if let Err(e) = self.session_handler.send(ClearPairing).await {
+            warn!("failed to cleanup session handler: {e}");
+        }
+        self.pair_managers.clear();
+        self.wallets.clear();
+        self.dapps.clear();
+    }
+}
+
 impl Handler<RegisterWallet> for RequestHandlerActor {
     type Return = ();
 
@@ -36,8 +52,10 @@ impl Handler<RegisterDapp> for RequestHandlerActor {
     type Return = ();
 
     async fn handle(&mut self, message: RegisterDapp, ctx: &mut Context<Self>) -> Self::Return {
-        let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
-        self.dapps.insert(message.0, addr);
+        if !self.dapps.contains_key(&message.0) {
+            let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
+            self.dapps.insert(message.0, addr);
+        }
     }
 }
 
@@ -169,7 +187,7 @@ async fn process_proposal(
     id: MessageId,
     topic: Topic,
     req: SessionProposeRequest,
-) -> crate::Result<RpcResponse> {
+) -> Result<RpcResponse> {
     let w = actor
         .wallets
         .get(&topic)

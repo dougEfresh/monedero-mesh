@@ -34,7 +34,7 @@ pub type Atomic<T> = Arc<Mutex<T>>;
 use crate::rpc::{SessionDeleteRequest, SessionRequestRequest};
 pub use actors::{Actors, RegisteredManagers};
 pub use domain::*;
-pub use rpc::SdkErrors;
+pub use rpc::{SdkErrors, Metadata};
 use walletconnect_namespaces::Event;
 pub use walletconnect_relay::ClientError;
 pub type PairingTopic = Topic;
