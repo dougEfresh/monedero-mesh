@@ -80,4 +80,7 @@ pub enum Error {
 
     #[error("No wallet found to handle request on topic {0:#?}")]
     NoWalletHandler(Topic),
+
+    #[error("No pairing manager for {0:#?}")]
+    NoPairManager(Topic),
 }

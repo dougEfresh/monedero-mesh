@@ -1,3 +1,4 @@
+use crate::actors::ClearPairing;
 use crate::domain::MessageId;
 use crate::rpc::Response;
 use dashmap::DashMap;
@@ -6,7 +7,6 @@ use tokio::sync::oneshot;
 use tracing::{debug, error, warn};
 use walletconnect_relay::MessageIdGenerator;
 use xtra::{Context, Handler};
-use crate::actors::ClearPairing;
 
 #[derive(Default, xtra::Actor)]
 pub(crate) struct InboundResponseActor {

@@ -80,6 +80,7 @@ impl Client {
 }
 
 impl Client {
+    /// Publishes a message over the network on given topic.
     pub async fn publish(
         &self,
         topic: Topic,
@@ -92,11 +93,24 @@ impl Client {
         Ok(())
     }
 
+    /// Subscribes on topic to receive messages.
+    /// The request is resolved optimistically as soon as the relay receives it.
     pub async fn subscribe(&self, topic: Topic) -> Result<SubscriptionId> {
         let id = self.wc.subscribe(topic).await?;
         Ok(id)
     }
 
+    /// Subscribes on multiple topics to receive messages. The request is
+    /// resolved optimistically as soon as the relay receives it.
+    pub async fn batch_subscribe(
+        &self,
+        topics: impl Into<Vec<Topic>>,
+    ) -> Result<Vec<SubscriptionId>> {
+        let topics = self.wc.batch_subscribe(topics).await?;
+        Ok(topics)
+    }
+
+    /// Unsubscribes from a topic
     pub async fn unsubscribe(&self, topic: Topic) -> Result<()> {
         self.wc.unsubscribe(topic).await?;
         Ok(())

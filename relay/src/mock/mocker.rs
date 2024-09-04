@@ -1,4 +1,4 @@
-use crate::mock::{ConnectionPair, ConnectionState};
+use crate::mock::{ConnectionPair, MockEvent};
 use crate::{
     ClientError, ConnectionHandler, Message, MessageIdGenerator, Result, SubscriptionId, Topic,
 };
@@ -20,12 +20,11 @@ pub static DISCONNECT_TOPIC: Lazy<Topic> =
 pub struct Mocker {
     pub client_id: ConnectionPair,
     tx: mpsc::UnboundedSender<Message>,
-    socket_tx: mpsc::UnboundedSender<ConnectionState>,
+    socket_tx: mpsc::UnboundedSender<MockEvent>,
     topics: Arc<DashMap<Topic, SubscriptionId>>,
     pending: Arc<RwLock<VecDeque<Message>>>,
     connected: Arc<AtomicBool>,
     generator: MessageIdGenerator,
-    pending_tx: mpsc::UnboundedSender<Message>,
 }
 
 impl Mocker {
@@ -36,8 +35,7 @@ impl Mocker {
         tx: mpsc::UnboundedSender<Message>,
         rx: mpsc::UnboundedReceiver<Message>,
     ) -> Self {
-        let (socket_tx, socket_rx) = mpsc::unbounded_channel::<ConnectionState>();
-        let (pending_tx, pending_rx) = mpsc::unbounded_channel::<Message>();
+        let (socket_tx, socket_rx) = mpsc::unbounded_channel::<MockEvent>();
         let mocker = Self {
             client_id,
             tx,
@@ -46,12 +44,11 @@ impl Mocker {
             connected: Arc::new(AtomicBool::new(false)),
             pending: Arc::new(RwLock::new(VecDeque::new())),
             generator,
-            pending_tx,
         };
         let event_handler = mocker.clone();
 
         tokio::spawn(async move {
-            event_loop(rx, socket_rx, pending_rx, event_handler, handler).await;
+            event_loop(rx, socket_rx, event_handler, handler).await;
         });
         mocker
     }
@@ -144,7 +141,7 @@ impl Mocker {
     }
 
     #[tracing::instrument(level = "info")]
-    pub fn connect_state(&self, state: ConnectionState) -> Result<()> {
+    pub fn connect_state(&self, state: MockEvent) -> Result<()> {
         if let Err(e) = self.socket_tx.send(state) {
             warn!("{} failed to broadcast connection state {e}", self);
             return Err(ClientError::TxSendError);
@@ -155,20 +152,26 @@ impl Mocker {
     #[allow(clippy::unused_async)]
     #[allow(clippy::missing_errors_doc)]
     pub async fn connect(&self) -> Result<()> {
-        self.connect_state(ConnectionState::Open)
+        self.connect_state(MockEvent::Open)
     }
 
     #[allow(clippy::unused_async)]
     #[allow(clippy::missing_errors_doc)]
     pub async fn disconnect(&self) -> Result<()> {
-        self.connect_state(ConnectionState::Closed)
+        self.connect_state(MockEvent::Closed)
+    }
+
+    pub async fn batch_subscribe(
+        &self,
+        topics: impl Into<Vec<Topic>>,
+    ) -> Result<Vec<SubscriptionId>> {
+        Ok(Vec::new())
     }
 }
 
 async fn event_loop<T: ConnectionHandler>(
     mut rx: mpsc::UnboundedReceiver<Message>,
-    mut socket_rx: mpsc::UnboundedReceiver<ConnectionState>,
-    mut pending_rx: mpsc::UnboundedReceiver<Message>,
+    mut socket_rx: mpsc::UnboundedReceiver<MockEvent>,
     mocker: Mocker,
     mut handler: T,
 ) {
@@ -177,20 +180,20 @@ async fn event_loop<T: ConnectionHandler>(
         select! {
           Some(state) = socket_rx.recv() => {
             match state {
-              ConnectionState::Open => {
+              MockEvent::Open => {
                         mocker.connected.store(true, Ordering::Relaxed);
                         handler.connected();
                     }
-              ConnectionState::Closed => {
+              MockEvent::Closed => {
                         mocker.connected.store(false, Ordering::Relaxed);
                         info!("{} - sending disconnect", mocker);
                         handler.disconnected(None);
-              }
-            }
+                    }
+                    MockEvent::Pending(message) => {
+                         handler.message_received(message);
+                    }
+                }
           },
-          Some(pending_message) = pending_rx.recv() => {
-                handler.message_received(pending_message);
-          }
           maybe_message = rx.recv() => {
             match maybe_message {
               None => return,
@@ -222,7 +225,7 @@ async fn pending_messages(mocker: Mocker) {
     for m in pending {
         tokio::time::sleep(Duration::from_millis(800)).await;
         debug!("{} sending message", mocker);
-        if mocker.pending_tx.send(m).is_err() {
+        if mocker.socket_tx.send(MockEvent::Pending(m)).is_err() {
             warn!("{} mock channel closed", mocker);
             return;
         }

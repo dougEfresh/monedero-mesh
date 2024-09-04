@@ -3,7 +3,7 @@
 mod propose_namespaces;
 mod settle_namespaces;
 
-use crate::rpc::RELAY_PROTOCOL;
+use crate::rpc::{ErrorParams, ResponseParamsError, RELAY_PROTOCOL};
 pub use propose_namespaces::ProposeNamespaceError;
 use serde::{Deserialize, Serialize};
 
@@ -91,4 +91,8 @@ impl Default for RelayProtocol {
             data: None,
         }
     }
+}
+
+pub trait IntoUnknownError {
+    fn unknown(&self) -> ResponseParamsError;
 }

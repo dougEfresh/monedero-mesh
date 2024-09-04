@@ -1,23 +1,30 @@
 mod builder;
 mod handlers;
 mod pairing;
+mod registration;
+mod socket_handler;
 
-use crate::actors::{Actors, RegisterComponent, RegisterPairing, SessionSettled};
+use crate::actors::{Actors, RegisterTopicManager, RequestHandlerActor, SessionSettled};
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
-use crate::rpc::{ErrorParams, PairExtendRequest, PairPingRequest, RequestParams, SessionSettleRequest};
+use crate::rpc::{
+    ErrorParams, IrnMetadata, PairExtendRequest, PairPingRequest, RelayProtocolMetadata,
+    RequestParams, Response, RpcResponse, RpcResponsePayload, SessionSettleRequest,
+};
 use crate::transport::{SessionTransport, TopicTransport};
-use crate::{Cipher, ClientSession, Pairing, Result};
+use crate::{Cipher, ClientSession, Error, Pairing, Result, SocketEvent};
 pub use builder::WalletConnectBuilder;
 use serde::de::DeserializeOwned;
 use std::collections::BTreeSet;
 use std::future::Future;
 use std::ops::Deref;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::mpsc;
 use tracing::{info, warn};
+use walletconnect_namespaces::Namespaces;
 use walletconnect_relay::{Client, ConnectionOptions};
 use xtra::prelude::*;
-use walletconnect_namespaces::Namespaces;
 
 pub trait PairHandler: Send + 'static {
     fn ping(&mut self, topic: Topic);
@@ -34,9 +41,15 @@ pub struct PairingManager {
 }
 
 impl PairingManager {
-    async fn init(opts: ConnectionOptions, actors: Actors) -> Result<Self> {
-        let ciphers = actors.cipher().clone();
-        let handler = RelayHandler::new(ciphers.clone(), actors.clone());
+    async fn init(opts: ConnectionOptions, ciphers: Cipher) -> Result<Self> {
+        let actors = Actors::init(ciphers.clone()).await?;
+        let (socket_tx, socket_rx) = mpsc::unbounded_channel::<SocketEvent>();
+        let handler = RelayHandler::new(
+            ciphers.clone(),
+            actors.request(),
+            actors.response(),
+            socket_tx,
+        );
         #[cfg(feature = "mock")]
         let relay = Client::new(handler, &opts.conn_pair);
 
@@ -55,33 +68,19 @@ impl PairingManager {
             transport,
             actors: actors.clone(),
         };
-
-        let socket_handler = xtra::spawn_tokio(mgr.clone(), Mailbox::unbounded());
+        let socket_handler = mgr.clone();
+        tokio::spawn(socket_handler::handle_socket(socket_handler, socket_rx));
         info!("Opening connection to wc relay");
         mgr.open_socket().await?;
-        actors.register_socket_handler(socket_handler).await?;
-        mgr.restore_saved_pairing().await;
+        mgr.restore_saved_pairing().await?;
         Ok(mgr)
     }
 
-    async fn restore_saved_pairing(&self) {
-        if let Some(pairing) = self.pairing() {
-            info!("found existing topic {pairing}");
-            let r = RegisterPairing {
-                pairing,
-                mgr: self.clone(),
-                component: RegisterComponent::None,
-            };
-            if let Err(e) = self.actors.register_pairing(r).await {
-                warn!("failed to register pairing: {e}");
-                return
-            }
-            info!("Checking if peer is alive");
-            if !self.alive().await {
-                info!("clearing pairing topics and sessions");
-                self.actors.reset().await;
-            }
-        }
+    pub(crate) async fn resubsribe(&self) -> Result<()> {
+        self.pairing().ok_or(Error::NoPairingTopic)?;
+        let topics = self.ciphers.subscriptions();
+        self.relay.batch_subscribe(topics).await?;
+        Ok(())
     }
 
     /// Check if other side is "alive"i
@@ -96,8 +95,8 @@ impl PairingManager {
                     warn!("failed alive check: {e}");
                     false
                 }
-            }
-            Err(_) => false
+            },
+            Err(_) => false,
         }
     }
 
@@ -128,8 +127,8 @@ impl PairingManager {
     pub async fn ping(&self) -> Result<bool> {
         let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
         self.transport
-          .publish_request::<bool>(t, RequestParams::PairPing(PairPingRequest::default()))
-          .await
+            .publish_request::<bool>(t, RequestParams::PairPing(PairPingRequest::default()))
+            .await
     }
 
     pub(crate) fn find_session(&self, namespaces: &Namespaces) -> Option<SessionSettled> {
@@ -146,7 +145,7 @@ impl PairingManager {
             let settled_chains = s.deref().namespaces.chains();
             info!("settled chains {}", settled_chains);
             if required_chains.is_subset(&settled_chains) {
-                return Some(s)
+                return Some(s);
             }
         }
         None
@@ -173,12 +172,13 @@ impl PairingManager {
     }
 
     pub async fn set_pairing(&self, pairing: Pairing) -> Result<()> {
-        let register = RegisterPairing {
-            pairing,
-            mgr: self.clone(),
-            component: RegisterComponent::None,
-        };
-        self.actors.register_pairing(register).await?;
+        //TODO check if existing pairing and cleanup
+        self.ciphers.set_pairing(Some(pairing.clone()))?;
+        self.actors
+            .request()
+            .send(RegisterTopicManager(pairing.topic.clone(), self.clone()))
+            .await?;
+        self.subscribe(pairing.topic).await?;
         Ok(())
     }
 
@@ -216,16 +216,29 @@ mod test {
 
     #[test]
     fn test_namespace_compare() {
-        let settled_chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(AlloyChain::sepolia()), ChainId::EIP155(AlloyChain::holesky())]);
-        let required_chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(alloy_chains::Chain::sepolia())]);
+        let settled_chains = Chains::from([
+            ChainId::Solana(ChainType::Test),
+            ChainId::EIP155(AlloyChain::sepolia()),
+            ChainId::EIP155(AlloyChain::holesky()),
+        ]);
+        let required_chains = Chains::from([
+            ChainId::Solana(ChainType::Test),
+            ChainId::EIP155(alloy_chains::Chain::sepolia()),
+        ]);
         assert!(required_chains.is_subset(&settled_chains));
 
         let settled_chains = Chains::from([ChainId::Solana(ChainType::Main)]);
         assert!(!required_chains.is_subset(&settled_chains));
 
-        let settled_chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(AlloyChain::sepolia())]);
-        let required_chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(AlloyChain::sepolia()), ChainId::EIP155(AlloyChain::holesky())]);
+        let settled_chains = Chains::from([
+            ChainId::Solana(ChainType::Test),
+            ChainId::EIP155(AlloyChain::sepolia()),
+        ]);
+        let required_chains = Chains::from([
+            ChainId::Solana(ChainType::Test),
+            ChainId::EIP155(AlloyChain::sepolia()),
+            ChainId::EIP155(AlloyChain::holesky()),
+        ]);
         assert!(!required_chains.is_subset(&settled_chains));
-
     }
 }

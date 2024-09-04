@@ -1,4 +1,4 @@
-use crate::actors::{Actors, InboundResponseActor, RequestHandlerActor, SocketActor};
+use crate::actors::{Actors, InboundResponseActor, RequestHandlerActor};
 use crate::domain::Message;
 use crate::rpc::{Payload, Response, RpcRequest};
 use crate::{Cipher, SocketEvent};
@@ -15,21 +15,19 @@ pub struct RelayHandler {
 }
 
 impl RelayHandler {
-    pub(crate) fn new(cipher: Cipher, actors: Actors) -> Self {
+    pub(crate) fn new(
+        cipher: Cipher,
+        req_actor: Address<RequestHandlerActor>,
+        res_actor: Address<InboundResponseActor>,
+        socket_tx: mpsc::UnboundedSender<SocketEvent>,
+    ) -> Self {
         let (req_tx, req_rx) = mpsc::unbounded_channel::<RpcRequest>();
         let (res_tx, res_rx) = mpsc::unbounded_channel::<Response>();
-        let (socket_tx, socket_rx) = mpsc::unbounded_channel::<SocketEvent>();
-        let req_actor = actors.request();
-        let res_actor = actors.response();
         tokio::spawn(async move {
             event_loop_req(req_rx, req_actor).await;
         });
         tokio::spawn(async move {
             event_loop_res(res_rx, res_actor).await;
-        });
-
-        tokio::spawn(async move {
-            event_loop_socket(socket_rx, actors.sockets()).await;
         });
         Self {
             cipher,
@@ -89,19 +87,6 @@ impl ConnectionHandler for RelayHandler {
 
     fn outbound_error(&mut self, _error: ClientError) {
         self.disconnected(None);
-    }
-}
-
-async fn event_loop_socket(
-    mut rx: mpsc::UnboundedReceiver<SocketEvent>,
-    actor: Address<SocketActor>,
-) {
-    info!("started event loop for sockets");
-    while let Some(r) = rx.recv().await {
-        if let Err(e) = actor.send(r).await {
-            warn!("[socket] actor channel has closed: {e}");
-            return;
-        }
     }
 }
 

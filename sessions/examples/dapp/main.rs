@@ -15,10 +15,16 @@ use crate::log::initialize_logging;
 use std::time::Duration;
 use tokio::{select, signal};
 use walletconnect_namespaces::{ChainId, ChainType, Chains};
-use walletconnect_sessions::{Metadata, Pairing, ProjectId, ClientSession, Dapp, KvStorage, WalletConnectBuilder, NoopSessionHandler};
+use walletconnect_sessions::{
+    ClientSession, Dapp, KvStorage, Metadata, NoopSessionHandler, Pairing, ProjectId,
+    WalletConnectBuilder,
+};
 
 async fn propose(dapp: &Dapp) -> anyhow::Result<(Pairing, ClientSession)> {
-    let chains = Chains::from([ChainId::Solana(ChainType::Test), ChainId::EIP155(alloy_chains::Chain::sepolia())]);
+    let chains = Chains::from([
+        ChainId::Solana(ChainType::Test),
+        ChainId::EIP155(alloy_chains::Chain::sepolia()),
+    ]);
     let (p, rx) = dapp.propose(NoopSessionHandler, &chains).await?;
     println!("\n\n{p}\n\n");
     let session = rx.await??;
@@ -29,7 +35,7 @@ async fn pair_ping(dapp: Dapp) {
     loop {
         println!("pair ping");
         if let Err(e) = dapp.pair_ping().await {
-            eprintln!("ping failed! {e}");
+            eprintln!("pair ping failed! {e}");
         }
         tokio::time::sleep(Duration::from_secs(30)).await;
     }
@@ -50,7 +56,7 @@ async fn do_dapp_stuff(dapp: Dapp) {
     loop {
         println!("session ping");
         if let Err(e) = session.ping().await {
-            eprintln!("ping failed! {e}");
+            eprintln!("session ping failed! {e}");
         }
         tokio::time::sleep(Duration::from_secs(15)).await;
     }

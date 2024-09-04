@@ -1,6 +1,7 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionpropose
 
+use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
 use walletconnect_namespaces::Namespaces;
 use {
     super::{IrnMetadata, Metadata, RelayProtocol},
@@ -70,6 +71,12 @@ impl SessionProposeRequest {
 pub struct SessionProposeResponse {
     pub relay: RelayProtocol,
     pub responder_public_key: String,
+}
+
+impl IntoUnknownError for SessionProposeRequest {
+    fn unknown(&self) -> ResponseParamsError {
+        ResponseParamsError::SessionPropose(ErrorParams::unknown())
+    }
 }
 
 #[cfg(test)]

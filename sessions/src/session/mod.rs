@@ -11,12 +11,11 @@ use tracing::{error, warn};
 use walletconnect_namespaces::Namespaces;
 use xtra::prelude::*;
 
+mod pending;
 mod session_delete;
 mod session_ping;
-mod pending;
 
 pub(crate) use pending::PendingSession;
-
 
 /// https://specs.walletconnect.com/2.0/specs/clients/sign/session-proposal
 ///

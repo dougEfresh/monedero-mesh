@@ -6,8 +6,8 @@ use crate::rpc::{
 use crate::session::ClientSession;
 use crate::Topic;
 use dashmap::DashMap;
-use std::sync::Arc;
 use serde_json::json;
+use std::sync::Arc;
 use tracing::warn;
 use xtra::prelude::*;
 

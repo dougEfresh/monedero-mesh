@@ -1,4 +1,3 @@
-use crate::actors::{RegisterComponent, RegisterPairing, SessionSettled};
 use crate::pairing_uri::Params;
 use crate::rpc::{
     Controller, Metadata, RelayProtocol, RequestParams, ResponseParamsError, ResponseParamsSuccess,
@@ -37,19 +36,10 @@ impl Wallet {
         request: SessionProposeRequest,
         public_key: String,
     ) -> Result<()> {
-        let actors = self.manager.actors();
-        let register = RegisterPairing {
-            pairing: self.manager.pairing().ok_or(NoPairingTopic)?,
-            mgr: self.manager.clone(),
-            component: RegisterComponent::WalletDappPublicKey(
-                self.clone(),
-                request.proposer.clone(),
-            ),
-        };
-        let session_topic = actors
-            .register_pairing(register)
-            .await?
-            .ok_or(NoPairingTopic)?;
+        let session_topic = self
+            .manager
+            .register_dapp_pk(self.clone(), request.proposer)
+            .await?;
         let now = chrono::Utc::now();
         let future = now + chrono::Duration::hours(24);
         let mut settled: Namespaces = Namespaces(BTreeMap::new());
@@ -185,13 +175,10 @@ impl Wallet {
         handlers: T,
     ) -> Result<(Pairing, ProposeFuture<Result<ClientSession>>)> {
         let pairing = Pairing::from_str(&uri)?;
-        let register = RegisterPairing {
-            pairing: pairing.clone(),
-            mgr: self.manager.clone(),
-            component: RegisterComponent::WalletPairTopic(self.clone()),
-        };
         let rx = self.pending.add(pairing.topic.clone(), handlers);
-        self.manager.actors().register_pairing(register).await?;
+        self.manager
+            .register_wallet_pairing(self.clone(), pairing.clone())
+            .await?;
         Ok((pairing, ProposeFuture::new(rx)))
     }
 }

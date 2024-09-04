@@ -1,4 +1,7 @@
-use crate::rpc::{PairDeleteRequest, PairPingRequest, ResponseParamsSuccess, RpcResponsePayload};
+use crate::rpc::{
+    PairDeleteRequest, PairExtendRequest, PairPingRequest, ResponseParamsSuccess,
+    RpcResponsePayload,
+};
 use crate::{PairingManager, SocketEvent, Topic};
 use backoff::future::retry;
 use backoff::ExponentialBackoffBuilder;
@@ -6,31 +9,16 @@ use std::time::Duration;
 use tracing::{info, warn};
 use xtra::prelude::*;
 
-async fn handle_socket_close(mgr: PairingManager) {
-    info!("reconnecting");
-    tokio::time::sleep(Duration::from_secs(3)).await;
+impl Handler<PairExtendRequest> for PairingManager {
+    type Return = RpcResponsePayload;
 
-    let backoff = ExponentialBackoffBuilder::new()
-        .with_max_elapsed_time(Some(Duration::from_secs(60)))
-        .with_initial_interval(Duration::from_secs(3))
-        .build();
-    let _ = retry(backoff, || async {
-        info!("attempting reconnect");
-        Ok(mgr.open_socket().await?)
-    })
-    .await;
-}
-
-impl Handler<SocketEvent> for PairingManager {
-    type Return = ();
-
-    async fn handle(&mut self, message: SocketEvent, ctx: &mut Context<Self>) -> Self::Return {
-        info!("handling socket event {message}");
-        if message == SocketEvent::ForceDisconnect {
-            let mgr = self.clone();
-            //TODO check if already reconnecting
-            tokio::spawn(async move { handle_socket_close(mgr).await });
-        }
+    async fn handle(
+        &mut self,
+        _message: PairExtendRequest,
+        ctx: &mut Context<Self>,
+    ) -> Self::Return {
+        //TODO complete
+        RpcResponsePayload::Success(ResponseParamsSuccess::PairExtend(true))
     }
 }
 
@@ -50,7 +38,6 @@ impl Handler<PairDeleteRequest> for PairingManager {
         _message: PairDeleteRequest,
         ctx: &mut Context<Self>,
     ) -> Self::Return {
-        //TODO move to actor
         if let Some(pairing) = self.ciphers.pairing() {
             let mgr = self.clone();
             tokio::spawn(async move {

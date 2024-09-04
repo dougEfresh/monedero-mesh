@@ -1,4 +1,4 @@
-use crate::{ConnectionHandler, ConnectionOptions, Result, SubscriptionId, Topic};
+use crate::{ConnectionHandler, ConnectionOptions, Message, Result, SubscriptionId, Topic};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use std::time::Duration;
@@ -14,10 +14,11 @@ pub enum ConnectionCategory {
     Wallet,
 }
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub enum ConnectionState {
+#[derive(Clone, Debug)]
+pub enum MockEvent {
     Open,
     Closed,
+    Pending(Message),
 }
 
 #[derive(Clone, Hash, Eq, PartialEq)]
@@ -103,5 +104,12 @@ impl Client {
     #[allow(clippy::missing_errors_doc)]
     pub async fn disconnect(&self) -> Result<()> {
         self.wc.disconnect().await
+    }
+
+    pub async fn batch_subscribe(
+        &self,
+        topics: impl Into<Vec<Topic>>,
+    ) -> Result<Vec<SubscriptionId>> {
+        self.wc.batch_subscribe(topics).await
     }
 }

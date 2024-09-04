@@ -122,7 +122,8 @@ impl Cipher {
         match self.pairing() {
             Some(pairing) => {
                 debug!("found existing pairing...restoring");
-                self.pairing.insert(pairing.topic.clone(), Arc::new(pairing.clone()));
+                self.pairing
+                    .insert(pairing.topic.clone(), Arc::new(pairing.clone()));
                 let key = pairing.params.sym_key.clone();
                 self.ciphers.insert(
                     pairing.topic.clone(),
@@ -164,7 +165,11 @@ impl Cipher {
         Ok(())
     }
 
-    pub(crate) fn set_settlement(&self, topic: SessionTopic, settlement: SessionSettleRequest) -> Result<(), CipherError> {
+    pub(crate) fn set_settlement(
+        &self,
+        topic: SessionTopic,
+        settlement: SessionSettleRequest,
+    ) -> Result<(), CipherError> {
         let sessions_key = Self::storage_settlement(&topic);
         self.storage.set(sessions_key, settlement)?;
         Ok(())

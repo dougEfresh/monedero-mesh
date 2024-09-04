@@ -56,7 +56,6 @@ impl WalletConnectBuilder {
 
         let store = Arc::new(store);
         let cipher = Cipher::new(store, None)?;
-        let actors = Actors::init(cipher).await?;
-        PairingManager::init(opts, actors).await
+        PairingManager::init(opts, cipher).await
     }
 }

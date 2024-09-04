@@ -2,7 +2,10 @@
 //! #wc_pairingPing
 
 use super::IrnMetadata;
-use crate::rpc::{TAG_PAIR_PING_REQUEST, TAG_PAIR_PING_RESPONSE};
+use crate::rpc::{
+    ErrorParams, IntoUnknownError, ResponseParamsError, TAG_PAIR_PING_REQUEST,
+    TAG_PAIR_PING_RESPONSE,
+};
 use serde::{Deserialize, Serialize};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
@@ -20,6 +23,18 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 #[derive(Debug, Default, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PairPingRequest {}
+
+impl IntoUnknownError for PairPingRequest {
+    fn unknown(&self) -> ResponseParamsError {
+        self.into()
+    }
+}
+
+impl From<&PairPingRequest> for ResponseParamsError {
+    fn from(value: &PairPingRequest) -> Self {
+        Self::PairPing(ErrorParams::unknown())
+    }
+}
 
 #[cfg(test)]
 mod tests {

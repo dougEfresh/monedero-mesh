@@ -7,7 +7,12 @@ use xtra::{Context, Handler};
 
 impl Dapp {
     async fn process_settlement(&self, settled: SessionSettled) -> Result<()> {
-        self.pending.settled(&self.manager, settled.0, settled.1, false).await?;
+        self.pending
+            .settled(&self.manager, settled.0.clone(), settled.1, false)
+            .await?;
+        self.manager
+            .register_dapp_session_topic(self.clone(), settled.0)
+            .await?;
         Ok(())
     }
 }

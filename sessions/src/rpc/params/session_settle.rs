@@ -2,6 +2,7 @@
 //! #wc_sessionsettle
 
 use crate::rpc::params::Controller;
+use crate::rpc::{ErrorParams, ResponseParamsError};
 use walletconnect_namespaces::Namespaces;
 use {
     super::{IrnMetadata, RelayProtocol},
@@ -30,6 +31,12 @@ pub struct SessionSettleRequest {
     ///
     /// Expiry should be between .now() + TTL.
     pub expiry: i64,
+}
+
+impl From<&SessionSettleRequest> for ResponseParamsError {
+    fn from(value: &SessionSettleRequest) -> Self {
+        Self::SessionSettle(ErrorParams::unknown())
+    }
 }
 
 #[cfg(test)]

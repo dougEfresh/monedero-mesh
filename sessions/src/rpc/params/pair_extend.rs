@@ -1,6 +1,7 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/core/pairing/rpc-methods
 
 use super::IrnMetadata;
+use crate::rpc::{ErrorParams, IntoUnknownError, PairDeleteRequest, ResponseParamsError};
 use serde::{Deserialize, Serialize};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
@@ -20,6 +21,18 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 pub struct PairExtendRequest {
     // Epoch UTC
     pub expiry: u64,
+}
+
+impl IntoUnknownError for PairExtendRequest {
+    fn unknown(&self) -> ResponseParamsError {
+        self.into()
+    }
+}
+
+impl From<&PairExtendRequest> for ResponseParamsError {
+    fn from(value: &PairExtendRequest) -> Self {
+        Self::PairDelete(ErrorParams::unknown())
+    }
 }
 
 #[cfg(test)]
