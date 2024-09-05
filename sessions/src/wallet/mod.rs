@@ -4,7 +4,7 @@ use crate::rpc::{
     SessionSettleRequest,
 };
 use crate::session::PendingSession;
-use crate::{ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandlers};
+use crate::{ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionRequestHandler};
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -163,7 +163,7 @@ impl Wallet {
         }
     }
 
-    pub async fn pair<T: SessionHandlers>(
+    pub async fn pair<T: SessionRequestHandler>(
         &self,
         uri: String,
         handlers: T,

@@ -7,7 +7,8 @@ use crate::rpc::{
 use crate::session::{ClientSession, PendingSession};
 use crate::Error::NoPairingTopic;
 use crate::{
-    Pairing, PairingManager, PairingTopic, ProposeFuture, Result, SessionHandlers, SessionTopic,
+    Pairing, PairingManager, PairingTopic, ProposeFuture, Result, SessionRequestHandler,
+    SessionTopic,
 };
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
@@ -83,7 +84,7 @@ impl Dapp {
         self.manager.ping().await
     }
 
-    fn restore_session<T: SessionHandlers>(
+    fn restore_session<T: SessionRequestHandler>(
         &self,
         topic: SessionTopic,
         settlement: SessionSettleRequest,
@@ -102,7 +103,7 @@ impl Dapp {
     }
 
     #[tracing::instrument(level = "debug", skip(handlers, chains))]
-    pub async fn propose<T: SessionHandlers>(
+    pub async fn propose<T: SessionRequestHandler>(
         &self,
         handlers: T,
         chains: impl Into<Namespaces>,

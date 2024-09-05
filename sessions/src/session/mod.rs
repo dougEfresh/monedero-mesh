@@ -1,6 +1,8 @@
 use crate::rpc::{RequestParams, SessionDeleteRequest};
 use crate::transport::SessionTransport;
-use crate::{Cipher, Error, PairingManager, PairingTopic, SessionEvent, SessionHandlers, Topic};
+use crate::{
+    Cipher, Error, PairingManager, PairingTopic, SessionEventRequest, SessionRequestHandler, Topic,
+};
 use crate::{Result, SessionDeleteHandler};
 use dashmap::DashMap;
 use serde::de::DeserializeOwned;
@@ -25,7 +27,7 @@ pub struct ClientSession {
     pub namespaces: Arc<Namespaces>,
     transport: SessionTransport,
     cipher: Cipher,
-    tx: mpsc::UnboundedSender<SessionEvent>,
+    tx: mpsc::UnboundedSender<SessionEventRequest>,
 }
 
 impl ClientSession {
@@ -33,7 +35,7 @@ impl ClientSession {
         cipher: Cipher,
         transport: SessionTransport,
         namespaces: Namespaces,
-        tx: mpsc::UnboundedSender<SessionEvent>,
+        tx: mpsc::UnboundedSender<SessionEventRequest>,
     ) -> Self {
         Self {
             transport,

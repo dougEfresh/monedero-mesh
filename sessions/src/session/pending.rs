@@ -1,4 +1,4 @@
-use crate::{Error, PairingManager, Result, SessionEvent, SessionTopic};
+use crate::{Error, PairingManager, Result, SessionEventRequest, SessionTopic};
 use dashmap::DashMap;
 use std::sync::Arc;
 use tokio::sync::oneshot::Sender;
@@ -7,11 +7,11 @@ use tracing::warn;
 
 use crate::rpc::{RequestParams, SessionSettleRequest};
 use crate::transport::SessionTransport;
-use crate::{ClientSession, PairingTopic, SessionHandlers};
+use crate::{ClientSession, PairingTopic, SessionRequestHandler};
 
 pub struct HandlerContainer {
     pub tx: Sender<Result<ClientSession>>,
-    pub handlers: Arc<Box<dyn SessionHandlers>>,
+    pub handlers: Arc<Box<dyn SessionRequestHandler>>,
 }
 
 #[derive(Clone, Default)]
@@ -24,7 +24,7 @@ impl PendingSession {
         Self::default()
     }
 
-    pub fn add<T: SessionHandlers>(
+    pub fn add<T: SessionRequestHandler>(
         &self,
         topic: PairingTopic,
         handlers: T,
@@ -70,7 +70,7 @@ impl PendingSession {
             topic,
             transport: mgr.topic_transport(),
         };
-        let (tx, rx) = mpsc::unbounded_channel::<SessionEvent>();
+        let (tx, rx) = mpsc::unbounded_channel::<SessionEventRequest>();
         let client_session = ClientSession::new(
             mgr.ciphers(),
             session_transport,

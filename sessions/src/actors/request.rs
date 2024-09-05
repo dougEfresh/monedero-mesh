@@ -1,23 +1,23 @@
 use crate::actors::session::SessionRequestHandlerActor;
 use crate::actors::{
-    ClearPairing, RegisterDapp, RegisterTopicManager, RegisterWallet, SessionSettled,
-    TransportActor,
+    ClearPairing, RegisterDapp, RegisterTopicManager, RegisterWallet, RegisteredComponents,
+    SessionSettled, TransportActor,
 };
 use crate::domain::Topic;
 use crate::rpc::{
     ErrorParams, IntoUnknownError, PairPingRequest, RequestParams, ResponseParamsError,
     ResponseParamsSuccess, RpcRequest, RpcResponse, RpcResponsePayload, SessionProposeRequest,
 };
+use crate::PairingManager;
 use crate::{Dapp, MessageId, Result, Wallet};
-use crate::{PairingManager, RegisteredManagers};
 use dashmap::DashMap;
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 use walletconnect_relay::Client;
 use xtra::prelude::*;
 
-#[derive(Clone, xtra::Actor)]
-pub(crate) struct RequestHandlerActor {
+#[derive(Clone, Actor)]
+pub struct RequestHandlerActor {
     pub(super) pair_managers: Arc<DashMap<Topic, Address<PairingManager>>>,
     dapps: Arc<DashMap<Topic, Address<Dapp>>>,
     wallets: Arc<DashMap<Topic, Address<Wallet>>>,
@@ -25,10 +25,21 @@ pub(crate) struct RequestHandlerActor {
     session_handler: Address<SessionRequestHandlerActor>,
 }
 
+impl Handler<RegisteredComponents> for RequestHandlerActor {
+    type Return = usize;
+    async fn handle(
+        &mut self,
+        _message: RegisteredComponents,
+        _ctx: &mut Context<Self>,
+    ) -> Self::Return {
+        self.dapps.len() + self.wallets.len() + self.pair_managers.len()
+    }
+}
+
 impl Handler<ClearPairing> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, _message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
         if let Err(e) = self.responder.send(ClearPairing).await {
             warn!("failed to cleanup transport actor: {e}");
         }
@@ -59,18 +70,6 @@ impl Handler<RegisterDapp> for RequestHandlerActor {
             let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
             self.dapps.insert(message.0, addr);
         }
-    }
-}
-
-impl Handler<RegisteredManagers> for RequestHandlerActor {
-    type Return = usize;
-
-    async fn handle(
-        &mut self,
-        _message: RegisteredManagers,
-        _ctx: &mut Context<Self>,
-    ) -> Self::Return {
-        self.pair_managers.len()
     }
 }
 

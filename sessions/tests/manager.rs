@@ -1,14 +1,15 @@
 use assert_matches::assert_matches;
+use async_trait::async_trait;
 use std::str::FromStr;
-use std::sync::Once;
+use std::sync::{Arc, Mutex, Once};
 use std::time::Duration;
 use tracing::info;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
 use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use walletconnect_sessions::ProjectId;
 use walletconnect_sessions::{Actors, Topic};
 use walletconnect_sessions::{Cipher, Pairing, PairingManager, WalletConnectBuilder};
+use walletconnect_sessions::{ProjectId, RegisteredComponents, SocketEvent, SocketListener};
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();
@@ -20,6 +21,27 @@ pub(crate) struct TestStuff {
     pub(crate) wallet_actors: Actors,
     pub(crate) dapp: PairingManager,
     pub(crate) wallet: PairingManager,
+}
+
+#[derive(Clone)]
+struct DummySocketListener {
+    pub events: Arc<Mutex<Vec<SocketEvent>>>,
+}
+
+impl DummySocketListener {
+    pub fn new() -> Self {
+        Self {
+            events: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+}
+
+#[async_trait]
+impl SocketListener for DummySocketListener {
+    async fn handle_socket_event(&self, event: SocketEvent) {
+        let mut l = self.events.lock().unwrap();
+        l.push(event);
+    }
 }
 
 pub(crate) async fn yield_ms(ms: u64) {
@@ -59,9 +81,9 @@ pub(crate) async fn init_test_components(pair: bool) -> anyhow::Result<TestStuff
     };
     if pair {
         dapp_wallet_ciphers(&t).await?;
-        let registered = wallet_actors.registered_managers().await?;
+        let registered = wallet_actors.request().send(RegisteredComponents).await?;
         assert_eq!(1, registered);
-        let registered = dapp_actors.registered_managers().await?;
+        let registered = dapp_actors.request().send(RegisteredComponents).await?;
         assert_eq!(1, registered);
     }
     Ok(t)
@@ -112,6 +134,9 @@ async fn test_relay_pair_delete() -> anyhow::Result<()> {
     let c = dapp.ciphers();
     yield_ms(2000).await;
     assert!(c.pairing().is_none());
+    let dapp_actors = test_components.dapp_actors;
+    let components = dapp_actors.request().send(RegisteredComponents).await?;
+    assert_eq!(0, components);
     Ok(())
 }
 
@@ -127,6 +152,8 @@ async fn test_relay_pair_extend() -> anyhow::Result<()> {
 async fn test_relay_disconnect() -> anyhow::Result<()> {
     let test_components = init_test_components(true).await?;
     let dapp = test_components.dapp;
+    let listener = DummySocketListener::new();
+    dapp.register_socket_listener(listener.clone()).await;
     // special topic to indicate a force disconnect
     let disconnect_topic =
         Topic::from("92b2701dbdbb72abea51591a06d41e7d76ebfe18e1a1ca5680a5ac6e3717c6d9");
@@ -142,5 +169,7 @@ async fn test_relay_disconnect() -> anyhow::Result<()> {
     yield_ms(3300).await;
     // should have reconnected
     dapp.ping().await?;
+    let l = listener.events.lock().unwrap();
+    assert_eq!(2, l.len());
     Ok(())
 }

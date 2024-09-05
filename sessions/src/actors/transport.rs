@@ -1,6 +1,4 @@
-use crate::actors::{
-    AddRequest, ClearPairing, InboundResponseActor, SendRequest, Subscribe, Unsubscribe,
-};
+use crate::actors::{AddRequest, ClearPairing, InboundResponseActor, SendRequest, Unsubscribe};
 use crate::domain::{MessageId, SubscriptionId};
 use crate::rpc::{
     IrnMetadata, RelayProtocolMetadata, Request, Response, RpcResponse, RpcResponsePayload,

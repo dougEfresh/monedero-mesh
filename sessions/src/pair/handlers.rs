@@ -1,3 +1,4 @@
+use crate::actors::ClearPairing;
 use crate::rpc::{
     PairDeleteRequest, PairExtendRequest, PairPingRequest, ResponseParamsSuccess,
     RpcResponsePayload,
@@ -47,10 +48,7 @@ impl Handler<PairDeleteRequest> for PairingManager {
             tokio::spawn(async move {
                 // Give time some time to respond to delete request
                 tokio::time::sleep(Duration::from_secs(1)).await;
-                //TODO unsubscribe to session topics?
-                if let Err(e) = mgr.cleanup(pairing.topic).await {
-                    warn!("failed to remove pairing topic from ciphers/storage {e}");
-                }
+                mgr.cleanup(pairing.topic).await;
             });
         }
         RpcResponsePayload::Success(ResponseParamsSuccess::PairPing(true))
@@ -58,10 +56,14 @@ impl Handler<PairDeleteRequest> for PairingManager {
 }
 
 impl PairingManager {
-    pub(super) async fn cleanup(&self, pairing_topic: Topic) -> crate::Result<()> {
+    pub(super) async fn cleanup(&self, pairing_topic: Topic) {
         info!("deleting pairing topic {pairing_topic}");
         let _ = self.transport.unsubscribe(pairing_topic).await;
-        self.ciphers.set_pairing(None)?;
-        Ok(())
+        let _ = self.actors.request().send(ClearPairing).await;
+        let topics = self.ciphers.subscriptions();
+        for t in topics {
+            let _ = self.relay.unsubscribe(t).await;
+        }
+        let _ = self.ciphers.set_pairing(None);
     }
 }

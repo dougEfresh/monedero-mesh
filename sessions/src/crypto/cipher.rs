@@ -558,7 +558,7 @@ mod tests {
             },
             ..Default::default()
         };
-        ciphers.set_settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
+        ciphers.set_settlement(session_topic.clone(), settlement.clone())?;
         assert!(!ciphers.is_expired(session_topic.clone())?);
 
         // get settlements
@@ -566,7 +566,7 @@ mod tests {
 
         let past = now - chrono::Duration::hours(1);
         settlement.expiry = past.timestamp();
-        ciphers.set_settlement(&SessionSettled(session_topic.clone(), settlement.clone()))?;
+        ciphers.set_settlement(session_topic.clone(), settlement.clone())?;
         assert!(ciphers.is_expired(session_topic.clone())?);
         drop(ciphers);
         // restore should reset / clear storage due to expired session

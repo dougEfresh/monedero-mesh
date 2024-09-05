@@ -1,7 +1,7 @@
 use crate::actors::SessionSettled;
 use crate::rpc::{ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload};
 use crate::transport::SessionTransport;
-use crate::{Actors, ClientSession, Dapp, Result, SessionEvent};
+use crate::{Actors, ClientSession, Dapp, Result, SessionEventRequest};
 use tokio::sync::mpsc;
 use xtra::{Context, Handler};
 

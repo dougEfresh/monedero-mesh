@@ -9,11 +9,11 @@ use crate::domain::Topic;
 use crate::rpc::{RequestParams, SessionSettleRequest};
 use crate::{Cipher, PairingManager};
 use crate::{Dapp, Result, Wallet};
-pub(crate) use inbound::InboundResponseActor;
 pub(crate) use request::RequestHandlerActor;
 use std::ops::Deref;
 use walletconnect_relay::Client;
 
+pub(crate) use inbound::InboundResponseActor;
 pub(crate) use transport::TransportActor;
 use xtra::{Address, Mailbox};
 
@@ -26,7 +26,6 @@ pub struct Actors {
 }
 
 pub(crate) struct ClearPairing;
-pub(crate) struct Subscribe(pub Topic);
 pub(crate) struct Unsubscribe(pub Topic);
 pub(crate) struct RegisterDapp(pub Topic, pub Dapp);
 pub(crate) struct RegisterWallet(pub Topic, pub Wallet);
@@ -37,6 +36,8 @@ pub(crate) struct SessionSettled(pub Topic, pub SessionSettleRequest);
 pub(crate) struct SessionPing;
 pub(crate) struct RegisterTopicManager(pub(crate) Topic, pub(crate) PairingManager);
 pub(crate) struct AddRequest;
+/// Get number of sessions/pair managers are active
+pub struct RegisteredComponents;
 
 impl Deref for SessionSettled {
     type Target = SessionSettleRequest;
@@ -54,7 +55,7 @@ impl Actors {
 }
 
 impl Actors {
-    pub(crate) fn init(cipher: Cipher) -> Result<Self> {
+    pub(crate) fn init(cipher: Cipher) -> Self {
         let inbound_response_actor =
             xtra::spawn_tokio(InboundResponseActor::default(), Mailbox::unbounded());
         let transport_actor = xtra::spawn_tokio(
@@ -69,29 +70,29 @@ impl Actors {
             RequestHandlerActor::new(transport_actor.clone(), session_actor.clone()),
             Mailbox::unbounded(),
         );
-        Ok(Self {
+        Self {
             inbound_response_actor,
             request_actor,
             transport_actor,
             session_actor,
-        })
+        }
     }
 }
 
 impl Actors {
-    pub(crate) fn response(&self) -> Address<InboundResponseActor> {
+    pub fn response(&self) -> Address<InboundResponseActor> {
         self.inbound_response_actor.clone()
     }
 
-    pub(crate) fn request(&self) -> Address<RequestHandlerActor> {
+    pub fn request(&self) -> Address<RequestHandlerActor> {
         self.request_actor.clone()
     }
 
-    pub(crate) fn transport(&self) -> Address<TransportActor> {
+    pub fn transport(&self) -> Address<TransportActor> {
         self.transport_actor.clone()
     }
 
-    pub(crate) fn session(&self) -> Address<SessionRequestHandlerActor> {
+    pub fn session(&self) -> Address<SessionRequestHandlerActor> {
         self.session_actor.clone()
     }
 }

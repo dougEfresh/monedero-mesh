@@ -8,12 +8,14 @@ use crate::actors::{Actors, RegisterTopicManager, SessionSettled};
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
 use crate::rpc::{
-    ErrorParams, PairExtendRequest, PairPingRequest, RequestParams, SessionSettleRequest,
+    ErrorParams, PairDeleteRequest, PairExtendRequest, PairPingRequest, RequestParams,
+    SessionSettleRequest,
 };
 use crate::transport::TopicTransport;
-use crate::{Cipher, Error, Pairing, Result, SocketEvent};
+use crate::{Cipher, Error, Pairing, Result, SocketEvent, SocketListener};
 pub use builder::WalletConnectBuilder;
 use serde::de::DeserializeOwned;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tracing::{info, warn};
@@ -32,11 +34,12 @@ pub struct PairingManager {
     ciphers: Cipher,
     transport: TopicTransport,
     actors: Actors,
+    pub(super) socket_listeners: Arc<tokio::sync::Mutex<Vec<Box<dyn SocketListener>>>>,
 }
 
 impl PairingManager {
     async fn init(opts: ConnectionOptions, ciphers: Cipher) -> Result<Self> {
-        let actors = Actors::init(ciphers.clone())?;
+        let actors = Actors::init(ciphers.clone());
         let (socket_tx, socket_rx) = mpsc::unbounded_channel::<SocketEvent>();
         let handler = RelayHandler::new(
             ciphers.clone(),
@@ -61,6 +64,7 @@ impl PairingManager {
             ciphers,
             transport,
             actors: actors.clone(),
+            socket_listeners: Arc::new(tokio::sync::Mutex::new(Vec::new())),
         };
         let socket_handler = mgr.clone();
         tokio::spawn(socket_handler::handle_socket(socket_handler, socket_rx));
@@ -68,6 +72,11 @@ impl PairingManager {
         mgr.open_socket().await?;
         mgr.restore_saved_pairing().await?;
         Ok(mgr)
+    }
+
+    pub async fn register_socket_listener<T: SocketListener>(&self, listener: T) {
+        let mut l = self.socket_listeners.lock().await;
+        l.push(Box::new(listener));
     }
 
     pub(crate) async fn resubsribe(&self) -> Result<()> {
@@ -93,7 +102,13 @@ impl PairingManager {
         }
     }
 
+    #[cfg(not(feature = "mock"))]
     pub(crate) fn ciphers(&self) -> Cipher {
+        self.ciphers.clone()
+    }
+
+    #[cfg(feature = "mock")]
+    pub fn ciphers(&self) -> Cipher {
         self.ciphers.clone()
     }
 
@@ -146,11 +161,15 @@ impl PairingManager {
 
     pub async fn delete(&self) -> Result<bool> {
         let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
-        self.transport
-            .publish_request::<bool>(t.clone(), RequestParams::PairDelete(Default::default()))
-            .await?;
-        self.cleanup(t).await?;
-        Ok(true)
+        let result = self
+            .transport
+            .publish_request::<bool>(
+                t.clone(),
+                RequestParams::PairDelete(PairDeleteRequest::default()),
+            )
+            .await;
+        self.cleanup(t).await;
+        result
     }
 
     // Epoch

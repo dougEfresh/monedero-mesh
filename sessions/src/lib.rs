@@ -31,7 +31,7 @@ use tokio::sync::oneshot;
 pub use wallet::Wallet;
 pub type Atomic<T> = Arc<Mutex<T>>;
 use crate::rpc::{SessionDeleteRequest, SessionRequestRequest};
-pub use actors::{Actors, RegisteredManagers};
+pub use actors::{Actors, RegisteredComponents};
 pub use domain::*;
 pub use rpc::{Metadata, SdkErrors};
 use walletconnect_namespaces::Event;
@@ -67,6 +67,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[allow(dead_code)]
 static INIT: Once = Once::new();
 
+#[async_trait]
+pub trait SocketListener: Sync + Send + 'static {
+    async fn handle_socket_event(&self, event: SocketEvent);
+}
+
 pin_project! {
     pub struct ProposeFuture<T> {
         #[pin]
@@ -93,7 +98,7 @@ impl<T> Future for ProposeFuture<T> {
     }
 }
 
-pub enum SessionEvent {
+pub enum SessionEventRequest {
     Event(Event),
     Request(SessionRequestRequest),
 }
@@ -104,7 +109,7 @@ pub trait SessionEventHandler: Send + Sync + 'static {
 }
 
 #[async_trait]
-pub trait SessionHandlers: Send + Sync + 'static + SessionEventHandler {
+pub trait SessionRequestHandler: Send + Sync + 'static + SessionEventHandler {
     async fn request(&self, request: SessionRequestRequest);
 }
 
@@ -118,18 +123,11 @@ impl SessionEventHandler for NoopSessionHandler {
 }
 
 #[async_trait]
-impl SessionHandlers for NoopSessionHandler {
+impl SessionRequestHandler for NoopSessionHandler {
     async fn request(&self, request: SessionRequestRequest) {
         tracing::info!("got session request");
     }
 }
-
-/*
-#[trait_variant::make(Send + Sync)]
-pub trait SessionDeleteHandler {
-    async fn handle(&self, _request: SessionDeleteRequest);
-}
- */
 
 pub struct NoopSessionDeleteHandler;
 impl SessionDeleteHandler for NoopSessionDeleteHandler {}
@@ -151,7 +149,7 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::{NoopSessionHandler, SessionHandlers, INIT};
+    use crate::{NoopSessionHandler, SessionRequestHandler, INIT};
     use std::sync::Arc;
     use std::time::Duration;
     use tokio::sync::Mutex;
@@ -173,7 +171,7 @@ pub(crate) mod test {
 
     #[derive(Clone, Actor)]
     struct Actor1 {
-        handlers: Arc<Mutex<Vec<Box<dyn SessionHandlers>>>>,
+        handlers: Arc<Mutex<Vec<Box<dyn SessionRequestHandler>>>>,
     }
 
     #[derive(Actor)]
@@ -182,12 +180,12 @@ pub(crate) mod test {
     #[derive(Clone)]
     struct Dummy;
 
-    impl Handler<Box<dyn SessionHandlers>> for Actor1 {
+    impl Handler<Box<dyn SessionRequestHandler>> for Actor1 {
         type Return = ();
 
         async fn handle(
             &mut self,
-            message: Box<dyn SessionHandlers>,
+            message: Box<dyn SessionRequestHandler>,
             _ctx: &mut Context<Self>,
         ) -> Self::Return {
             self.handlers.lock().await.push(message);
@@ -233,9 +231,9 @@ pub(crate) mod test {
     #[tokio::test]
     async fn test_actor_broadcast() -> anyhow::Result<()> {
         init_tracing();
-        let handlers: Arc<Mutex<Vec<Box<dyn SessionHandlers>>>> =
+        let handlers: Arc<Mutex<Vec<Box<dyn SessionRequestHandler>>>> =
             Arc::new(Mutex::new(vec![Box::new(NoopSessionHandler {})]));
-        let boxed: Box<dyn SessionHandlers> = Box::new(NoopSessionHandler {});
+        let boxed: Box<dyn SessionRequestHandler> = Box::new(NoopSessionHandler {});
         let act = Actor1 { handlers };
         let a1 = xtra::spawn_tokio(act.clone(), Mailbox::unbounded());
         a1.send(Dummy).await?;
