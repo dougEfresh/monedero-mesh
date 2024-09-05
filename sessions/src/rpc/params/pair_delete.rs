@@ -31,13 +31,7 @@ impl Default for PairDeleteRequest {
 
 impl IntoUnknownError for PairDeleteRequest {
     fn unknown(&self) -> ResponseParamsError {
-        self.into()
-    }
-}
-
-impl From<&PairDeleteRequest> for ResponseParamsError {
-    fn from(value: &PairDeleteRequest) -> Self {
-        Self::PairDelete(ErrorParams::unknown())
+        ResponseParamsError::PairDelete(ErrorParams::unknown())
     }
 }
 

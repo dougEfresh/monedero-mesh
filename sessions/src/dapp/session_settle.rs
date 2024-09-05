@@ -20,7 +20,7 @@ impl Dapp {
 impl Handler<SessionSettled> for Dapp {
     type Return = RpcResponsePayload;
 
-    async fn handle(&mut self, message: SessionSettled, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: SessionSettled, _ctx: &mut Context<Self>) -> Self::Return {
         match self.process_settlement(message).await {
             Ok(_) => RpcResponsePayload::Success(ResponseParamsSuccess::SessionSettle(true)),
             Err(e) => {

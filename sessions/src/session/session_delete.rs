@@ -1,11 +1,9 @@
 use crate::rpc::{ResponseParamsSuccess, RpcResponsePayload, SessionDeleteRequest};
 use crate::{ClientSession, SessionDeleteHandler};
-use std::time::Duration;
 use tokio::sync::mpsc;
-use tracing::warn;
 use xtra::prelude::*;
 
-pub(crate) async fn handle_delete<T: SessionDeleteHandler>(
+pub async fn handle_delete<T: SessionDeleteHandler>(
     handler: T,
     mut rx: mpsc::Receiver<SessionDeleteRequest>,
 ) {
@@ -19,8 +17,8 @@ impl Handler<SessionDeleteRequest> for ClientSession {
 
     async fn handle(
         &mut self,
-        message: SessionDeleteRequest,
-        ctx: &mut Context<Self>,
+        _message: SessionDeleteRequest,
+        _ctx: &mut Context<Self>,
     ) -> Self::Return {
         /*
         let session = self.clone();

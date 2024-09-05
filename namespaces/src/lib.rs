@@ -65,7 +65,7 @@ impl Namespaces {
     pub fn chains(&self) -> Chains {
         let mut chains = BTreeSet::new();
         for ns in self.deref().values().cloned() {
-            for c in ns.chains.iter() {
+            for c in &ns.chains {
                 chains.insert(c.clone());
             }
         }

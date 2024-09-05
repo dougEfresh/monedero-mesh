@@ -1,6 +1,7 @@
 use crate::Topic;
 use walletconnect_sdk::rpc::rpc::{PublishError, SubscriptionError};
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, thiserror::Error)]
 pub enum ClientError {
     #[error("Disconnected")]

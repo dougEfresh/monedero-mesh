@@ -8,7 +8,7 @@ use tokio::time::timeout;
 use xtra::Address;
 
 #[derive(Clone)]
-pub(crate) struct TopicTransport {
+pub struct TopicTransport {
     transport_actor: Address<TransportActor>,
 }
 
@@ -19,7 +19,7 @@ impl TopicTransport {
 }
 
 impl TopicTransport {
-    pub(crate) fn new(transport_actor: Address<TransportActor>) -> Self {
+    pub(crate) const fn new(transport_actor: Address<TransportActor>) -> Self {
         Self { transport_actor }
     }
 
@@ -48,7 +48,7 @@ impl TopicTransport {
 }
 
 #[derive(Clone)]
-pub(crate) struct SessionTransport {
+pub struct SessionTransport {
     pub(crate) topic: Topic,
     pub(crate) transport: TopicTransport,
 }

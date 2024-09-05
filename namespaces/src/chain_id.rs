@@ -36,7 +36,7 @@ pub struct Chains(pub BTreeSet<ChainId>);
 
 impl<const N: usize> From<[ChainId; N]> for Chains {
     fn from(value: [ChainId; N]) -> Self {
-        Self(BTreeSet::from_iter(value.into_iter()))
+        Self(BTreeSet::from_iter(value))
     }
 }
 

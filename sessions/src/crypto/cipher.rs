@@ -108,7 +108,7 @@ impl Cipher {
         if let Some(pairing) = storage.get::<Pairing>(storage_pairing_key)? {
             pairings.insert(pairing.topic.clone(), Arc::new(pairing));
         }
-        let mut cipher = Self {
+        let cipher = Self {
             ciphers: Arc::new(DashMap::new()),
             pairing: Arc::new(pairings),
             storage,
@@ -117,7 +117,7 @@ impl Cipher {
         Ok(cipher)
     }
 
-    fn init(&mut self) -> Result<(), CipherError> {
+    fn init(&self) -> Result<(), CipherError> {
         let mut session_expired = false;
         match self.pairing() {
             Some(pairing) => {

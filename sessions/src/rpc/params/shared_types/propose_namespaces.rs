@@ -50,7 +50,7 @@ pub enum ProposeNamespaceError {
 }
 
 impl ProposeNamespaceError {
-    pub fn error_code(&self) -> i32 {
+    pub const fn error_code(&self) -> i32 {
         match self {
             Self::UnsupportedChains(..)
             | Self::UnsupportedChainsEmpty
@@ -82,7 +82,8 @@ impl ProposeNamespaces {
     /// Ensures that application is compatible with the requester requirements.
     ///
     /// Implementation must support at least all the elements in `required`.
-    pub fn supported(&self, required: &ProposeNamespaces) -> Result<(), ProposeNamespaceError> {
+    #[allow(dead_code)]
+    pub fn supported(&self, required: &Self) -> Result<(), ProposeNamespaceError> {
         if self.is_empty() {
             return Err(ProposeNamespaceError::UnsupportedNamespace(
                 "None supported".to_string(),
@@ -154,9 +155,12 @@ impl From<Vec<Chain>> for ProposeNamespace {
             chains: value.iter().map(|c| format!("eip155:{}", c.id())).collect(),
             methods: EIP_SUPPORTED_METHODS
                 .iter()
-                .map(|m| m.to_string())
+                .map(std::string::ToString::to_string)
                 .collect(),
-            events: EIP_SUPPORTED_EVENTS.iter().map(|e| e.to_string()).collect(),
+            events: EIP_SUPPORTED_EVENTS
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
             extensions: None,
         }
     }
@@ -166,12 +170,12 @@ impl ProposeNamespace {
     /// Ensures that application is compatible with the requester requirements.
     ///
     /// Implementation must support at least all the elements in `required`.
-    pub fn supported(&self, required: &ProposeNamespace) -> Result<(), ProposeNamespaceError> {
+    pub fn supported(&self, required: &Self) -> Result<(), ProposeNamespaceError> {
         let join_error_elements =
             |required: &BTreeSet<String>, ours: &BTreeSet<String>| -> String {
                 required
                     .difference(ours)
-                    .map(|s| s.as_str())
+                    .map(std::string::String::as_str)
                     .collect::<Vec<&str>>()
                     .join(",")
             };
@@ -227,7 +231,7 @@ impl ProposeNamespace {
         }
 
         let caip_regex = get_caip2_regex();
-        for chain in self.chains.iter() {
+        for chain in &self.chains {
             let captures = caip_regex
                 .captures(chain)
                 .ok_or_else(|| ProposeNamespaceError::UnsupportedChainsCaip2(chain.to_string()))?;

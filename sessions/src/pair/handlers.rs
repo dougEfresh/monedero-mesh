@@ -15,7 +15,7 @@ impl Handler<PairExtendRequest> for PairingManager {
     async fn handle(
         &mut self,
         _message: PairExtendRequest,
-        ctx: &mut Context<Self>,
+        _ctx: &mut Context<Self>,
     ) -> Self::Return {
         //TODO complete
         RpcResponsePayload::Success(ResponseParamsSuccess::PairExtend(true))
@@ -25,7 +25,11 @@ impl Handler<PairExtendRequest> for PairingManager {
 impl Handler<PairPingRequest> for PairingManager {
     type Return = RpcResponsePayload;
 
-    async fn handle(&mut self, _message: PairPingRequest, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(
+        &mut self,
+        _message: PairPingRequest,
+        _ctx: &mut Context<Self>,
+    ) -> Self::Return {
         RpcResponsePayload::Success(ResponseParamsSuccess::PairPing(true))
     }
 }
@@ -36,7 +40,7 @@ impl Handler<PairDeleteRequest> for PairingManager {
     async fn handle(
         &mut self,
         _message: PairDeleteRequest,
-        ctx: &mut Context<Self>,
+        _ctx: &mut Context<Self>,
     ) -> Self::Return {
         if let Some(pairing) = self.ciphers.pairing() {
             let mgr = self.clone();

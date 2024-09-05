@@ -9,7 +9,7 @@ use crate::domain::Topic;
 use crate::rpc::{RequestParams, SessionSettleRequest};
 use crate::{Cipher, PairingManager};
 use crate::{Dapp, Result, Wallet};
-pub(crate) use inbound::{AddRequest, InboundResponseActor};
+pub(crate) use inbound::InboundResponseActor;
 pub(crate) use request::RequestHandlerActor;
 use std::ops::Deref;
 use walletconnect_relay::Client;
@@ -23,7 +23,6 @@ pub struct Actors {
     request_actor: Address<RequestHandlerActor>,
     transport_actor: Address<TransportActor>,
     session_actor: Address<SessionRequestHandlerActor>,
-    cipher: Cipher,
 }
 
 pub(crate) struct ClearPairing;
@@ -36,8 +35,8 @@ pub(crate) struct SendRequest(pub(crate) Topic, pub(crate) RequestParams);
 #[derive(Clone)]
 pub(crate) struct SessionSettled(pub Topic, pub SessionSettleRequest);
 pub(crate) struct SessionPing;
-pub(crate) struct DeleteSession(pub Topic);
 pub(crate) struct RegisterTopicManager(pub(crate) Topic, pub(crate) PairingManager);
+pub(crate) struct AddRequest;
 
 impl Deref for SessionSettled {
     type Target = SessionSettleRequest;
@@ -55,7 +54,7 @@ impl Actors {
 }
 
 impl Actors {
-    pub(crate) async fn init(cipher: Cipher) -> Result<Self> {
+    pub(crate) fn init(cipher: Cipher) -> Result<Self> {
         let inbound_response_actor =
             xtra::spawn_tokio(InboundResponseActor::default(), Mailbox::unbounded());
         let transport_actor = xtra::spawn_tokio(
@@ -75,16 +74,11 @@ impl Actors {
             request_actor,
             transport_actor,
             session_actor,
-            cipher,
         })
     }
 }
 
 impl Actors {
-    pub(crate) fn cipher(&self) -> Cipher {
-        self.cipher.clone()
-    }
-
     pub(crate) fn response(&self) -> Address<InboundResponseActor> {
         self.inbound_response_actor.clone()
     }

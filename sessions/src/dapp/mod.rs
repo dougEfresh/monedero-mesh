@@ -1,15 +1,13 @@
 mod session_settle;
 
-use crate::actors::{Actors, SessionSettled};
+use crate::actors::SessionSettled;
 use crate::rpc::{
     Metadata, RequestParams, SessionProposeRequest, SessionProposeResponse, SessionSettleRequest,
 };
 use crate::session::{ClientSession, PendingSession};
-use crate::transport::SessionTransport;
 use crate::Error::NoPairingTopic;
 use crate::{
     Pairing, PairingManager, PairingTopic, ProposeFuture, Result, SessionHandlers, SessionTopic,
-    SubscriptionId,
 };
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
@@ -85,7 +83,7 @@ impl Dapp {
         self.manager.ping().await
     }
 
-    async fn restore_session<T: SessionHandlers>(
+    fn restore_session<T: SessionHandlers>(
         &self,
         topic: SessionTopic,
         settlement: SessionSettleRequest,
@@ -112,7 +110,7 @@ impl Dapp {
         let namespaces: Namespaces = chains.into();
 
         if let Some(settled) = self.manager.find_session(&namespaces) {
-            return self.restore_session(settled.0, settled.1, handlers).await;
+            return self.restore_session(settled.0, settled.1, handlers);
         }
 
         let pairing = Pairing::default();
@@ -129,9 +127,5 @@ impl Dapp {
         let topic = pairing.topic.clone();
         tokio::spawn(async move { begin_settlement_flow(dapp, topic, params).await });
         Ok((pairing, ProposeFuture::new(rx)))
-    }
-
-    pub(crate) async fn subscribe(&self, topic: SessionTopic) -> Result<SubscriptionId> {
-        self.manager.subscribe(topic).await
     }
 }

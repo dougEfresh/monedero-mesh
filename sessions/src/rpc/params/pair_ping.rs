@@ -26,13 +26,7 @@ pub struct PairPingRequest {}
 
 impl IntoUnknownError for PairPingRequest {
     fn unknown(&self) -> ResponseParamsError {
-        self.into()
-    }
-}
-
-impl From<&PairPingRequest> for ResponseParamsError {
-    fn from(value: &PairPingRequest) -> Self {
-        Self::PairPing(ErrorParams::unknown())
+        ResponseParamsError::PairPing(ErrorParams::unknown())
     }
 }
 

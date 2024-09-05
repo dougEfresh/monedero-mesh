@@ -26,7 +26,6 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex, Once};
 use std::task::{Context, Poll};
-use std::time::Duration;
 pub use storage::KvStorage;
 use tokio::sync::oneshot;
 pub use wallet::Wallet;
@@ -189,7 +188,7 @@ pub(crate) mod test {
         async fn handle(
             &mut self,
             message: Box<dyn SessionHandlers>,
-            ctx: &mut Context<Self>,
+            _ctx: &mut Context<Self>,
         ) -> Self::Return {
             self.handlers.lock().await.push(message);
         }
@@ -207,7 +206,7 @@ pub(crate) mod test {
     impl Handler<Event> for Actor1 {
         type Return = ();
 
-        async fn handle(&mut self, message: Event, ctx: &mut Context<Self>) -> Self::Return {
+        async fn handle(&mut self, message: Event, _ctx: &mut Context<Self>) -> Self::Return {
             let me = self.clone();
             tokio::spawn(async move {
                 me.handle_event(message).await;
@@ -218,7 +217,7 @@ pub(crate) mod test {
     impl Handler<Dummy> for Actor1 {
         type Return = ();
 
-        async fn handle(&mut self, message: Dummy, ctx: &mut Context<Self>) -> Self::Return {
+        async fn handle(&mut self, message: Dummy, _ctx: &mut Context<Self>) -> Self::Return {
             tracing::info!("Actor1 got message");
         }
     }
@@ -226,7 +225,7 @@ pub(crate) mod test {
     impl Handler<Dummy> for Actor2 {
         type Return = ();
 
-        async fn handle(&mut self, message: Dummy, ctx: &mut Context<Self>) -> Self::Return {
+        async fn handle(&mut self, message: Dummy, _ctx: &mut Context<Self>) -> Self::Return {
             tracing::info!("Actor2 got message");
         }
     }

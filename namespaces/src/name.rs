@@ -4,8 +4,7 @@ use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::fmt;
-use std::fmt::{Display, Formatter};
-use std::ops::Deref;
+use std::fmt::Display;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr)]

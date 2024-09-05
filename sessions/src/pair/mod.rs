@@ -4,27 +4,21 @@ mod pairing;
 mod registration;
 mod socket_handler;
 
-use crate::actors::{Actors, RegisterTopicManager, RequestHandlerActor, SessionSettled};
+use crate::actors::{Actors, RegisterTopicManager, SessionSettled};
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
 use crate::rpc::{
-    ErrorParams, IrnMetadata, PairExtendRequest, PairPingRequest, RelayProtocolMetadata,
-    RequestParams, Response, RpcResponse, RpcResponsePayload, SessionSettleRequest,
+    ErrorParams, PairExtendRequest, PairPingRequest, RequestParams, SessionSettleRequest,
 };
-use crate::transport::{SessionTransport, TopicTransport};
-use crate::{Cipher, ClientSession, Error, Pairing, Result, SocketEvent};
+use crate::transport::TopicTransport;
+use crate::{Cipher, Error, Pairing, Result, SocketEvent};
 pub use builder::WalletConnectBuilder;
 use serde::de::DeserializeOwned;
-use std::collections::BTreeSet;
-use std::future::Future;
-use std::ops::Deref;
-use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tracing::{info, warn};
 use walletconnect_namespaces::Namespaces;
 use walletconnect_relay::{Client, ConnectionOptions};
-use xtra::prelude::*;
 
 pub trait PairHandler: Send + 'static {
     fn ping(&mut self, topic: Topic);
@@ -42,7 +36,7 @@ pub struct PairingManager {
 
 impl PairingManager {
     async fn init(opts: ConnectionOptions, ciphers: Cipher) -> Result<Self> {
-        let actors = Actors::init(ciphers.clone()).await?;
+        let actors = Actors::init(ciphers.clone())?;
         let (socket_tx, socket_rx) = mpsc::unbounded_channel::<SocketEvent>();
         let handler = RelayHandler::new(
             ciphers.clone(),
@@ -89,8 +83,7 @@ impl PairingManager {
     pub(crate) async fn alive(&self) -> bool {
         match tokio::time::timeout(Duration::from_secs(5), self.ping()).await {
             Ok(r) => match r {
-                Ok(_) => true,
-                Err(crate::Error::RpcError(_)) => true,
+                Err(Error::RpcError(_)) | Ok(_) => true,
                 Err(e) => {
                     warn!("failed alive check: {e}");
                     false
@@ -142,7 +135,7 @@ impl PairingManager {
         let required_chains = namespaces.chains();
         info!("required chains {}", required_chains);
         for s in settlements {
-            let settled_chains = s.deref().namespaces.chains();
+            let settled_chains = (&s).namespaces.chains();
             info!("settled chains {}", settled_chains);
             if required_chains.is_subset(&settled_chains) {
                 return Some(s);

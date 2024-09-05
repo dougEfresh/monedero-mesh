@@ -1,21 +1,15 @@
-use crate::pairing_uri::Params;
 use crate::rpc::{
-    Controller, Metadata, RelayProtocol, RequestParams, ResponseParamsError, ResponseParamsSuccess,
+    Controller, Metadata, RelayProtocol, ResponseParamsError, ResponseParamsSuccess,
     RpcResponsePayload, SdkErrors, SessionProposeRequest, SessionProposeResponse,
     SessionSettleRequest,
 };
 use crate::session::PendingSession;
-use crate::Error::NoPairingTopic;
-use crate::{
-    ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandlers, Topic,
-};
+use crate::{ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandlers};
 use std::collections::{BTreeMap, BTreeSet};
-use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::oneshot;
-use tracing::{info, warn};
+use tracing::warn;
 use walletconnect_namespaces::{
     Account, Accounts, ChainId, Chains, EipMethod, Events, Method, Methods, Namespace,
     NamespaceName, Namespaces, SolanaMethod,
@@ -102,7 +96,7 @@ async fn send_settlement(wallet: Wallet, request: SessionProposeRequest, public_
     // give time for dapp to get my public key and subscribe
     tokio::time::sleep(Duration::from_millis(1000)).await;
     if let Err(e) = wallet.send_settlement(request, public_key).await {
-        warn!("failed to create ClientSession: '{e}'")
+        warn!("failed to create ClientSession: '{e}'");
     }
 }
 
@@ -150,7 +144,7 @@ impl Handler<SessionProposeRequest> for Wallet {
     async fn handle(
         &mut self,
         message: SessionProposeRequest,
-        ctx: &mut Context<Self>,
+        _ctx: &mut Context<Self>,
     ) -> Self::Return {
         let (accepted, my_pk, response) = verify_settlement(&message, self.manager.pair_key());
         if accepted {

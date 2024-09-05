@@ -41,14 +41,14 @@ struct WrapperHandler<T: ConnectionHandler> {
 }
 
 impl<T: ConnectionHandler> WrapperHandler<T> {
-    fn new(handler: T) -> Self {
+    const fn new(handler: T) -> Self {
         Self { handler }
     }
 }
 
 impl<T: ConnectionHandler> WcHandler for WrapperHandler<T> {
     fn connected(&mut self) {
-        self.handler.connected()
+        self.handler.connected();
     }
 
     fn disconnected(
@@ -84,11 +84,11 @@ impl Client {
     pub async fn publish(
         &self,
         topic: Topic,
-        message: impl Into<Arc<str>>,
+        message: impl Into<Arc<str>> + Send,
         tag: u32,
         ttl: Duration,
         prompt: bool,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         self.wc.publish(topic, message, tag, ttl, prompt).await?;
         Ok(())
     }
@@ -104,7 +104,7 @@ impl Client {
     /// resolved optimistically as soon as the relay receives it.
     pub async fn batch_subscribe(
         &self,
-        topics: impl Into<Vec<Topic>>,
+        topics: impl Into<Vec<Topic>> + Send,
     ) -> Result<Vec<SubscriptionId>> {
         let topics = self.wc.batch_subscribe(topics).await?;
         Ok(topics)

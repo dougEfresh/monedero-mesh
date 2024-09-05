@@ -5,18 +5,17 @@ use tokio::sync::oneshot::Sender;
 use tokio::sync::{mpsc, oneshot};
 use tracing::warn;
 
-use crate::actors::SessionSettled;
 use crate::rpc::{RequestParams, SessionSettleRequest};
 use crate::transport::SessionTransport;
 use crate::{ClientSession, PairingTopic, SessionHandlers};
 
-pub(crate) struct HandlerContainer {
+pub struct HandlerContainer {
     pub tx: Sender<Result<ClientSession>>,
     pub handlers: Arc<Box<dyn SessionHandlers>>,
 }
 
 #[derive(Clone, Default)]
-pub(crate) struct PendingSession {
+pub struct PendingSession {
     pending: Arc<DashMap<PairingTopic, HandlerContainer>>,
 }
 
@@ -40,15 +39,15 @@ impl PendingSession {
     }
 
     pub fn error(&self, topic: &PairingTopic, err: Error) {
-        match self.remove(topic) {
-            Ok(handlers) => {
-                if handlers.tx.send(Err(err)).is_err() {
-                    warn!("settlement channel has closed! {topic}");
-                }
+        if let Ok(handlers) = self.remove(topic) {
+            if handlers.tx.send(Err(err)).is_err() {
+                warn!("settlement channel has closed! {topic}");
             }
-            Err(_) => warn!("failed to find pairing topic {topic} in pending handlers"),
+        } else {
+            warn!("failed to find pairing topic {topic} in pending handlers");
         };
     }
+
     fn remove(&self, topic: &PairingTopic) -> Result<HandlerContainer> {
         let (_, handler) = self
             .pending

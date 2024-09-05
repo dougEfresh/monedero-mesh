@@ -263,9 +263,13 @@ impl_relay_protocol_metadata!(ResponseParamsError, response);
 impl_relay_protocol_helpers!(ResponseParamsError);
 
 impl From<SdkErrors> for ErrorParams {
+    /// # Panics
+    ///
+    /// possible integer overflow
+    #[allow(clippy::fallible_impl_from)]
     fn from(value: SdkErrors) -> Self {
         let e: SdkError = value.into();
-        ErrorParams {
+        Self {
             // this really should fit
             code: Some(e.code.try_into().unwrap()),
             message: String::from(e.message),

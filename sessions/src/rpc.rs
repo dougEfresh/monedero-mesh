@@ -57,13 +57,13 @@ pub enum Payload {
 
 impl From<Request> for Payload {
     fn from(value: Request) -> Self {
-        Payload::Request(value)
+        Self::Request(value)
     }
 }
 
 impl From<Response> for Payload {
     fn from(value: Response) -> Self {
-        Payload::Response(value)
+        Self::Response(value)
     }
 }
 
@@ -101,7 +101,7 @@ pub enum RpcResponsePayload {
 }
 
 impl RpcResponse {
-    pub(crate) fn unknown(id: MessageId, topic: Topic, params: ResponseParamsError) -> Self {
+    pub(crate) const fn unknown(id: MessageId, topic: Topic, params: ResponseParamsError) -> Self {
         Self {
             id,
             topic,

@@ -58,8 +58,8 @@ impl FromStr for Event {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "chainChanged" => Ok(Self::ChainChanged),
-            "accountsChanged" => Ok(Self::AccountsChanged),
+            "chainchanged" => Ok(Self::ChainChanged),
+            "accountschanged" => Ok(Self::AccountsChanged),
             _ => Ok(Self::Other(String::from(s))),
         }
     }

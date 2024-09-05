@@ -1,4 +1,4 @@
-use crate::actors::ClearPairing;
+use crate::actors::{AddRequest, ClearPairing};
 use crate::domain::MessageId;
 use crate::rpc::Response;
 use dashmap::DashMap;
@@ -9,17 +9,15 @@ use walletconnect_relay::MessageIdGenerator;
 use xtra::{Context, Handler};
 
 #[derive(Default, xtra::Actor)]
-pub(crate) struct InboundResponseActor {
+pub struct InboundResponseActor {
     pending: Arc<DashMap<MessageId, oneshot::Sender<Response>>>,
     generator: MessageIdGenerator,
 }
 
-pub(crate) struct AddRequest;
-
 impl Handler<ClearPairing> for InboundResponseActor {
     type Return = ();
 
-    async fn handle(&mut self, message: ClearPairing, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
         self.pending.clear();
     }
 }
@@ -27,7 +25,7 @@ impl Handler<ClearPairing> for InboundResponseActor {
 impl Handler<AddRequest> for InboundResponseActor {
     type Return = (MessageId, oneshot::Receiver<Response>);
 
-    async fn handle(&mut self, message: AddRequest, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: AddRequest, _ctx: &mut Context<Self>) -> Self::Return {
         let id = self.generator.next();
         let (tx, rx) = oneshot::channel::<Response>();
         self.pending.insert(id, tx);
@@ -38,7 +36,7 @@ impl Handler<AddRequest> for InboundResponseActor {
 impl Handler<Response> for InboundResponseActor {
     type Return = ();
 
-    async fn handle(&mut self, message: Response, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: Response, _ctx: &mut Context<Self>) -> Self::Return {
         debug!("handing a response with message id {}", message.id);
         if let Some((_, tx)) = self.pending.remove(&message.id) {
             let id = message.id;

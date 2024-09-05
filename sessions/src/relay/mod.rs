@@ -1,4 +1,4 @@
-use crate::actors::{Actors, InboundResponseActor, RequestHandlerActor};
+use crate::actors::{InboundResponseActor, RequestHandlerActor};
 use crate::domain::Message;
 use crate::rpc::{Payload, Response, RpcRequest};
 use crate::{Cipher, SocketEvent};
@@ -17,17 +17,17 @@ pub struct RelayHandler {
 impl RelayHandler {
     pub(crate) fn new(
         cipher: Cipher,
-        req_actor: Address<RequestHandlerActor>,
-        res_actor: Address<InboundResponseActor>,
+        request_actor: Address<RequestHandlerActor>,
+        response_actor: Address<InboundResponseActor>,
         socket_tx: mpsc::UnboundedSender<SocketEvent>,
     ) -> Self {
         let (req_tx, req_rx) = mpsc::unbounded_channel::<RpcRequest>();
         let (res_tx, res_rx) = mpsc::unbounded_channel::<Response>();
         tokio::spawn(async move {
-            event_loop_req(req_rx, req_actor).await;
+            event_loop_request(req_rx, request_actor).await;
         });
         tokio::spawn(async move {
-            event_loop_res(res_rx, res_actor).await;
+            event_loop_response(res_rx, response_actor).await;
         });
         Self {
             cipher,
@@ -90,7 +90,7 @@ impl ConnectionHandler for RelayHandler {
     }
 }
 
-async fn event_loop_req(
+async fn event_loop_request(
     mut rx: mpsc::UnboundedReceiver<RpcRequest>,
     actor: Address<RequestHandlerActor>,
 ) {
@@ -103,7 +103,7 @@ async fn event_loop_req(
     }
 }
 
-async fn event_loop_res(
+async fn event_loop_response(
     mut rx: mpsc::UnboundedReceiver<Response>,
     actor: Address<InboundResponseActor>,
 ) {

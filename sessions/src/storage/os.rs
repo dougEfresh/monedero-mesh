@@ -20,13 +20,12 @@ impl Default for KvStorage {
 
 impl KvStorage {
     pub fn file(location: Option<String>) -> Result<Self> {
-        let location: std::path::PathBuf = match location {
-            Some(l) => std::path::PathBuf::from(l),
-            None => {
-                let app_name = env!("CARGO_PKG_NAME");
-                let app = microxdg::XdgApp::new(app_name)?;
-                app.app_cache()?
-            }
+        let location: std::path::PathBuf = if let Some(l) = location {
+            std::path::PathBuf::from(l)
+        } else {
+            let app_name = env!("CARGO_PKG_NAME");
+            let app = microxdg::XdgApp::new(app_name)?;
+            app.app_cache()?
         };
         debug!("using storage path location {:#?}", location);
         let namespace =
@@ -40,6 +39,9 @@ impl KvStorage {
         })
     }
 
+    /// # Panics
+    ///
+    /// Possible but very unlikely panic
     pub fn mem() -> Self {
         // create random namespace to avoid collision
         let id = format!("{}", SubscriptionId::generate());
@@ -50,7 +52,7 @@ impl KvStorage {
         }
     }
 
-    fn key_segment(&self, key: impl AsRef<str>) -> Result<Key> {
+    pub(super) fn key_segment(key: impl AsRef<str>) -> Result<Key> {
         let seg =
             Segment::parse(key.as_ref()).map_err(|_| SegmentErr(String::from(key.as_ref())))?;
         Ok(Key::new_global(seg))
@@ -63,7 +65,7 @@ impl KvStorage {
     where
         T: for<'de> Deserialize<'de> + Serialize,
     {
-        let k = self.key_segment(key)?;
+        let k = Self::key_segment(key)?;
         if !self.store.has(&k)? {
             return Ok(None);
         }
@@ -78,14 +80,14 @@ impl KvStorage {
     where
         T: for<'de> Deserialize<'de> + Serialize,
     {
-        let k = self.key_segment(key)?;
+        let k = Self::key_segment(key)?;
         self.store.store(&k, serde_json::to_value(value)?)?;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self), fields(key = %key.as_ref()))]
     pub fn delete(&self, key: impl AsRef<str>) -> Result<()> {
-        let k = self.key_segment(key)?;
+        let k = Self::key_segment(key)?;
         if !self.store.has(&k)? {
             return Ok(());
         }
@@ -100,7 +102,7 @@ impl KvStorage {
         }
     }
 
-    pub fn length(&self) -> u32 {
+    pub const fn length(&self) -> u32 {
         0
     }
 }

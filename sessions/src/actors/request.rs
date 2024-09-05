@@ -1,11 +1,11 @@
 use crate::actors::session::SessionRequestHandlerActor;
 use crate::actors::{
-    ClearPairing, InboundResponseActor, RegisterDapp, RegisterTopicManager, RegisterWallet,
-    SessionSettled, TransportActor,
+    ClearPairing, RegisterDapp, RegisterTopicManager, RegisterWallet, SessionSettled,
+    TransportActor,
 };
 use crate::domain::Topic;
 use crate::rpc::{
-    ErrorParams, PairDeleteRequest, PairPingRequest, RequestParams, ResponseParamsError,
+    ErrorParams, IntoUnknownError, PairPingRequest, RequestParams, ResponseParamsError,
     ResponseParamsSuccess, RpcRequest, RpcResponse, RpcResponsePayload, SessionProposeRequest,
 };
 use crate::{Dapp, MessageId, Result, Wallet};
@@ -28,7 +28,7 @@ pub(crate) struct RequestHandlerActor {
 impl Handler<ClearPairing> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: ClearPairing, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
         if let Err(e) = self.responder.send(ClearPairing).await {
             warn!("failed to cleanup transport actor: {e}");
         }
@@ -44,7 +44,7 @@ impl Handler<ClearPairing> for RequestHandlerActor {
 impl Handler<RegisterWallet> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RegisterWallet, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: RegisterWallet, _ctx: &mut Context<Self>) -> Self::Return {
         info!("registering wallet for requests on topic {}", message.0);
         let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
         self.wallets.insert(message.0, addr);
@@ -54,7 +54,7 @@ impl Handler<RegisterWallet> for RequestHandlerActor {
 impl Handler<RegisterDapp> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RegisterDapp, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: RegisterDapp, _ctx: &mut Context<Self>) -> Self::Return {
         if !self.dapps.contains_key(&message.0) {
             let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
             self.dapps.insert(message.0, addr);
@@ -68,7 +68,7 @@ impl Handler<RegisteredManagers> for RequestHandlerActor {
     async fn handle(
         &mut self,
         _message: RegisteredManagers,
-        ctx: &mut Context<Self>,
+        _ctx: &mut Context<Self>,
     ) -> Self::Return {
         self.pair_managers.len()
     }
@@ -80,7 +80,7 @@ impl Handler<RegisterTopicManager> for RequestHandlerActor {
     async fn handle(
         &mut self,
         message: RegisterTopicManager,
-        ctx: &mut Context<Self>,
+        _ctx: &mut Context<Self>,
     ) -> Self::Return {
         tracing::info!("registering mgr for topic {}", message.0);
         let addr = xtra::spawn_tokio(message.1, Mailbox::unbounded());
@@ -91,7 +91,7 @@ impl Handler<RegisterTopicManager> for RequestHandlerActor {
 impl Handler<Client> for RequestHandlerActor {
     type Return = Result<()>;
 
-    async fn handle(&mut self, message: Client, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: Client, _ctx: &mut Context<Self>) -> Self::Return {
         self.send_client(message).await
     }
 }
@@ -132,7 +132,7 @@ async fn process_proposal(
 impl Handler<RpcRequest> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: RpcRequest, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {
         let id = message.payload.id;
         let topic = message.topic.clone();
         let responder = self.responder.clone();
@@ -166,7 +166,7 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                 self.send_response(response);
             }
             RequestParams::SessionSettle(args) => {
-                let unknown = RpcResponse::unknown(id, topic.clone(), (&args).into());
+                let unknown = RpcResponse::unknown(id, topic.clone(), (&args).unknown());
                 let response: RpcResponse = match self.dapps.get(&topic) {
                     None => unknown,
                     Some(dapp) => dapp

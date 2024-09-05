@@ -2,7 +2,7 @@
 //! #wc_sessionsettle
 
 use crate::rpc::params::Controller;
-use crate::rpc::{ErrorParams, ResponseParamsError};
+use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
 use walletconnect_namespaces::Namespaces;
 use {
     super::{IrnMetadata, RelayProtocol},
@@ -33,9 +33,9 @@ pub struct SessionSettleRequest {
     pub expiry: i64,
 }
 
-impl From<&SessionSettleRequest> for ResponseParamsError {
-    fn from(value: &SessionSettleRequest) -> Self {
-        Self::SessionSettle(ErrorParams::unknown())
+impl IntoUnknownError for SessionSettleRequest {
+    fn unknown(&self) -> ResponseParamsError {
+        ResponseParamsError::SessionSettle(ErrorParams::unknown())
     }
 }
 
