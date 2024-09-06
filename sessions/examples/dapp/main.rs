@@ -25,9 +25,11 @@ async fn propose(dapp: &Dapp) -> anyhow::Result<(Pairing, ClientSession)> {
         ChainId::Solana(ChainType::Test),
         ChainId::EIP155(alloy_chains::Chain::sepolia()),
     ]);
-    let (p, rx) = dapp.propose(NoopSessionHandler, &chains).await?;
-    println!("\n\n{p}\n\n");
-    let session = rx.await??;
+    let (p, rx, restored) = dapp.propose(NoopSessionHandler, &chains).await?;
+    if !restored {
+        println!("\n\n{p}\n\n");
+    }
+    let session = rx.await?;
     Ok((p, session))
 }
 
@@ -73,14 +75,14 @@ async fn dapp_test() -> anyhow::Result<()> {
     let dapp = Dapp::new(
         pairing_mgr.clone(),
         Metadata {
-            name: "walletconnect-sessions-sdk".to_string(),
+            name: "wc-sessions-sdk".to_string(),
             description: "walletconnect sessions for rust".to_string(),
             url: "https://github.com/dougEfresh".to_string(),
             icons: vec![],
             verify_url: None,
             redirect: None,
         },
-    );
+    ).await?;
     tokio::spawn(do_dapp_stuff(dapp));
 
     let ctrl_c = signal::ctrl_c();

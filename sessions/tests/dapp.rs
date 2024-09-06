@@ -3,6 +3,7 @@ use assert_matches::assert_matches;
 use std::collections::BTreeMap;
 use std::sync::Once;
 use std::time::Duration;
+use async_trait::async_trait;
 use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -10,11 +11,8 @@ use tracing_subscriber::EnvFilter;
 use walletconnect_namespaces::{AlloyChain, ChainId, ChainType, NamespaceName, Namespaces};
 use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
 use walletconnect_sessions::crypto::CipherError;
-use walletconnect_sessions::rpc::Metadata;
-use walletconnect_sessions::{
-    Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
-    RegisteredComponents, Wallet, WalletConnectBuilder,
-};
+use walletconnect_sessions::rpc::{Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload, SessionProposeRequest, SessionProposeResponse};
+use walletconnect_sessions::{Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture, RegisteredComponents, SdkErrors, Wallet, WalletConnectBuilder, WalletProposalHandler};
 use walletconnect_sessions::{Result, Topic};
 
 #[allow(dead_code)]
@@ -29,6 +27,24 @@ pub(crate) struct TestStuff {
 
 pub(crate) async fn yield_ms(ms: u64) {
     tokio::time::sleep(Duration::from_millis(ms)).await;
+}
+
+struct WalletProposal {}
+
+#[async_trait]
+impl WalletProposalHandler for WalletProposal {
+    async fn verify_settlement(&self, proposal: SessionProposeRequest, pk: String) -> (bool, RpcResponsePayload) {
+        let reject_chain = ChainId::EIP155(alloy_chains::Chain::goerli());
+        if let Some(ns) = proposal.required_namespaces.0.get(&NamespaceName::EIP155) {
+            if ns.chains.contains(&reject_chain) {
+                return (false, RpcResponsePayload::Error(ResponseParamsError::SessionPropose(SdkErrors::UnsupportedChains.into())))
+            }
+        }
+        let result = RpcResponsePayload::Success(ResponseParamsSuccess::SessionPropose(SessionProposeResponse{
+            relay: Default::default(),
+            responder_public_key: pk}));
+        (true, result)
+    }
 }
 
 pub(crate) async fn init_test_components() -> anyhow::Result<TestStuff> {
@@ -55,7 +71,7 @@ pub(crate) async fn init_test_components() -> anyhow::Result<TestStuff> {
         ..Default::default()
     };
     let dapp = Dapp::new(dapp_manager, md).await?;
-    let wallet = Wallet::new(wallet_manager).await?;
+    let wallet = Wallet::new(wallet_manager, WalletProposal{}).await?;
     yield_ms(500).await;
     let t = TestStuff {
         dapp_actors: dapp_actors.clone(),
@@ -93,11 +109,12 @@ async fn pair_dapp_wallet() -> anyhow::Result<(TestStuff, ClientSession)> {
     let t = init_test_components().await?;
     let dapp = t.dapp.clone();
     let wallet = t.wallet.clone();
-    let (pairing, rx) = dapp
+    let (pairing, rx, _) = dapp
         .propose(
             NoopSessionHandler,
             &[
                 ChainId::EIP155(alloy_chains::Chain::holesky()),
+                ChainId::EIP155(alloy_chains::Chain::goerli()),
                 ChainId::Solana(ChainType::Test),
             ],
         )
@@ -110,6 +127,7 @@ async fn pair_dapp_wallet() -> anyhow::Result<(TestStuff, ClientSession)> {
     yield_ms(1000).await;
     Ok((t, session))
 }
+
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_dapp_settlement() -> anyhow::Result<()> {
@@ -130,15 +148,15 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
     );
 
     // propose again should not re-pair
-
     let original_pairing = test.dapp.pairing().ok_or(format_err!("no pairing!"))?;
-    let (new_pairing, rx) = test
+    let (new_pairing, rx, restored) = test
         .dapp
         .propose(
             NoopSessionHandler,
             &[ChainId::EIP155(AlloyChain::sepolia())],
         )
         .await?;
+    assert!(!restored);
     assert_eq!(original_pairing.topic, new_pairing.topic);
     let (wallet_pairing, wallet_rx) = test
         .wallet
@@ -146,6 +164,16 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
         .await?;
     assert_eq!(wallet_pairing.topic, new_pairing.topic);
     let session = timeout(Duration::from_secs(5), rx).await??;
+    yield_ms(1000).await;
+    let components = test
+      .dapp_actors
+      .session()
+      .send(RegisteredComponents)
+      .await?;
+    assert_eq!(1, components);
+    assert!(session.ping().await?);
+    assert!(session.delete().await);
+    // let's wait and see if any random background error show up
     yield_ms(5000).await;
     Ok(())
 }

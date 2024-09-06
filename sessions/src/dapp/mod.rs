@@ -112,17 +112,20 @@ impl Dapp {
         &self,
         handlers: T,
         chains: impl Into<Namespaces>,
-    ) -> Result<(Pairing, ProposeFuture)>
+    ) -> Result<(Pairing, ProposeFuture, bool)>
     where
         T: SessionHandler,
     {
         let namespaces: Namespaces = chains.into();
 
         if let Some(settled) = self.manager.find_session(&namespaces) {
-            return self.restore_session(settled, handlers);
+            let (p, cs)  = self.restore_session(settled, handlers)?;
+            return Ok((p, cs, true))
         }
 
-        let pairing = self.manager.pairing().unwrap_or_default();
+        // reset pairing topic to something new
+        // normally I would preserve the topic, but buggy walletconnect servers don't handle same pairing session
+        let pairing = Pairing::default();
         self.manager.set_pairing(pairing.clone()).await?;
         let rx = self.pending.add(pairing.topic.clone(), handlers);
         let pk = public_key(&pairing);
@@ -135,7 +138,7 @@ impl Dapp {
         let dapp = self.clone();
         let topic = pairing.topic.clone();
         tokio::spawn(async move { begin_settlement_flow(dapp, topic, params).await });
-        Ok((pairing, ProposeFuture::new(rx)))
+        Ok((pairing, ProposeFuture::new(rx), false))
     }
 
     pub fn pairing(&self) -> Option<Pairing> {

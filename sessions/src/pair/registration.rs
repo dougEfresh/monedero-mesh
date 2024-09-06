@@ -7,21 +7,14 @@ impl PairingManager {
     pub(super) async fn restore_saved_pairing(&self) -> Result<()> {
         if let Some(pairing) = self.pairing() {
             info!("found existing topic {pairing}");
-            let request_actor = self.actors.request();
-
             self.subscribe(pairing.topic.clone()).await?;
             info!("Checking if peer is alive");
             if !self.alive().await {
                 info!("clearing pairing topics and sessions");
                 self.relay.unsubscribe(pairing.topic.clone()).await?;
-                if let Err(e) = request_actor.send(ClearPairing).await {
-                    warn!("failed to clear pairing: '{e}'");
-                }
+                self.ciphers.set_pairing(None)?;
                 return Ok(());
             }
-            request_actor
-                .send(RegisterTopicManager(pairing.topic.clone(), self.clone()))
-                .await?;
         }
         Ok(())
     }

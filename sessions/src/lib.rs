@@ -11,9 +11,10 @@ pub mod session;
 mod storage;
 mod transport;
 mod wallet;
+pub mod handlers;
+pub use handlers::*;
 
 pub use crate::session::ClientSession;
-use async_trait::async_trait;
 pub use crypto::cipher::Cipher;
 pub use dapp::Dapp;
 pub use domain::Message;
@@ -31,7 +32,7 @@ pub use storage::KvStorage;
 use tokio::sync::oneshot;
 pub use wallet::Wallet;
 pub type Atomic<T> = Arc<Mutex<T>>;
-use crate::rpc::{SessionDeleteRequest, SessionRequestRequest, SessionSettleRequest};
+use crate::rpc::SessionRequestRequest;
 pub use actors::{Actors, RegisteredComponents};
 pub use domain::*;
 pub use rpc::{Metadata, SdkErrors};
@@ -68,10 +69,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[allow(dead_code)]
 static INIT: Once = Once::new();
 
-#[async_trait]
-pub trait SocketListener: Sync + Send + 'static {
-    async fn handle_socket_event(&self, event: SocketEvent) {}
-}
 
 pin_project! {
     pub struct ProposeFuture {
@@ -79,22 +76,6 @@ pin_project! {
         receiver: oneshot::Receiver<Result<ClientSession>>,
     }
 }
-/*
-pin_project! {
-    pub struct ProposeFuture<T> {
-        #[pin]
-        receiver: oneshot::Receiver<T>,
-    }
-}
-
-
-impl<T> ProposeFuture<T> {
-    #[must_use]
-    pub fn new(receiver: oneshot::Receiver<Result<ClientSession>>) -> Self {
-        Self { receiver }
-    }
-}
- */
 
 impl ProposeFuture {
     #[must_use]
@@ -109,10 +90,7 @@ impl Future for ProposeFuture {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         match self.project().receiver.poll(cx) {
             Poll::Ready(Ok(value)) => Poll::Ready(value),
-            Poll::Ready(Err(e)) => {
-                tracing::warn!("recv error? {e}");
-                Poll::Ready(Err(Error::ReceiveError))
-            }
+            Poll::Ready(Err(_)) => Poll::Ready(Err(Error::ReceiveError)),
             Poll::Pending => Poll::Pending,
         }
     }
@@ -121,44 +99,6 @@ impl Future for ProposeFuture {
 pub enum SessionEventRequest {
     Event(Event),
     Request(SessionRequestRequest),
-}
-
-#[async_trait]
-pub trait SessionEventHandler: Send + Sync + 'static {
-    async fn event(&self, event: Event) {}
-}
-
-#[async_trait]
-pub trait SessionHandler: Send + Sync + 'static + SessionEventHandler {
-    async fn request(&self, request: SessionRequestRequest) {}
-}
-
-pub struct NoopSessionHandler;
-
-#[async_trait]
-impl SessionEventHandler for NoopSessionHandler {
-    async fn event(&self, event: Event) {
-        tracing::info!("got session event {event:#?}");
-    }
-}
-
-impl SocketListener for NoopSessionHandler {}
-
-#[async_trait]
-impl SessionHandler for NoopSessionHandler {
-    async fn request(&self, request: SessionRequestRequest) {
-        tracing::info!("got session request {:#?}", request);
-    }
-}
-
-pub struct NoopSessionDeleteHandler;
-impl SessionDeleteHandler for NoopSessionDeleteHandler {}
-
-#[async_trait]
-pub trait SessionDeleteHandler: Send + Sync + 'static {
-    async fn handle(&self, request: SessionDeleteRequest) {
-        tracing::info!("Session delete request {:#?}", request);
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

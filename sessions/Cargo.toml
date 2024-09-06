@@ -100,4 +100,5 @@ dotenvy = {version = "0.15"}
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
 ratatui = { version = "0.28", features = ["all-widgets"]}
 tui-input = "0.10.0"
+alloy = { version = "0.3", features = ["full"] }
 

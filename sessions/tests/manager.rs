@@ -169,7 +169,7 @@ async fn test_relay_disconnect() -> anyhow::Result<()> {
     yield_ms(3300).await;
     // should have reconnected
     dapp.ping().await?;
-    let l = listener.events.lock().unwrap();
+    let l = listener.events.lock()?;
     assert_eq!(2, l.len());
     Ok(())
 }

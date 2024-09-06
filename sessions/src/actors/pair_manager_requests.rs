@@ -26,10 +26,7 @@ impl RequestHandlerActor {
         PairingManager: xtra::Handler<M>,
         <PairingManager as xtra::Handler<M>>::Return: Into<RpcResponsePayload>,
     {
-        let mgr = self
-            .pair_managers
-            .get(&topic)
-            .ok_or(crate::Error::NoPairManager(topic.clone()))?;
+        let mgr = self.pair_managers.as_ref().ok_or(crate::Error::NoPairManager(topic.clone()))?;
         let response: RpcResponse = mgr.send(request).await.map(|r| RpcResponse {
             id,
             topic: topic.clone(),

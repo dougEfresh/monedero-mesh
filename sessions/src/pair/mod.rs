@@ -66,6 +66,7 @@ impl PairingManager {
             actors: actors.clone(),
             socket_listeners: Arc::new(tokio::sync::Mutex::new(Vec::new())),
         };
+        actors.request().send(mgr.clone()).await?;
         let socket_handler = mgr.clone();
         tokio::spawn(socket_handler::handle_socket(socket_handler, socket_rx));
         info!("Opening connection to wc relay");
@@ -91,11 +92,14 @@ impl PairingManager {
     /// Error only for network communication errors or relay server is down
     pub(crate) async fn alive(&self) -> bool {
         match tokio::time::timeout(Duration::from_secs(5), self.ping()).await {
-            Ok(r) => match r {
-                Err(Error::RpcError(_)) | Ok(_) => true,
-                Err(e) => {
-                    warn!("failed alive check: {e}");
-                    false
+            Ok(r) => { 
+                match r {
+                    Ok(true) => true,
+                    Ok(false) => false,
+                    Err(e) => {
+                        warn!("failed alive check: {e}");
+                        false                        
+                    }
                 }
             },
             Err(_) => false,
@@ -133,7 +137,7 @@ impl PairingManager {
     }
 
     pub async fn ping(&self) -> Result<bool> {
-        let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
+        let t = self.topic().ok_or(Error::NoPairingTopic)?;
         self.transport
             .publish_request::<bool>(t, RequestParams::PairPing(PairPingRequest::default()))
             .await
@@ -160,7 +164,7 @@ impl PairingManager {
     }
 
     pub async fn delete(&self) -> Result<bool> {
-        let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
+        let t = self.topic().ok_or(Error::NoPairingTopic)?;
         let result = self
             .transport
             .publish_request::<bool>(
@@ -174,7 +178,7 @@ impl PairingManager {
 
     // Epoch
     pub async fn extend(&self, expiry: u64) -> Result<bool> {
-        let t = self.topic().ok_or(crate::Error::NoPairingTopic)?;
+        let t = self.topic().ok_or(Error::NoPairingTopic)?;
         self.transport
             .publish_request::<bool>(
                 t.clone(),
@@ -190,16 +194,12 @@ impl PairingManager {
             }
         }
         self.ciphers.set_pairing(Some(pairing.clone()))?;
-        self.actors
-            .request()
-            .send(RegisterTopicManager(pairing.topic.clone(), self.clone()))
-            .await?;
-        self.subscribe(pairing.topic).await?;
+          self.subscribe(pairing.topic).await?;
         Ok(())
     }
 
     pub async fn publish_request<R: DeserializeOwned>(&self, params: RequestParams) -> Result<R> {
-        let topic = self.topic().ok_or(crate::Error::NoPairingTopic)?;
+        let topic = self.topic().ok_or(Error::NoPairingTopic)?;
         self.transport.publish_request(topic, params).await
     }
 

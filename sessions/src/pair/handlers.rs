@@ -59,7 +59,6 @@ impl PairingManager {
     pub(super) async fn cleanup(&self, pairing_topic: Topic) {
         info!("deleting pairing topic {pairing_topic}");
         let _ = self.transport.unsubscribe(pairing_topic).await;
-        let _ = self.actors.request().send(ClearPairing).await;
         let topics = self.ciphers.subscriptions();
         for t in topics {
             let _ = self.relay.unsubscribe(t).await;
