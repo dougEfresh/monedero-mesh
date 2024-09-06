@@ -78,7 +78,7 @@ impl PendingSession {
                 .await;
             let client_session_result: Result<ClientSession> = match result {
                 Ok(true) => Ok(client_session.clone()),
-                Ok(false) => Err(Error::SettlementRejected),
+                Ok(false) => Err(Error::ProposalRejected),
                 Err(e) => Err(e),
             };
             if handlers.tx.send(client_session_result).is_err() {

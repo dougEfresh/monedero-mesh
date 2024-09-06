@@ -7,6 +7,7 @@ use crate::{
 use crate::{Result, SessionDeleteHandler};
 use dashmap::DashMap;
 use serde::de::DeserializeOwned;
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use tokio::sync::oneshot::Sender;
 use tokio::sync::{mpsc, oneshot};
@@ -31,6 +32,12 @@ pub struct ClientSession {
     transport: SessionTransport,
     session_actor: Address<SessionRequestHandlerActor>,
     tx: mpsc::UnboundedSender<SessionEventRequest>,
+}
+
+impl Debug for ClientSession {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", crate::shorten_topic(&self.topic()))
+    }
 }
 
 impl ClientSession {

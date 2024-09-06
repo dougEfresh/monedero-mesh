@@ -92,14 +92,12 @@ impl PairingManager {
     /// Error only for network communication errors or relay server is down
     pub(crate) async fn alive(&self) -> bool {
         match tokio::time::timeout(Duration::from_secs(5), self.ping()).await {
-            Ok(r) => { 
-                match r {
-                    Ok(true) => true,
-                    Ok(false) => false,
-                    Err(e) => {
-                        warn!("failed alive check: {e}");
-                        false                        
-                    }
+            Ok(r) => match r {
+                Ok(true) => true,
+                Ok(false) => false,
+                Err(e) => {
+                    warn!("failed alive check: {e}");
+                    false
                 }
             },
             Err(_) => false,
@@ -194,7 +192,7 @@ impl PairingManager {
             }
         }
         self.ciphers.set_pairing(Some(pairing.clone()))?;
-          self.subscribe(pairing.topic).await?;
+        self.subscribe(pairing.topic).await?;
         Ok(())
     }
 

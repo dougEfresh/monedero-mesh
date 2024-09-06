@@ -119,8 +119,8 @@ impl Dapp {
         let namespaces: Namespaces = chains.into();
 
         if let Some(settled) = self.manager.find_session(&namespaces) {
-            let (p, cs)  = self.restore_session(settled, handlers)?;
-            return Ok((p, cs, true))
+            let (p, cs) = self.restore_session(settled, handlers)?;
+            return Ok((p, cs, true));
         }
 
         // reset pairing topic to something new

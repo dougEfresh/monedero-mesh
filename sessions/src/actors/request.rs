@@ -39,11 +39,7 @@ impl Handler<RegisteredComponents> for RequestHandlerActor {
 impl Handler<PairingManager> for RequestHandlerActor {
     type Return = ();
 
-    async fn handle(
-        &mut self,
-        message: PairingManager,
-        _ctx: &mut Context<Self>,
-    ) -> Self::Return {
+    async fn handle(&mut self, message: PairingManager, _ctx: &mut Context<Self>) -> Self::Return {
         let addr = xtra::spawn_tokio(message, Mailbox::unbounded());
         self.pair_managers = Some(addr)
     }

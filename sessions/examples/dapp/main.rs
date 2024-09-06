@@ -82,7 +82,8 @@ async fn dapp_test() -> anyhow::Result<()> {
             verify_url: None,
             redirect: None,
         },
-    ).await?;
+    )
+    .await?;
     tokio::spawn(do_dapp_stuff(dapp));
 
     let ctrl_c = signal::ctrl_c();

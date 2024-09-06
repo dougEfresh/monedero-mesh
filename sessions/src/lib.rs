@@ -3,6 +3,7 @@ pub mod crypto;
 mod dapp;
 mod domain;
 mod error;
+pub mod handlers;
 mod pair;
 pub mod pairing_uri;
 mod relay;
@@ -11,7 +12,6 @@ pub mod session;
 mod storage;
 mod transport;
 mod wallet;
-pub mod handlers;
 pub use handlers::*;
 
 pub use crate::session::ClientSession;
@@ -68,7 +68,6 @@ impl Display for SocketEvent {
 pub type Result<T> = std::result::Result<T, Error>;
 #[allow(dead_code)]
 static INIT: Once = Once::new();
-
 
 pin_project! {
     pub struct ProposeFuture {

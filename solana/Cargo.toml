@@ -1,0 +1,42 @@
+[package]
+name = "walletconnect-session-solana"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["relay"]
+relay = ["walletconnect-relay", "walletconnect-sessions"] # with default features
+mock = [
+    "walletconnect-sessions/mock",
+    "walletconnect-relay/mock"
+]
+
+[dependencies]
+thiserror = { workspace = true }
+solana-sdk = { git = "https://github.com/anza-xyz/agave.git", branch = "master"}
+walletconnect-sessions = { path = "../sessions", optional = true}
+walletconnect-namespaces = { path = "../namespaces"}
+walletconnect-relay = { path = "../relay", optional = true }
+
+[dev-dependencies]
+alloy = { version = "0.3", features = ["full"] }
+assert_matches = { version = "1.5.0" }
+async-trait = "0.1.82"
+anyhow = "1"
+chrono = "0.4"
+tokio = { version = "1", features = ["full"] }
+env_logger = { version = "0.9.3" }
+tracing = { version = "0.1" }
+tracing-error = { version = "0.2.0"}
+dotenvy = {version = "0.15"}
+tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
+
+[[test]]
+name = "solana"
+required-features = ["mock"]

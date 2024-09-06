@@ -50,8 +50,11 @@ pub enum Error {
     #[error("recv channel closed for settlement request")]
     SettlementRecvError,
 
+    #[error("Settlement was rejected by the wallet provider: '{0:#?}'")]
+    SettlementRejected(String),
+
     #[error("a party has rejected the settlement")]
-    SettlementRejected,
+    ProposalRejected,
 
     #[error("Got session settlement but I have no one to send this to!")]
     SessionSettlementNotFound,

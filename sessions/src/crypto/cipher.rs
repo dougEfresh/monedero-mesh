@@ -9,6 +9,7 @@ use hkdf::Hkdf;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use tracing::debug;
 use walletconnect_relay::ed25519_dalek::{SecretKey, VerifyingKey};
@@ -75,6 +76,17 @@ pub struct Cipher {
     ciphers: CipherSessionKeyStore,
     pairing: AtomicPairing,
     storage: Arc<KvStorage>,
+}
+
+impl Debug for Cipher {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ciphers={} pairings={}",
+            self.ciphers.len(),
+            self.pairing.len()
+        )
+    }
 }
 
 impl Cipher {
@@ -201,12 +213,15 @@ impl Cipher {
         Ok(session.expiry < now)
     }
 
+    #[tracing::instrument(level = "info")]
     pub(crate) fn delete_session(&self, topic: &Topic) -> Result<(), CipherError> {
         self.storage.delete(Self::storage_session_key(topic))?;
         if let Some(sessions) = self.storage.get::<Vec<Topic>>(Self::storage_sessions())? {
             let new_sessions: Vec<Topic> = sessions.into_iter().filter(|t| t == topic).collect();
             self.storage.set(Self::storage_sessions(), new_sessions)?;
         }
+        let sessions_key = Self::storage_settlement(&topic);
+        self.storage.delete(sessions_key)?;
         self.ciphers.remove(topic);
         Ok(())
     }

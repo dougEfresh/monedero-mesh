@@ -1,6 +1,4 @@
-//! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
-//! #wc_sessionrequest
-
+/// (wc_sessionRequest)[https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods#wc_sessionrequest]
 use super::IrnMetadata;
 use serde::{Deserialize, Serialize};
 use walletconnect_namespaces::ChainId;

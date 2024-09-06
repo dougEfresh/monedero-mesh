@@ -1,10 +1,16 @@
+mod settlement;
+
 use crate::rpc::{
     Controller, Metadata, RelayProtocol, ResponseParamsError, ResponseParamsSuccess,
     RpcResponsePayload, SdkErrors, SessionProposeRequest, SessionProposeResponse,
     SessionSettleRequest,
 };
 use crate::session::PendingSession;
-use crate::{ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandler, SessionSettled, WalletProposalHandler};
+use crate::wallet::settlement::WalletSettlementActor;
+use crate::{
+    ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandler, SessionSettled,
+    WalletProposalHandler,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -12,20 +18,18 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{error, warn};
-use xtra::Error;
 use walletconnect_namespaces::{
     Account, Accounts, ChainId, Chains, EipMethod, Events, Method, Methods, Namespace,
     NamespaceName, Namespaces, SolanaMethod,
 };
 use xtra::prelude::*;
-
-const SUPPORTED_ACCOUNT: &str = "0xBA5BA3955463ADcc7aa3E33bbdfb8A68e0933dD8";
+use xtra::Error;
 
 #[derive(Clone, xtra::Actor)]
 pub struct Wallet {
     manager: PairingManager,
     pending: Arc<PendingSession>,
-    proposal_handler: Address<WalletProposalActor>,
+    settlement_handler: Address<WalletSettlementActor>,
     metadata: Metadata,
 }
 
@@ -48,52 +52,28 @@ impl Wallet {
         request: SessionProposeRequest,
         public_key: String,
     ) -> Result<()> {
-        let session_topic = self.manager.register_dapp_pk(request.proposer).await?;
+        let session_topic = self
+            .manager
+            .register_dapp_pk(request.proposer.clone())
+            .await?;
+        let namespaces = self.settlement_handler.send(request).await??;
         let now = chrono::Utc::now();
         let future = now + chrono::Duration::hours(24);
-        let mut settled: Namespaces = Namespaces(BTreeMap::new());
-        for (name, namespace) in request.required_namespaces.iter() {
-            let accounts: BTreeSet<Account> = namespace
-                .chains
-                .iter()
-                .map(|c| Account {
-                    address: String::from(SUPPORTED_ACCOUNT),
-                    chain: c.clone(),
-                })
-                .collect();
-
-            let methods = match name {
-                NamespaceName::EIP155 => EipMethod::defaults(),
-                NamespaceName::Solana => SolanaMethod::defaults(),
-                NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
-            };
-            settled.insert(
-                name.clone(),
-                Namespace {
-                    accounts: Accounts(accounts),
-                    chains: Chains(namespace.chains.iter().cloned().collect()),
-                    methods: Methods(methods),
-                    events: Events::default(),
-                },
-            );
-        }
-
         let session_settlement = SessionSettleRequest {
             relay: RelayProtocol::default(),
             controller: Controller {
                 public_key,
                 metadata: self.metadata.clone(),
             },
-            namespaces: settled.clone(),
+            namespaces: namespaces.clone(),
             expiry: future.timestamp(),
         };
-
         self.pending
             .settled(
                 &self.manager,
                 SessionSettled {
                     topic: session_topic,
-                    namespaces: settled,
+                    namespaces,
                     expiry: session_settlement.expiry,
                 },
                 Some(session_settlement),
@@ -113,46 +93,6 @@ async fn send_settlement(wallet: Wallet, request: SessionProposeRequest, public_
     }
 }
 
-/*
-fn verify_settlement(
-    proposal: &SessionProposeRequest,
-    pk: Option<String>,
-) -> (bool, String, RpcResponsePayload) {
-    if pk.is_none() {
-        return (
-            false,
-            String::new(),
-            RpcResponsePayload::Error(ResponseParamsError::SessionPropose(
-                SdkErrors::UserRejected.into(),
-            )),
-        );
-    }
-    let pk = pk.unwrap();
-    let reject_chain = ChainId::EIP155(alloy_chains::Chain::goerli());
-    if let Some(ns) = proposal.required_namespaces.0.get(&NamespaceName::EIP155) {
-        if ns.chains.contains(&reject_chain) {
-            return (
-                false,
-                String::new(),
-                RpcResponsePayload::Error(ResponseParamsError::SessionPropose(
-                    SdkErrors::UnsupportedChains.into(),
-                )),
-            );
-        }
-    }
-    (
-        true,
-        String::from(&pk),
-        RpcResponsePayload::Success(ResponseParamsSuccess::SessionPropose(
-            SessionProposeResponse {
-                relay: RelayProtocol::default(),
-                responder_public_key: pk,
-            },
-        )),
-    )
-}
- */
-
 impl Handler<SessionProposeRequest> for Wallet {
     type Return = RpcResponsePayload;
 
@@ -164,52 +104,36 @@ impl Handler<SessionProposeRequest> for Wallet {
         let pk = self.manager.pair_key();
         if pk.is_none() {
             error!("no pairing key!");
-            return RpcResponsePayload::Error(ResponseParamsError::SessionPropose(SdkErrors::UserRejected.into()))
+            return RpcResponsePayload::Error(ResponseParamsError::SessionPropose(
+                SdkErrors::UserRejected.into(),
+            ));
         }
         let pk = pk.unwrap();
-        if let Ok((accepted, response)) = self.proposal_handler.send(SessionProposePublicKey(String::from(&pk), message.clone())).await {
+        if let Ok((accepted, response)) = self
+            .settlement_handler
+            .send(SessionProposePublicKey(String::from(&pk), message.clone()))
+            .await
+        {
             if accepted {
                 let wallet = self.clone();
                 tokio::spawn(async move { send_settlement(wallet, message, pk).await });
             }
-            return response
+            return response;
         }
         error!("failed sending verify to actor");
-        RpcResponsePayload::Error(ResponseParamsError::SessionPropose(SdkErrors::UserRejected.into()))
-    }
-}
-
-
-#[derive(Clone, Actor)]
-struct WalletProposalActor {
-    handler: Arc<Mutex<Box<dyn WalletProposalHandler>>>
-}
-
-impl WalletProposalActor {
-    pub fn new<T: WalletProposalHandler>(handler: T) -> Self {
-        Self {
-            handler: Arc::new(Mutex::new(Box::new(handler)))
-        }
+        RpcResponsePayload::Error(ResponseParamsError::SessionPropose(
+            SdkErrors::UserRejected.into(),
+        ))
     }
 }
 
 struct SessionProposePublicKey(pub String, pub SessionProposeRequest);
 
-impl Handler<SessionProposePublicKey> for WalletProposalActor {
-    type Return = (bool, RpcResponsePayload);
-
-    async fn handle(
-        &mut self,
-        message: SessionProposePublicKey,
-        _ctx: &mut Context<Self>) -> Self::Return {
-        let l = self.handler.lock().await;
-        l.verify_settlement(message.1, message.0).await
-    }
-}
-
 impl Wallet {
-
-    pub async fn new<T: WalletProposalHandler>(manager: PairingManager, handler: T) -> Result<Self> {
+    pub async fn new<T: WalletProposalHandler>(
+        manager: PairingManager,
+        handler: T,
+    ) -> Result<Self> {
         let metadata = Metadata {
             name: "mock wallet".to_string(),
             description: "mocked wallet".to_string(),
@@ -218,13 +142,14 @@ impl Wallet {
             verify_url: None,
             redirect: None,
         };
-        let proposal_handler = xtra::spawn_tokio(WalletProposalActor::new(handler), Mailbox::unbounded());
+        let proposal_handler =
+            xtra::spawn_tokio(WalletSettlementActor::new(handler), Mailbox::unbounded());
 
         let me = Self {
             manager,
             pending: Arc::new(PendingSession::new()),
             metadata,
-            proposal_handler
+            settlement_handler: proposal_handler,
         };
 
         me.manager.actors().proposal().send(me.clone()).await?;

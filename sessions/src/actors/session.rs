@@ -52,6 +52,7 @@ impl Handler<ClearPairing> for SessionRequestHandlerActor {
 impl Handler<ClientSession> for SessionRequestHandlerActor {
     type Return = ();
 
+    #[tracing::instrument(skip(self, _ctx), level = "debug")]
     async fn handle(&mut self, message: ClientSession, _ctx: &mut Context<Self>) -> Self::Return {
         let topic = message.topic();
         let addr = xtra::spawn_tokio(message.clone(), Mailbox::unbounded());
