@@ -53,12 +53,6 @@ pub struct SessionTransport {
     pub(crate) transport: TopicTransport,
 }
 
-impl SessionTransport {
-    pub(crate) async fn unsubscribe(&self) -> Result<()> {
-        self.transport.unsubscribe(self.topic.clone()).await
-    }
-}
-
 impl Debug for SessionTransport {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "topic={}", crate::shorten_topic(&self.topic))

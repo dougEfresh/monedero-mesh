@@ -1,7 +1,7 @@
 pub use ed25519_dalek::*;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use std::time::Duration;
 use walletconnect_sdk::client::websocket::PublishedMessage;
@@ -29,7 +29,6 @@ pub use mock::*;
 pub use error::ClientError;
 pub type Result<T> = std::result::Result<T, ClientError>;
 
-#[cfg(feature = "mock")]
 pub(crate) fn shorten_topic(id: &Topic) -> String {
     let mut id = format!("{id}");
     if id.len() > 10 {
@@ -38,7 +37,7 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
     id
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Message {
     pub id: MessageId,
     pub subscription_id: SubscriptionId,
@@ -47,6 +46,12 @@ pub struct Message {
     pub tag: u32,
     pub published_at: chrono::DateTime<chrono::Utc>,
     pub received_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl Debug for Message {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "id={} topic:{} tag:{}", self.id, self.topic, self.tag)
+    }
 }
 
 impl Default for Message {

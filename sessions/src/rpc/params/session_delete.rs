@@ -1,9 +1,9 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessiondelete
 
-use serde::{Deserialize, Serialize};
-
 use super::IrnMetadata;
+use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
+use serde::{Deserialize, Serialize};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1112,
@@ -30,6 +30,12 @@ impl Default for SessionDeleteRequest {
             code: crate::rpc::sdkerrors::USER_DISCONNECTED.code,
             message: String::from(crate::rpc::sdkerrors::USER_DISCONNECTED.message),
         }
+    }
+}
+
+impl IntoUnknownError for SessionDeleteRequest {
+    fn unknown(&self) -> ResponseParamsError {
+        ResponseParamsError::SessionDelete(ErrorParams::unknown())
     }
 }
 

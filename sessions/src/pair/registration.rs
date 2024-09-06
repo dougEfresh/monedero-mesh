@@ -26,62 +26,21 @@ impl PairingManager {
         Ok(())
     }
 
-    pub(crate) async fn register_dapp_session_topic(
-        &self,
-        dapp: Dapp,
-        topic: SessionTopic,
-    ) -> Result<SubscriptionId> {
-        self.actors
-            .request()
-            .send(RegisterDapp(topic.clone(), dapp))
-            .await?;
-        self.subscribe(topic).await
-    }
-
-    pub(crate) async fn register_wallet_pairing(
-        &self,
-        wallet: Wallet,
-        pairing: Pairing,
-    ) -> Result<()> {
-        debug!("registering wallet to topic {}", pairing.topic);
-        self.set_pairing(pairing.clone()).await?;
-        self.actors
-            .request()
-            .send(RegisterWallet(pairing.topic.clone(), wallet))
-            .await?;
-        Ok(())
-    }
-
-    pub(crate) async fn register_wallet_pk(
-        &self,
-        dapp: Dapp,
-        controller: SessionProposeResponse,
-    ) -> Result<Topic> {
-        let (session_topic, _) = self
-            .ciphers
-            .create_common_topic(controller.responder_public_key)?;
-        self.actors
-            .request()
-            .send(RegisterDapp(session_topic.clone(), dapp))
-            .await?;
+    async fn register_pk(&self, pk: String) -> Result<SessionTopic> {
+        let (session_topic, _) = self.ciphers.create_common_topic(pk)?;
         // TODO: Do I need the subscriptionId?
         self.subscribe(session_topic.clone()).await?;
         Ok(session_topic)
     }
 
-    pub(crate) async fn register_dapp_pk(
+    pub(crate) async fn register_wallet_pk(
         &self,
-        wallet: Wallet,
-        proposer: Proposer,
+        controller: SessionProposeResponse,
     ) -> Result<Topic> {
-        let (session_topic, _) = self.ciphers.create_common_topic(proposer.public_key)?;
-        self.actors
-            .request()
-            .send(RegisterWallet(session_topic.clone(), wallet))
-            .await?;
-        // TODO: Do I need the subscriptionId?
-        let id = self.subscribe(session_topic.clone()).await?;
-        info!("subscribed to topic {session_topic:#?} with id {id:#?}");
-        Ok(session_topic)
+        self.register_pk(controller.responder_public_key).await
+    }
+
+    pub(crate) async fn register_dapp_pk(&self, proposer: Proposer) -> Result<Topic> {
+        self.register_pk(proposer.public_key).await
     }
 }

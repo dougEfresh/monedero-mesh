@@ -4,7 +4,7 @@ mod pairing;
 mod registration;
 mod socket_handler;
 
-use crate::actors::{Actors, RegisterTopicManager, SessionSettled};
+use crate::actors::{Actors, RegisterTopicManager};
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
 use crate::rpc::{
@@ -12,7 +12,7 @@ use crate::rpc::{
     SessionSettleRequest,
 };
 use crate::transport::TopicTransport;
-use crate::{Cipher, Error, Pairing, Result, SocketEvent, SocketListener};
+use crate::{Cipher, Error, Pairing, Result, SessionSettled, SocketEvent, SocketListener};
 pub use builder::WalletConnectBuilder;
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
@@ -184,7 +184,11 @@ impl PairingManager {
     }
 
     pub async fn set_pairing(&self, pairing: Pairing) -> Result<()> {
-        //TODO check if existing pairing and cleanup
+        if let Some(p) = self.pairing() {
+            if p.topic == pairing.topic {
+                return Ok(());
+            }
+        }
         self.ciphers.set_pairing(Some(pairing.clone()))?;
         self.actors
             .request()

@@ -1,4 +1,4 @@
-use crate::{Error, PairingManager, Result, SessionEventRequest, SessionTopic};
+use crate::{Error, PairingManager, Result, SessionEventRequest, SessionSettled, SessionTopic};
 use dashmap::DashMap;
 use std::sync::Arc;
 use tokio::sync::oneshot::Sender;
@@ -7,11 +7,11 @@ use tracing::warn;
 
 use crate::rpc::{RequestParams, SessionSettleRequest};
 use crate::transport::SessionTransport;
-use crate::{ClientSession, PairingTopic, SessionRequestHandler};
+use crate::{ClientSession, PairingTopic, SessionHandler};
 
 pub struct HandlerContainer {
     pub tx: Sender<Result<ClientSession>>,
-    pub handlers: Arc<Box<dyn SessionRequestHandler>>,
+    pub handlers: Arc<Box<dyn SessionHandler>>,
 }
 
 #[derive(Clone, Default)]
@@ -24,7 +24,7 @@ impl PendingSession {
         Self::default()
     }
 
-    pub fn add<T: SessionRequestHandler>(
+    pub fn add<T: SessionHandler>(
         &self,
         topic: PairingTopic,
         handlers: T,
@@ -59,34 +59,30 @@ impl PendingSession {
     pub async fn settled(
         &self,
         mgr: &PairingManager,
-        topic: SessionTopic,
-        settled: SessionSettleRequest,
-        send_to_peer: bool,
+        settled: SessionSettled,
+        send_to_peer: Option<SessionSettleRequest>,
     ) -> Result<ClientSession> {
         let pairing_topic = mgr.topic().ok_or(Error::NoPairingTopic)?;
         let handlers = self.remove(&pairing_topic)?;
         let actors = mgr.actors();
         let session_transport = SessionTransport {
-            topic,
+            topic: settled.topic.clone(),
             transport: mgr.topic_transport(),
         };
         let (tx, rx) = mpsc::unbounded_channel::<SessionEventRequest>();
-        let client_session = ClientSession::new(
-            mgr.ciphers(),
-            session_transport,
-            settled.namespaces.clone(),
-            tx,
-        );
-        mgr.ciphers()
-            .set_settlement(client_session.topic(), settled.clone())?;
-        actors.session().send(client_session.clone()).await?;
-        if send_to_peer {
-            if let Err(e) = client_session
-                .publish_request::<bool>(RequestParams::SessionSettle(settled))
-                .await
-            {
-                let _ = handlers.tx.send(Err(Error::SettlementRejected));
-                return Err(e);
+        let client_session =
+            ClientSession::new(actors.session(), session_transport, settled.clone(), tx).await?;
+        if let Some(req) = send_to_peer {
+            let result = client_session
+                .publish_request::<bool>(RequestParams::SessionSettle(req))
+                .await;
+            let client_session_result: Result<ClientSession> = match result {
+                Ok(true) => Ok(client_session.clone()),
+                Ok(false) => Err(Error::SettlementRejected),
+                Err(e) => Err(e),
+            };
+            if handlers.tx.send(client_session_result).is_err() {
+                warn!("oneshot proposal channel has closed");
             }
         } else {
             handlers

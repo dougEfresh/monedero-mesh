@@ -1,8 +1,7 @@
-use crate::actors::SessionSettled;
 use crate::crypto::error::CipherError;
 use crate::pairing_uri::Pairing;
 use crate::rpc::SessionSettleRequest;
-use crate::{KvStorage, SessionTopic};
+use crate::{KvStorage, SessionSettled, SessionTopic};
 use chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, KeyInit, Nonce};
 use dashmap::DashMap;
 use derive_more::{AsMut, AsRef};
@@ -165,12 +164,8 @@ impl Cipher {
         Ok(())
     }
 
-    pub(crate) fn set_settlement(
-        &self,
-        topic: SessionTopic,
-        settlement: SessionSettleRequest,
-    ) -> Result<(), CipherError> {
-        let sessions_key = Self::storage_settlement(&topic);
+    pub(crate) fn set_settlement(&self, settlement: SessionSettled) -> Result<(), CipherError> {
+        let sessions_key = Self::storage_settlement(&settlement.topic);
         self.storage.set(sessions_key, settlement)?;
         Ok(())
     }
@@ -188,9 +183,9 @@ impl Cipher {
         for topic in sessions {
             if let Some(s) = self
                 .storage
-                .get::<SessionSettleRequest>(Self::storage_settlement(&topic))?
+                .get::<SessionSettled>(Self::storage_settlement(&topic))?
             {
-                settled.push(SessionSettled(topic, s));
+                settled.push(s);
             }
         }
         Ok(settled)

@@ -1,11 +1,12 @@
+use crate::actors::proposal::ProposalActor;
 use crate::actors::session::SessionRequestHandlerActor;
 use crate::actors::{
     ClearPairing, RegisterDapp, RegisterTopicManager, RegisterWallet, RegisteredComponents,
-    SessionSettled, TransportActor,
+    TransportActor,
 };
 use crate::domain::Topic;
 use crate::rpc::{
-    ErrorParams, IntoUnknownError, PairPingRequest, RequestParams, ResponseParamsError,
+    ErrorParams, IntoUnknownError, PairPingRequest, Request, RequestParams, ResponseParamsError,
     ResponseParamsSuccess, RpcRequest, RpcResponse, RpcResponsePayload, SessionProposeRequest,
 };
 use crate::PairingManager;
@@ -23,6 +24,7 @@ pub struct RequestHandlerActor {
     wallets: Arc<DashMap<Topic, Address<Wallet>>>,
     pub(super) responder: Address<TransportActor>,
     session_handler: Address<SessionRequestHandlerActor>,
+    proposal_handler: Address<ProposalActor>,
 }
 
 impl Handler<RegisteredComponents> for RequestHandlerActor {
@@ -99,6 +101,7 @@ impl RequestHandlerActor {
     pub(crate) fn new(
         responder: Address<TransportActor>,
         session_handler: Address<SessionRequestHandlerActor>,
+        proposal_handler: Address<ProposalActor>,
     ) -> Self {
         Self {
             pair_managers: Arc::new(DashMap::new()),
@@ -106,6 +109,7 @@ impl RequestHandlerActor {
             session_handler,
             dapps: Arc::new(DashMap::new()),
             wallets: Arc::new(DashMap::new()),
+            proposal_handler,
         }
     }
 
@@ -134,9 +138,6 @@ impl Handler<RpcRequest> for RequestHandlerActor {
     async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {
         let id = message.payload.id;
         let topic = message.topic.clone();
-        let responder = self.responder.clone();
-        let managers = self.pair_managers.clone();
-        let session_handlers = self.session_handler.clone();
         debug!("handing request {id}");
         match message.payload.params {
             RequestParams::PairDelete(args) => {
@@ -150,33 +151,39 @@ impl Handler<RpcRequest> for RequestHandlerActor {
             }
 
             RequestParams::SessionPropose(args) => {
-                info!("got session proposal");
-                let unknown = RpcResponse::unknown(
-                    id,
-                    topic.clone(),
-                    ResponseParamsError::SessionPropose(ErrorParams::unknown()),
-                );
-                let response: RpcResponse = process_proposal(self.clone(), id, topic, args)
-                    .await
-                    .unwrap_or_else(|e| {
-                        warn!("failed to get proposal response: {e}");
-                        unknown
-                    });
-                self.send_response(response);
+                let rpc = RpcRequest {
+                    topic,
+                    payload: Request {
+                        id,
+                        jsonrpc: message.payload.jsonrpc,
+                        params: RequestParams::SessionPropose(args),
+                    },
+                };
+                let proposal_handler = self.proposal_handler.clone();
+                tokio::spawn(async move {
+                    if let Err(e) = proposal_handler.send(rpc).await {
+                        warn!("failed to send proposal {e}");
+                    }
+                });
             }
             RequestParams::SessionSettle(args) => {
-                let unknown = RpcResponse::unknown(id, topic.clone(), (&args).unknown());
-                let response: RpcResponse = match self.dapps.get(&topic) {
-                    None => unknown,
-                    Some(dapp) => dapp
-                        .send(SessionSettled(topic.clone(), args))
-                        .await
-                        .map(|payload| RpcResponse { id, topic, payload })
-                        .unwrap_or(unknown),
+                let rpc = RpcRequest {
+                    topic: topic.clone(),
+                    payload: Request {
+                        id,
+                        jsonrpc: message.payload.jsonrpc,
+                        params: RequestParams::SessionSettle(args),
+                    },
                 };
-                self.send_response(response);
+                let proposal_handler = self.proposal_handler.clone();
+                tokio::spawn(async move {
+                    if let Err(e) = proposal_handler.send(rpc).await {
+                        warn!("failed to send proposal {e}");
+                    }
+                });
             }
             _ => {
+                let session_handlers = self.session_handler.clone();
                 tokio::spawn(async move {
                     if let Err(e) = session_handlers.send(message).await {
                         warn!("failed to send to session handler actor {e}");

@@ -57,8 +57,8 @@ impl Mocker {
         self.topics.contains_key(topic)
     }
 
+    #[tracing::instrument(level = "info")]
     async fn queue(&self, message: Message) {
-        info!("queuing message on unsubscribed topic");
         self.pending.write().await.push_back(message);
     }
 

@@ -4,8 +4,11 @@ use crate::rpc::{
     SessionSettleRequest,
 };
 use crate::session::PendingSession;
-use crate::{ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionRequestHandler};
+use crate::{
+    ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandler, SessionSettled,
+};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -22,18 +25,29 @@ const SUPPORTED_ACCOUNT: &str = "0xBA5BA3955463ADcc7aa3E33bbdfb8A68e0933dD8";
 pub struct Wallet {
     manager: PairingManager,
     pending: Arc<PendingSession>,
+    metadata: Metadata,
+}
+
+impl Display for Wallet {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}]", self.metadata.name)
+    }
+}
+
+impl Debug for Wallet {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[wallet:{}]", self.metadata.name)
+    }
 }
 
 impl Wallet {
+    #[tracing::instrument(skip(request), level = "info")]
     async fn send_settlement(
         &self,
         request: SessionProposeRequest,
         public_key: String,
     ) -> Result<()> {
-        let session_topic = self
-            .manager
-            .register_dapp_pk(self.clone(), request.proposer)
-            .await?;
+        let session_topic = self.manager.register_dapp_pk(request.proposer).await?;
         let now = chrono::Utc::now();
         let future = now + chrono::Duration::hours(24);
         let mut settled: Namespaces = Namespaces(BTreeMap::new());
@@ -67,25 +81,21 @@ impl Wallet {
             relay: RelayProtocol::default(),
             controller: Controller {
                 public_key,
-                metadata: Metadata {
-                    name: "mock wallet".to_string(),
-                    description: "mocked wallet".to_string(),
-                    url: "https://example.com".to_string(),
-                    icons: vec![],
-                    verify_url: None,
-                    redirect: None,
-                },
+                metadata: self.metadata.clone(),
             },
-            namespaces: settled,
+            namespaces: settled.clone(),
             expiry: future.timestamp(),
         };
 
         self.pending
             .settled(
                 &self.manager,
-                session_topic.clone(),
-                session_settlement.clone(),
-                true,
+                SessionSettled {
+                    topic: session_topic,
+                    namespaces: settled,
+                    expiry: session_settlement.expiry,
+                },
+                Some(session_settlement),
             )
             .await?;
         Ok(())
@@ -156,23 +166,34 @@ impl Handler<SessionProposeRequest> for Wallet {
 }
 
 impl Wallet {
-    pub fn new(manager: PairingManager) -> Self {
-        Self {
+    pub async fn new(manager: PairingManager) -> Result<Self> {
+        let metadata = Metadata {
+            name: "mock wallet".to_string(),
+            description: "mocked wallet".to_string(),
+            url: "https://example.com".to_string(),
+            icons: vec![],
+            verify_url: None,
+            redirect: None,
+        };
+
+        let me = Self {
             manager,
             pending: Arc::new(PendingSession::new()),
-        }
+            metadata,
+        };
+        me.manager.actors().proposal().send(me.clone()).await?;
+        Ok(me)
     }
 
-    pub async fn pair<T: SessionRequestHandler>(
+    #[tracing::instrument(skip(handlers), level = "info")]
+    pub async fn pair<T: SessionHandler>(
         &self,
         uri: String,
         handlers: T,
-    ) -> Result<(Pairing, ProposeFuture<Result<ClientSession>>)> {
+    ) -> Result<(Pairing, ProposeFuture)> {
         let pairing = Pairing::from_str(&uri)?;
         let rx = self.pending.add(pairing.topic.clone(), handlers);
-        self.manager
-            .register_wallet_pairing(self.clone(), pairing.clone())
-            .await?;
+        self.manager.set_pairing(pairing.clone()).await?;
         Ok((pairing, ProposeFuture::new(rx)))
     }
 }

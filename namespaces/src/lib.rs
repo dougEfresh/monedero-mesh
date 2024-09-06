@@ -6,6 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::{Display, Formatter};
 use std::ops::{Deref, DerefMut};
 
 mod account;
@@ -32,6 +33,13 @@ impl Default for Namespaces {
         let mut ns = Self(BTreeMap::new());
         ns.insert(NamespaceName::Solana, Namespace::default());
         ns
+    }
+}
+
+impl Display for Namespaces {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        //TODO display names
+        write!(f, "{}", self.deref().keys().len())
     }
 }
 

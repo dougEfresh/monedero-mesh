@@ -1,18 +1,12 @@
-use crate::actors::SessionSettled;
 use crate::rpc::{ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload};
 use crate::transport::SessionTransport;
-use crate::{Actors, ClientSession, Dapp, Result, SessionEventRequest};
+use crate::{Actors, ClientSession, Dapp, Result, SessionEventRequest, SessionSettled};
 use tokio::sync::mpsc;
 use xtra::{Context, Handler};
 
 impl Dapp {
     async fn process_settlement(&self, settled: SessionSettled) -> Result<()> {
-        self.pending
-            .settled(&self.manager, settled.0.clone(), settled.1, false)
-            .await?;
-        self.manager
-            .register_dapp_session_topic(self.clone(), settled.0)
-            .await?;
+        self.pending.settled(&self.manager, settled, None).await?;
         Ok(())
     }
 }

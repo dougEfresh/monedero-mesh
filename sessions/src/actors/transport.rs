@@ -22,7 +22,7 @@ pub(crate) struct TransportActor {
 impl Handler<ClearPairing> for TransportActor {
     type Return = ();
 
-    async fn handle(&mut self, message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, _message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
         // TODO: Do I unsubscribe?
         self.cipher.reset();
         if let Err(e) = self.inbound_response_actor.send(ClearPairing).await {

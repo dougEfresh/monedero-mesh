@@ -21,6 +21,7 @@ pub use error::Error;
 pub use pair::{PairingManager, WalletConnectBuilder};
 pub use pairing_uri::Pairing;
 use pin_project_lite::pin_project;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::future::Future;
 use std::pin::Pin;
@@ -30,11 +31,11 @@ pub use storage::KvStorage;
 use tokio::sync::oneshot;
 pub use wallet::Wallet;
 pub type Atomic<T> = Arc<Mutex<T>>;
-use crate::rpc::{SessionDeleteRequest, SessionRequestRequest};
+use crate::rpc::{SessionDeleteRequest, SessionRequestRequest, SessionSettleRequest};
 pub use actors::{Actors, RegisteredComponents};
 pub use domain::*;
 pub use rpc::{Metadata, SdkErrors};
-use walletconnect_namespaces::Event;
+use walletconnect_namespaces::{Event, Namespaces};
 pub use walletconnect_relay::ClientError;
 pub type PairingTopic = Topic;
 pub type SessionTopic = Topic;
@@ -69,9 +70,16 @@ static INIT: Once = Once::new();
 
 #[async_trait]
 pub trait SocketListener: Sync + Send + 'static {
-    async fn handle_socket_event(&self, event: SocketEvent);
+    async fn handle_socket_event(&self, event: SocketEvent) {}
 }
 
+pin_project! {
+    pub struct ProposeFuture {
+        #[pin]
+        receiver: oneshot::Receiver<Result<ClientSession>>,
+    }
+}
+/*
 pin_project! {
     pub struct ProposeFuture<T> {
         #[pin]
@@ -79,20 +87,32 @@ pin_project! {
     }
 }
 
+
 impl<T> ProposeFuture<T> {
     #[must_use]
-    pub fn new(receiver: oneshot::Receiver<T>) -> Self {
+    pub fn new(receiver: oneshot::Receiver<Result<ClientSession>>) -> Self {
+        Self { receiver }
+    }
+}
+ */
+
+impl ProposeFuture {
+    #[must_use]
+    pub fn new(receiver: oneshot::Receiver<Result<ClientSession>>) -> Self {
         Self { receiver }
     }
 }
 
-impl<T> Future for ProposeFuture<T> {
-    type Output = Result<T>;
+impl Future for ProposeFuture {
+    type Output = Result<ClientSession>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         match self.project().receiver.poll(cx) {
-            Poll::Ready(Ok(value)) => Poll::Ready(Ok(value)),
-            Poll::Ready(Err(_)) => Poll::Ready(Err(Error::ReceiveError)),
+            Poll::Ready(Ok(value)) => Poll::Ready(value),
+            Poll::Ready(Err(e)) => {
+                tracing::warn!("recv error? {e}");
+                Poll::Ready(Err(Error::ReceiveError))
+            }
             Poll::Pending => Poll::Pending,
         }
     }
@@ -105,12 +125,12 @@ pub enum SessionEventRequest {
 
 #[async_trait]
 pub trait SessionEventHandler: Send + Sync + 'static {
-    async fn event(&self, event: Event);
+    async fn event(&self, event: Event) {}
 }
 
 #[async_trait]
-pub trait SessionRequestHandler: Send + Sync + 'static + SessionEventHandler {
-    async fn request(&self, request: SessionRequestRequest);
+pub trait SessionHandler: Send + Sync + 'static + SessionEventHandler {
+    async fn request(&self, request: SessionRequestRequest) {}
 }
 
 pub struct NoopSessionHandler;
@@ -122,10 +142,12 @@ impl SessionEventHandler for NoopSessionHandler {
     }
 }
 
+impl SocketListener for NoopSessionHandler {}
+
 #[async_trait]
-impl SessionRequestHandler for NoopSessionHandler {
+impl SessionHandler for NoopSessionHandler {
     async fn request(&self, request: SessionRequestRequest) {
-        tracing::info!("got session request");
+        tracing::info!("got session request {:#?}", request);
     }
 }
 
@@ -139,6 +161,22 @@ pub trait SessionDeleteHandler: Send + Sync + 'static {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(crate) struct SessionSettled {
+    pub topic: SessionTopic,
+    pub namespaces: Namespaces,
+    /// Unix timestamp.
+    ///
+    /// Expiry should be between .now() + TTL.
+    pub expiry: i64,
+}
+
+impl Display for SessionSettled {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}] [{}]", shorten_topic(&self.topic), self.namespaces)
+    }
+}
+
 pub(crate) fn shorten_topic(id: &Topic) -> String {
     let mut id = format!("{id}");
     if id.len() > 10 {
@@ -149,7 +187,7 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::{NoopSessionHandler, SessionRequestHandler, INIT};
+    use crate::{NoopSessionHandler, SessionHandler, INIT};
     use std::sync::Arc;
     use std::time::Duration;
     use tokio::sync::Mutex;
@@ -171,7 +209,7 @@ pub(crate) mod test {
 
     #[derive(Clone, Actor)]
     struct Actor1 {
-        handlers: Arc<Mutex<Vec<Box<dyn SessionRequestHandler>>>>,
+        handlers: Arc<Mutex<Vec<Box<dyn SessionHandler>>>>,
     }
 
     #[derive(Actor)]
@@ -180,12 +218,12 @@ pub(crate) mod test {
     #[derive(Clone)]
     struct Dummy;
 
-    impl Handler<Box<dyn SessionRequestHandler>> for Actor1 {
+    impl Handler<Box<dyn SessionHandler>> for Actor1 {
         type Return = ();
 
         async fn handle(
             &mut self,
-            message: Box<dyn SessionRequestHandler>,
+            message: Box<dyn SessionHandler>,
             _ctx: &mut Context<Self>,
         ) -> Self::Return {
             self.handlers.lock().await.push(message);
@@ -231,9 +269,9 @@ pub(crate) mod test {
     #[tokio::test]
     async fn test_actor_broadcast() -> anyhow::Result<()> {
         init_tracing();
-        let handlers: Arc<Mutex<Vec<Box<dyn SessionRequestHandler>>>> =
+        let handlers: Arc<Mutex<Vec<Box<dyn SessionHandler>>>> =
             Arc::new(Mutex::new(vec![Box::new(NoopSessionHandler {})]));
-        let boxed: Box<dyn SessionRequestHandler> = Box::new(NoopSessionHandler {});
+        let boxed: Box<dyn SessionHandler> = Box::new(NoopSessionHandler {});
         let act = Actor1 { handlers };
         let a1 = xtra::spawn_tokio(act.clone(), Mailbox::unbounded());
         a1.send(Dummy).await?;

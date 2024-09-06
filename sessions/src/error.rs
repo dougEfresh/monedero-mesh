@@ -83,4 +83,7 @@ pub enum Error {
 
     #[error("No pairing manager for {0:#?}")]
     NoPairManager(Topic),
+
+    #[error("No client session for {0:#?}")]
+    NoClientSession(Topic),
 }

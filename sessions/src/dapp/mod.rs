@@ -1,16 +1,15 @@
 mod session_settle;
 
-use crate::actors::SessionSettled;
 use crate::rpc::{
     Metadata, RequestParams, SessionProposeRequest, SessionProposeResponse, SessionSettleRequest,
 };
 use crate::session::{ClientSession, PendingSession};
 use crate::Error::NoPairingTopic;
 use crate::{
-    Pairing, PairingManager, PairingTopic, ProposeFuture, Result, SessionRequestHandler,
-    SessionTopic,
+    Pairing, PairingManager, PairingTopic, ProposeFuture, Result, SessionHandler, SessionSettled,
+    SessionTopic, SocketListener,
 };
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use tracing::{error, info};
 use walletconnect_namespaces::Namespaces;
@@ -23,13 +22,25 @@ pub struct Dapp {
     md: Metadata,
 }
 
+fn common_display(dapp: &Dapp) -> String {
+    format!(
+        "{} pairing:{}",
+        dapp.md.name,
+        dapp.manager
+            .topic()
+            .map_or("unknown".to_string(), |topic| crate::shorten_topic(&topic))
+    )
+}
+
+impl Display for Dapp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", common_display(self))
+    }
+}
+
 impl Debug for Dapp {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let result: String = self
-            .manager
-            .topic()
-            .map_or("unknown".to_string(), |topic| crate::shorten_topic(&topic));
-        write!(f, "{} pairing:{}", self.md.name, result)
+        write!(f, "{}", common_display(self))
     }
 }
 
@@ -38,9 +49,7 @@ async fn await_settlement_response(dapp: &Dapp, params: RequestParams) -> Result
         .manager
         .publish_request::<SessionProposeResponse>(params)
         .await?;
-    dapp.manager
-        .register_wallet_pk(dapp.clone(), response)
-        .await?;
+    dapp.manager.register_wallet_pk(response).await?;
     Ok(())
 }
 
@@ -56,65 +65,64 @@ fn public_key(pairing: &Pairing) -> String {
     data_encoding::HEXLOWER_PERMISSIVE.encode(pk.as_bytes())
 }
 
-async fn finalize_restore(
-    dapp: Dapp,
-    topic: SessionTopic,
-    settled: SessionSettleRequest,
-) -> Result<()> {
-    dapp.pending
-        .settled(&dapp.manager, topic.clone(), settled.clone(), false)
-        .await?;
-    dapp.manager
-        .register_dapp_session_topic(dapp.clone(), topic)
-        .await?;
+async fn finalize_restore(dapp: Dapp, settled: SessionSettled) -> Result<()> {
+    dapp.pending.settled(&dapp.manager, settled, None).await?;
     Ok(())
 }
 
 impl Dapp {
-    #[must_use]
-    pub fn new(manager: PairingManager, md: Metadata) -> Self {
-        Self {
+    pub async fn new(manager: PairingManager, md: Metadata) -> Result<Self> {
+        let me = Self {
             manager,
             pending: Arc::new(PendingSession::new()),
             md,
-        }
+        };
+        me.manager.actors().proposal().send(me.clone()).await?;
+        Ok(me)
     }
 
     pub async fn pair_ping(&self) -> Result<bool> {
         self.manager.ping().await
     }
 
-    fn restore_session<T: SessionRequestHandler>(
+    fn restore_session<T: SessionHandler>(
         &self,
-        topic: SessionTopic,
-        settlement: SessionSettleRequest,
+        settlement: SessionSettled,
         handlers: T,
-    ) -> Result<(Pairing, ProposeFuture<Result<ClientSession>>)> {
+    ) -> Result<(Pairing, ProposeFuture)> {
         info!("dapp session restore");
         let pairing = self.manager.pairing().ok_or(NoPairingTopic)?;
         let rx = self.pending.add(pairing.topic.clone(), handlers);
         let dapp = self.clone();
         tokio::spawn(async move {
-            if let Err(e) = finalize_restore(dapp, topic, settlement).await {
+            if let Err(e) = finalize_restore(dapp, settlement).await {
                 error!("failed to finalize session restore! {e}");
             }
         });
         Ok((pairing, ProposeFuture::new(rx)))
     }
 
+    /// Propose
+    ///
+    /// Reference spec: [https://specs.walletconnect.com/2.0/specs/clients/core/pairing]
+    /// This function will restore sessions if there is a matching namespace session
+    /// Otherwise new pairing session will be established
     #[tracing::instrument(level = "debug", skip(handlers, chains))]
-    pub async fn propose<T: SessionRequestHandler>(
+    pub async fn propose<T>(
         &self,
         handlers: T,
         chains: impl Into<Namespaces>,
-    ) -> Result<(Pairing, ProposeFuture<Result<ClientSession>>)> {
+    ) -> Result<(Pairing, ProposeFuture)>
+    where
+        T: SessionHandler,
+    {
         let namespaces: Namespaces = chains.into();
 
         if let Some(settled) = self.manager.find_session(&namespaces) {
-            return self.restore_session(settled.0, settled.1, handlers);
+            return self.restore_session(settled, handlers);
         }
 
-        let pairing = Pairing::default();
+        let pairing = self.manager.pairing().unwrap_or_default();
         self.manager.set_pairing(pairing.clone()).await?;
         let rx = self.pending.add(pairing.topic.clone(), handlers);
         let pk = public_key(&pairing);
@@ -128,5 +136,9 @@ impl Dapp {
         let topic = pairing.topic.clone();
         tokio::spawn(async move { begin_settlement_flow(dapp, topic, params).await });
         Ok((pairing, ProposeFuture::new(rx)))
+    }
+
+    pub fn pairing(&self) -> Option<Pairing> {
+        self.manager.pairing()
     }
 }

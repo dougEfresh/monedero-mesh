@@ -1,5 +1,4 @@
-//! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
-//! #wc_sessionupdate
+//! (wc_sessionUpdate)[https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods#wc_sessionupdate]
 
 use super::IrnMetadata;
 use serde::{Deserialize, Serialize};
