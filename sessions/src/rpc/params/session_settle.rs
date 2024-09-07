@@ -1,6 +1,7 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionsettle
 
+use std::fmt::{Display, Formatter};
 use crate::rpc::params::Controller;
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
 use walletconnect_namespaces::Namespaces;
@@ -31,6 +32,12 @@ pub struct SessionSettleRequest {
     ///
     /// Expiry should be between .now() + TTL.
     pub expiry: i64,
+}
+
+impl Display for SessionSettleRequest {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "namespaces=[{}]", self.namespaces)
+    }
 }
 
 impl IntoUnknownError for SessionSettleRequest {

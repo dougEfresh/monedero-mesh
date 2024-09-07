@@ -1,7 +1,8 @@
+use std::fmt::{Debug, Formatter};
 use crate::actors::proposal::ProposalActor;
 use crate::actors::session::SessionRequestHandlerActor;
 use crate::actors::{
-    ClearPairing, RegisterDapp, RegisterTopicManager, RegisterWallet, RegisteredComponents,
+    ClearPairing, RegisteredComponents,
     TransportActor,
 };
 use crate::domain::Topic;
@@ -23,6 +24,11 @@ pub struct RequestHandlerActor {
     pub(super) responder: Address<TransportActor>,
     session_handler: Address<SessionRequestHandlerActor>,
     proposal_handler: Address<ProposalActor>,
+}
+impl Debug for RequestHandlerActor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "actor-request pair_manager={}", self.pair_managers.is_some())
+    }
 }
 
 impl Handler<RegisteredComponents> for RequestHandlerActor {
@@ -75,6 +81,7 @@ impl RequestHandlerActor {
 impl Handler<RpcRequest> for RequestHandlerActor {
     type Return = ();
 
+    #[tracing::instrument(level = "info", skip(_ctx), fields(message = %message))]
     async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {
         let id = message.payload.id;
         let topic = message.topic.clone();

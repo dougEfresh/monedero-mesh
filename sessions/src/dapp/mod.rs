@@ -3,7 +3,7 @@ mod session_settle;
 use crate::rpc::{
     Metadata, RequestParams, SessionProposeRequest, SessionProposeResponse, SessionSettleRequest,
 };
-use crate::session::{ClientSession, PendingSession};
+use crate::session::{Category, ClientSession, PendingSession};
 use crate::Error::NoPairingTopic;
 use crate::{
     Pairing, PairingManager, PairingTopic, ProposeFuture, Result, SessionHandler, SessionSettled,
@@ -66,7 +66,7 @@ fn public_key(pairing: &Pairing) -> String {
 }
 
 async fn finalize_restore(dapp: Dapp, settled: SessionSettled) -> Result<()> {
-    dapp.pending.settled(&dapp.manager, settled, None).await?;
+    dapp.pending.settled(&dapp.manager, settled, Category::Dapp, None).await?;
     Ok(())
 }
 

@@ -104,6 +104,7 @@ impl ProposeNamespaces {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn caip2_validate(&self) -> Result<(), ProposeNamespaceError> {
         let caip_regex = get_caip2_regex();
         for (name, namespace) in self.iter() {
@@ -138,83 +139,9 @@ pub struct ProposeNamespace {
     pub extensions: Option<Vec<Self>>,
 }
 
-const EIP_SUPPORTED_METHODS: &[&str] = &[
-    "eth_sendTransaction",
-    "eth_signTransaction",
-    "eth_sign",
-    "personal_sign",
-    "eth_signTypedData",
-    "eth_signTypedData_v4",
-];
-
-const EIP_SUPPORTED_EVENTS: &[&str] = &["chainChanged", "accountsChanged"];
-
-impl From<Vec<Chain>> for ProposeNamespace {
-    fn from(value: Vec<Chain>) -> Self {
-        Self {
-            chains: value.iter().map(|c| format!("eip155:{}", c.id())).collect(),
-            methods: EIP_SUPPORTED_METHODS
-                .iter()
-                .map(std::string::ToString::to_string)
-                .collect(),
-            events: EIP_SUPPORTED_EVENTS
-                .iter()
-                .map(std::string::ToString::to_string)
-                .collect(),
-            extensions: None,
-        }
-    }
-}
-
 impl ProposeNamespace {
-    /// Ensures that application is compatible with the requester requirements.
-    ///
-    /// Implementation must support at least all the elements in `required`.
-    pub fn supported(&self, required: &Self) -> Result<(), ProposeNamespaceError> {
-        let join_error_elements =
-            |required: &BTreeSet<String>, ours: &BTreeSet<String>| -> String {
-                required
-                    .difference(ours)
-                    .map(std::string::String::as_str)
-                    .collect::<Vec<&str>>()
-                    .join(",")
-            };
 
-        if !self.chains.is_superset(&required.chains) {
-            return Err(ProposeNamespaceError::UnsupportedChains(
-                join_error_elements(&required.chains, &self.chains),
-            ));
-        }
-
-        if !self.methods.is_superset(&required.methods) {
-            return Err(ProposeNamespaceError::UnsupportedMethods(
-                join_error_elements(&required.methods, &self.methods),
-            ));
-        }
-
-        if !self.events.is_superset(&required.events) {
-            return Err(ProposeNamespaceError::UnsupportedEvents(
-                join_error_elements(&required.events, &self.events),
-            ));
-        }
-
-        // TODO: extension comparison probably should follow the same
-        // validation process as above for non optional namespaces.
-        match (&self.extensions, &required.extensions) {
-            (Some(this), Some(other)) => {
-                if !other.iter().all(|item| this.contains(item)) {
-                    return Err(ProposeNamespaceError::UnsupportedExtensions);
-                }
-            }
-            (Some(_), None) => {
-                return Err(ProposeNamespaceError::UnsupportedExtensions);
-            }
-            (None, Some(_)) | (None, None) => {}
-        }
-
-        Ok(())
-    }
-
+    #[allow(dead_code)]
     pub fn chains_caip2_validate(
         &self,
         namespace: &str,

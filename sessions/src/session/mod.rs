@@ -7,7 +7,7 @@ use crate::{
 use crate::{Result, SessionDeleteHandler};
 use dashmap::DashMap;
 use serde::de::DeserializeOwned;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use tokio::sync::oneshot::Sender;
 use tokio::sync::{mpsc, oneshot, Mutex};
@@ -24,6 +24,33 @@ use crate::crypto::CipherError;
 pub(crate) use pending::PendingSession;
 use walletconnect_namespaces::Namespaces;
 
+#[derive(Clone, Hash, Eq, PartialEq)]
+pub(crate) enum Category {
+    Dapp,
+    Wallet,
+}
+
+impl Category {
+    fn fmt_common(&self) -> String {
+        match self {
+            Category::Dapp => String::from("[dapp]"),
+            Category::Wallet => String::from("[wallet")
+        }
+    }
+}
+
+impl Debug for Category {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.fmt_common())
+    }
+}
+
+impl Display for Category {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.fmt_common())
+    }
+}
+
 /// https://specs.walletconnect.com/2.0/specs/clients/sign/session-proposal
 ///
 /// New session as the result of successful session proposal.
@@ -33,11 +60,12 @@ pub struct ClientSession {
     transport: SessionTransport,
     session_actor: Address<SessionRequestHandlerActor>,
     handler: Arc<Mutex<Box<dyn SessionHandler>>>,
+    category: Category,
 }
 
 impl Debug for ClientSession {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", crate::shorten_topic(&self.topic()))
+        write!(f, "{} topic:{}", self.category, crate::shorten_topic(&self.topic()))
     }
 }
 
@@ -47,12 +75,14 @@ impl ClientSession {
         transport: SessionTransport,
         settled: SessionSettled,
         handler: Arc<Mutex<Box<dyn SessionHandler>>>,
+        category: Category,
     ) -> Result<Self> {
         let me = Self {
             session_actor,
             transport,
             settled: Arc::new(settled),
             handler,
+            category
         };
         me.register().await?;
         Ok(me)

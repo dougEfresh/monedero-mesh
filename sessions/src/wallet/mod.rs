@@ -5,7 +5,7 @@ use crate::rpc::{
     RpcResponsePayload, SdkErrors, SessionProposeRequest, SessionProposeResponse,
     SessionSettleRequest,
 };
-use crate::session::PendingSession;
+use crate::session::{Category, PendingSession};
 use crate::wallet::settlement::WalletSettlementActor;
 use crate::{
     ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandler, SessionSettled,
@@ -76,6 +76,7 @@ impl Wallet {
                     namespaces,
                     expiry: session_settlement.expiry,
                 },
+                Category::Wallet,
                 Some(session_settlement),
             )
             .await?;

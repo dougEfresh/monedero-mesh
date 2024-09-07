@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use crate::actors::{AddRequest, ClearPairing, InboundResponseActor, SendRequest, Unsubscribe};
 use crate::domain::{MessageId, SubscriptionId};
 use crate::rpc::{
@@ -8,15 +9,21 @@ use crate::Result;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::oneshot;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 use walletconnect_relay::Client;
 use xtra::{Address, Context, Handler};
 
 #[derive(Clone, xtra::Actor)]
-pub(crate) struct TransportActor {
+pub struct TransportActor {
     cipher: Cipher,
     relay: Option<Client>,
     inbound_response_actor: Address<InboundResponseActor>,
+}
+
+impl Debug for TransportActor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[actor-transport]")
+    }
 }
 
 impl Handler<ClearPairing> for TransportActor {
@@ -127,6 +134,7 @@ impl Handler<RpcResponse> for TransportActor {
 impl Handler<SendRequest> for TransportActor {
     type Return = Result<(MessageId, Duration, oneshot::Receiver<Response>)>;
 
+    #[tracing::instrument(skip(_ctx), level = "info", fields(message = message.to_string()))]
     async fn handle(&mut self, message: SendRequest, _ctx: &mut Context<Self>) -> Self::Return {
         let relay = self.relay.as_ref().ok_or(crate::Error::NoClient)?;
         let (id, rx) = self.inbound_response_actor.send(AddRequest).await?;
@@ -135,7 +143,6 @@ impl Handler<SendRequest> for TransportActor {
         let params = message.1;
         let irn_metadata = params.irn_metadata();
         let request = Request::new(id, params);
-        info!("Sending request topic={topic}");
         let encrypted = self.cipher.encode(&topic, &request)?;
         let ttl = Duration::from_secs(irn_metadata.ttl);
         relay

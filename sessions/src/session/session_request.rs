@@ -27,8 +27,3 @@ impl Handler<SessionRequestRequest> for ClientSession {
         }
     }
 }
-
-#[derive(Clone, Actor)]
-pub struct WalletRequestHandler {
-    handler: Arc<Mutex<Box<dyn SessionHandler>>>,
-}

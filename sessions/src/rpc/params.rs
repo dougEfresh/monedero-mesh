@@ -11,6 +11,7 @@ pub(super) mod session_settle;
 pub(super) mod session_update;
 pub(super) mod shared_types;
 
+use std::fmt::{Debug, Display, Formatter};
 pub use {
     pair_delete::*, pair_extend::*, pair_ping::*, session_delete::*, session_event::*,
     session_extend::*, session_ping::*, session_propose::*, session_request::*, session_settle::*,
@@ -167,6 +168,25 @@ pub enum RequestParams {
     SessionDelete(SessionDeleteRequest),
     #[serde(rename = "wc_sessionPing")]
     SessionPing(()),
+}
+
+impl Display for RequestParams {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let req: &str = match self {
+            RequestParams::PairDelete(_) => "pairDelete",
+            RequestParams::PairExtend(_) => "pairExtend",
+            RequestParams::PairPing(_) => "pairPing",
+            RequestParams::SessionPropose(args) => &format!("sessionPropose: {}", args),
+            RequestParams::SessionSettle(args) => &format!("sessionSettle: {}", args),
+            RequestParams::SessionUpdate(_) => "sessionUpdate",
+            RequestParams::SessionExtend(_) => "sessionExtend",
+            RequestParams::SessionRequest(args) => &format!("sessionRequest: {}", args),
+            RequestParams::SessionEvent(args) => &format!("sessionEvent: {}", args.event.name),
+            RequestParams::SessionDelete(_) => "sessionDelete",
+            RequestParams::SessionPing(_) => "sessionPing"
+        };
+        write!(f, "{}", req)
+    }
 }
 
 impl_relay_protocol_metadata!(RequestParams, request);

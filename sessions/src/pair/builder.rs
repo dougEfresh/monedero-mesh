@@ -6,7 +6,9 @@ use walletconnect_relay::{ConnectionOptions, SerializedAuthToken};
 
 pub struct WalletConnectBuilder {
     connect_opts: Option<ConnectionOptions>,
+    #[cfg(not(feature = "mock"))]
     auth: SerializedAuthToken,
+    #[cfg(not(feature = "mock"))]
     project_id: ProjectId,
     store: Option<KvStorage>,
 }
@@ -17,7 +19,9 @@ impl WalletConnectBuilder {
     pub fn new(project_id: ProjectId, auth: SerializedAuthToken) -> Self {
         Self {
             connect_opts: None,
+            #[cfg(not(feature = "mock"))]
             auth,
+            #[cfg(not(feature = "mock"))]
             project_id,
             store: None,
         }

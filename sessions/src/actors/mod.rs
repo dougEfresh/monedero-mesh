@@ -6,6 +6,7 @@ mod session;
 mod session_handlers;
 mod transport;
 
+use std::fmt::{Debug, Display, Formatter};
 pub(crate) use crate::actors::session::SessionRequestHandlerActor;
 use crate::domain::Topic;
 use crate::rpc::RequestParams;
@@ -31,14 +32,16 @@ pub struct Actors {
 
 pub(crate) struct ClearPairing;
 pub(crate) struct Unsubscribe(pub Topic);
-pub(crate) struct RegisterDapp(pub Topic, pub Dapp);
-pub(crate) struct RegisterWallet(pub Topic, pub Wallet);
-pub struct RegisteredManagers;
 pub(crate) struct SendRequest(pub(crate) Topic, pub(crate) RequestParams);
 pub(crate) struct SessionPing;
-pub(crate) struct RegisterTopicManager(pub(crate) Topic, pub(crate) PairingManager);
 pub(crate) struct AddRequest;
 pub struct ClearSession(pub Topic);
+
+impl Display for SendRequest {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "topic={} request={}", crate::shorten_topic(&self.0), &self.1)
+    }
+}
 
 /// Get number of sessions/pair managers are active
 pub struct RegisteredComponents;

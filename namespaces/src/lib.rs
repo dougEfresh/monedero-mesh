@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
 
 mod account;
@@ -24,22 +24,35 @@ pub use crate::name::NamespaceName;
 pub use alloy_chains::Chain as AlloyChain;
 pub use error::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Namespaces(pub BTreeMap<NamespaceName, Namespace>);
 
+impl Namespaces {
+  pub fn namespaces(&self) -> String {
+    self
+      .keys()
+      .map(|key| key.to_string())
+      .collect::<Vec<_>>()
+      .join(", ")
+  }
+}
+
 impl Default for Namespaces {
-    fn default() -> Self {
-        let mut ns = Self(BTreeMap::new());
-        ns.insert(NamespaceName::Solana, Namespace::default());
-        ns
-    }
+  fn default() -> Self {
+    Self(BTreeMap::new())
+  }
+}
+
+impl Debug for Namespaces {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}" , self.namespaces())
+  }
 }
 
 impl Display for Namespaces {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        //TODO display names
-        write!(f, "{}", self.deref().keys().len())
+      write!(f, "{}" , self.namespaces())
     }
 }
 

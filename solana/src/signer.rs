@@ -21,7 +21,6 @@ struct ChannelProps {
 #[derive(Clone)]
 pub struct WalletConnectSigner {
     session: SolanaSession,
-    //tx: std::sync::mpsc::Sender<ChannelProps>
     tx: tokio::sync::mpsc::UnboundedSender<ChannelProps>,
 }
 

@@ -1,4 +1,4 @@
-use crate::actors::{ClearPairing, RegisterDapp, RegisterTopicManager, RegisterWallet};
+use crate::actors::ClearPairing;
 use crate::rpc::{Proposer, SessionProposeResponse};
 use crate::{Dapp, Pairing, PairingManager, Result, SessionTopic, SubscriptionId, Topic, Wallet};
 use tracing::{debug, info, warn};

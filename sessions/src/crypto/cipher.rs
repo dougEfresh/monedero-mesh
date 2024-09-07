@@ -213,7 +213,7 @@ impl Cipher {
         Ok(session.expiry < now)
     }
 
-    #[tracing::instrument(level = "info")]
+    #[tracing::instrument(level = "info", fields(topic = crate::shorten_topic(topic)))]
     pub(crate) fn delete_session(&self, topic: &Topic) -> Result<(), CipherError> {
         self.storage.delete(Self::storage_session_key(topic))?;
         if let Some(sessions) = self.storage.get::<Vec<Topic>>(Self::storage_sessions())? {

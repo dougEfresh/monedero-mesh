@@ -4,7 +4,8 @@ mod pairing;
 mod registration;
 mod socket_handler;
 
-use crate::actors::{Actors, RegisterTopicManager};
+use std::fmt::{Debug, Formatter};
+use crate::actors::Actors;
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
 use crate::rpc::{
@@ -22,10 +23,6 @@ use tracing::{info, warn};
 use walletconnect_namespaces::Namespaces;
 use walletconnect_relay::{Client, ConnectionOptions};
 
-pub trait PairHandler: Send + 'static {
-    fn ping(&mut self, topic: Topic);
-    fn delete(&mut self, reason: ErrorParams, topic: Topic);
-}
 
 #[derive(Clone, xtra::Actor)]
 pub struct PairingManager {
@@ -35,6 +32,13 @@ pub struct PairingManager {
     transport: TopicTransport,
     actors: Actors,
     pub(super) socket_listeners: Arc<tokio::sync::Mutex<Vec<Box<dyn SocketListener>>>>,
+}
+
+impl Debug for PairingManager {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let t: String =  self.topic().map(|t| crate::shorten_topic(&t)).unwrap_or(String::from("no-pairing"));
+        write!(f, "pairing={} projectId={}", t, self.opts.project_id)
+    }
 }
 
 impl PairingManager {
@@ -69,7 +73,6 @@ impl PairingManager {
         actors.request().send(mgr.clone()).await?;
         let socket_handler = mgr.clone();
         tokio::spawn(socket_handler::handle_socket(socket_handler, socket_rx));
-        info!("Opening connection to wc relay");
         mgr.open_socket().await?;
         mgr.restore_saved_pairing().await?;
         Ok(mgr)
@@ -205,8 +208,8 @@ impl PairingManager {
         self.disconnect_socket().await
     }
 
+    #[tracing::instrument(level = "info")]
     pub async fn open_socket(&self) -> Result<()> {
-        info!("opening websocket");
         self.relay.connect(&self.opts).await?;
         Ok(())
     }

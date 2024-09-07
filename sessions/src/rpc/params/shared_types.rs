@@ -1,10 +1,9 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/data-structures
 
-mod propose_namespaces;
+//mod propose_namespaces;
 mod settle_namespaces;
 
-use crate::rpc::{ErrorParams, ResponseParamsError, RELAY_PROTOCOL};
-pub use propose_namespaces::ProposeNamespaceError;
+use crate::rpc::{ResponseParamsError, RELAY_PROTOCOL};
 use serde::{Deserialize, Serialize};
 
 /// The maximum number of topics allowed for a batch subscribe request.

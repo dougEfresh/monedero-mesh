@@ -1,6 +1,7 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionpropose
 
+use std::fmt::{Debug, Display, Formatter};
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
 use walletconnect_namespaces::Namespaces;
 use {
@@ -45,6 +46,16 @@ pub struct SessionProposeRequest {
     pub required_namespaces: Namespaces,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub optional_namespaces: Option<Namespaces>,
+}
+
+impl Display for SessionProposeRequest {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let opt = match &self.optional_namespaces {
+            Some(o) => format!("{}", o),
+            None => String::new()
+        };
+        write!(f, "required:[{}] optional:[{}]", self.required_namespaces, opt)
+    }
 }
 
 impl SessionProposeRequest {

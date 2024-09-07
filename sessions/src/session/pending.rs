@@ -8,6 +8,7 @@ use tracing::warn;
 use crate::rpc::{RequestParams, SessionSettleRequest};
 use crate::transport::SessionTransport;
 use crate::{ClientSession, PairingTopic, SessionHandler};
+use crate::session::Category;
 
 pub struct HandlerContainer {
     pub tx: Sender<Result<ClientSession>>,
@@ -60,6 +61,7 @@ impl PendingSession {
         &self,
         mgr: &PairingManager,
         settled: SessionSettled,
+        category: Category,
         send_to_peer: Option<SessionSettleRequest>,
     ) -> Result<ClientSession> {
         let pairing_topic = mgr.topic().ok_or(Error::NoPairingTopic)?;
@@ -74,6 +76,7 @@ impl PendingSession {
             session_transport,
             settled.clone(),
             handlers.handlers,
+            category,
         )
         .await?;
         if let Some(req) = send_to_peer {

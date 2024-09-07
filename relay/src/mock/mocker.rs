@@ -57,7 +57,7 @@ impl Mocker {
         self.topics.contains_key(topic)
     }
 
-    #[tracing::instrument(level = "info")]
+    #[tracing::instrument(level = "debug")]
     async fn queue(&self, message: Message) {
         self.pending.write().await.push_back(message);
     }
@@ -80,7 +80,7 @@ impl Display for Mocker {
 }
 
 impl Mocker {
-    #[tracing::instrument(level = "info", skip(message))]
+    #[tracing::instrument(level = "debug", skip(message))]
     #[allow(clippy::missing_errors_doc)]
     pub async fn publish(
         &self,
@@ -112,7 +112,7 @@ impl Mocker {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info")]
+    #[tracing::instrument(level = "debug")]
     #[allow(clippy::missing_errors_doc)]
     pub async fn subscribe(&self, topic: Topic) -> Result<SubscriptionId> {
         if topic.value() == DISCONNECT_TOPIC.value() {
@@ -130,7 +130,7 @@ impl Mocker {
         Ok(id)
     }
 
-    #[tracing::instrument(level = "info")]
+    #[tracing::instrument(level = "debug")]
     #[allow(clippy::missing_errors_doc)]
     pub async fn unsubscribe(&self, topic: Topic) -> Result<()> {
         if !self.connected.load(Ordering::Relaxed) {
@@ -140,7 +140,7 @@ impl Mocker {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info")]
+    #[tracing::instrument(level = "debug")]
     pub fn connect_state(&self, state: MockEvent) -> Result<()> {
         if let Err(e) = self.socket_tx.send(state) {
             warn!("{} failed to broadcast connection state {e}", self);

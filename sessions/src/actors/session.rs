@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use crate::actors::{
     ClearPairing, ClearSession, RequestHandlerActor, SessionPing, TransportActor, Unsubscribe,
 };
@@ -21,6 +22,12 @@ pub struct SessionRequestHandlerActor {
     pub(super) sessions: Arc<DashMap<Topic, Address<ClientSession>>>,
     pub(super) responder: Address<TransportActor>,
     pub(super) cipher: Cipher,
+}
+
+impl Debug for SessionRequestHandlerActor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "actor-session sessions:{}", self.sessions.len())
+    }
 }
 
 impl SessionRequestHandlerActor {
@@ -52,7 +59,7 @@ impl Handler<ClearPairing> for SessionRequestHandlerActor {
 impl Handler<ClientSession> for SessionRequestHandlerActor {
     type Return = ();
 
-    #[tracing::instrument(skip(self, _ctx), level = "debug")]
+    #[tracing::instrument(skip(_ctx), level = "debug")]
     async fn handle(&mut self, message: ClientSession, _ctx: &mut Context<Self>) -> Self::Return {
         let topic = message.topic();
         let addr = xtra::spawn_tokio(message.clone(), Mailbox::unbounded());
@@ -77,10 +84,10 @@ impl Handler<RegisteredComponents> for SessionRequestHandlerActor {
 impl Handler<RpcRequest> for SessionRequestHandlerActor {
     type Return = ();
 
+    #[tracing::instrument(skip(_ctx), level = "info", fields(message = message.to_string()))]
     async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {
         match message.payload.params {
             RequestParams::SessionUpdate(args) => {
-                info!("SessionEvent request {args:#?}");
                 let response = RpcResponse {
                     id: message.payload.id,
                     topic: message.topic,
@@ -93,7 +100,6 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                 }
             }
             RequestParams::SessionExtend(args) => {
-                tracing::info!("SessionEvent request {args:#?}");
                 let response = RpcResponse {
                     id: message.payload.id,
                     topic: message.topic,
@@ -106,12 +112,10 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                 }
             }
             RequestParams::SessionRequest(args) => {
-                info!("SessionRequest {args:#?}");
                 self.handle_session_request(message.payload.id, message.topic, args)
                     .await;
             }
             RequestParams::SessionEvent(args) => {
-                tracing::info!("SessionEvent request {args:#?}");
                 let response = RpcResponse {
                     id: message.payload.id,
                     topic: message.topic,
@@ -122,7 +126,6 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                 }
             }
             RequestParams::SessionDelete(args) => {
-                info!("handling session delete request");
                 if let Err(e) = self
                     .responder
                     .send(RpcResponse {

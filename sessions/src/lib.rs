@@ -101,7 +101,7 @@ pub enum SessionEventRequest {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub(crate) struct SessionSettled {
+pub struct SessionSettled {
     pub topic: SessionTopic,
     pub namespaces: Namespaces,
     /// Unix timestamp.

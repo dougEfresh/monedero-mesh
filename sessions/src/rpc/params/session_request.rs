@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 /// (wc_sessionRequest)[https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods#wc_sessionrequest]
 use super::IrnMetadata;
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
@@ -33,6 +34,12 @@ pub struct RequestMethod {
 pub struct SessionRequestRequest {
     pub request: RequestMethod,
     pub chain_id: ChainId,
+}
+
+impl Display for SessionRequestRequest {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "chain: {} method: {}", self.chain_id, self.request.method)
+    }
 }
 
 impl IntoUnknownError for SessionRequestRequest {

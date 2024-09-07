@@ -5,6 +5,7 @@ use tokio::sync::mpsc;
 use tracing::{info, warn};
 use xtra::prelude::*;
 
+#[allow(dead_code)]
 pub async fn handle_delete<T: SessionDeleteHandler>(
     handler: T,
     mut rx: mpsc::Receiver<SessionDeleteRequest>,
