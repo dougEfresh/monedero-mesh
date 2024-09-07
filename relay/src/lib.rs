@@ -1,4 +1,3 @@
-pub use ed25519_dalek::*;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
@@ -7,6 +6,7 @@ use std::time::Duration;
 use walletconnect_sdk::client::websocket::PublishedMessage;
 use walletconnect_sdk::client::Authorization;
 pub use walletconnect_sdk::client::MessageIdGenerator;
+use walletconnect_sdk::rpc::auth::ed25519_dalek::SigningKey;
 pub use walletconnect_sdk::rpc::auth::*;
 pub use walletconnect_sdk::rpc::domain::{
     ClientIdDecodingError, DecodedTopic, MessageId, ProjectId, SubscriptionId, Topic,

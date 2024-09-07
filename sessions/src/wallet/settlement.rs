@@ -1,6 +1,6 @@
 use crate::rpc::{RpcResponsePayload, SessionProposeRequest};
 use crate::wallet::SessionProposePublicKey;
-use crate::{Result, WalletProposalHandler};
+use crate::{Result, WalletSettlementHandler};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use walletconnect_namespaces::Namespaces;
@@ -21,11 +21,11 @@ impl Handler<SessionProposePublicKey> for WalletSettlementActor {
 
 #[derive(Clone, Actor)]
 pub struct WalletSettlementActor {
-    handler: Arc<Mutex<Box<dyn WalletProposalHandler>>>,
+    handler: Arc<Mutex<Box<dyn WalletSettlementHandler>>>,
 }
 
 impl WalletSettlementActor {
-    pub fn new<T: WalletProposalHandler>(handler: T) -> Self {
+    pub fn new<T: WalletSettlementHandler>(handler: T) -> Self {
         Self {
             handler: Arc::new(Mutex::new(Box::new(handler))),
         }

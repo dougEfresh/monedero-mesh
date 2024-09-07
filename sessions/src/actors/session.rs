@@ -106,17 +106,9 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                 }
             }
             RequestParams::SessionRequest(args) => {
-                tracing::info!("SessionEvent request {args:#?}");
-                let response = RpcResponse {
-                    id: message.payload.id,
-                    topic: message.topic,
-                    payload: RpcResponsePayload::Success(ResponseParamsSuccess::SessionRequest(
-                        json!({}),
-                    )),
-                };
-                if let Err(e) = self.responder.send(response).await {
-                    warn!("responder actor is not responding {e}");
-                }
+                info!("SessionRequest {args:#?}");
+                self.handle_session_request(message.payload.id, message.topic, args)
+                    .await;
             }
             RequestParams::SessionEvent(args) => {
                 tracing::info!("SessionEvent request {args:#?}");

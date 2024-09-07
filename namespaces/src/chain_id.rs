@@ -16,7 +16,9 @@ const SOLANA_TEST_NEW: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 //const SOLANA_TEST_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
 const SOLANA_TEST: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(
+    Debug, Copy, Default, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Serialize, Deserialize,
+)]
 pub enum ChainType {
     #[default]
     Main,

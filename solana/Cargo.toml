@@ -18,8 +18,18 @@ mock = [
 ]
 
 [dependencies]
+base64 = { workspace = true }
+bincode = { workspace = true }
 thiserror = { workspace = true }
-solana-sdk = { git = "https://github.com/anza-xyz/agave.git", branch = "master"}
+tokio = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+solana-sdk = { version = "2.0.9"}
+solana-client ={ version = "2.0.9" }
+solana-rpc-client ={ version = "2.0.9" }
+solana-rpc-client-api = { version = "2.0.9" }
+solana-program = { version = "2.0.9"}
 walletconnect-sessions = { path = "../sessions", optional = true}
 walletconnect-namespaces = { path = "../namespaces"}
 walletconnect-relay = { path = "../relay", optional = true }

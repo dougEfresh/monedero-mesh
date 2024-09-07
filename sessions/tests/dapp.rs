@@ -20,7 +20,7 @@ use walletconnect_sessions::rpc::{
 };
 use walletconnect_sessions::{
     Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
-    RegisteredComponents, SdkErrors, Wallet, WalletConnectBuilder, WalletProposalHandler,
+    RegisteredComponents, SdkErrors, Wallet, WalletConnectBuilder, WalletSettlementHandler,
 };
 use walletconnect_sessions::{Result, Topic};
 
@@ -43,7 +43,7 @@ struct WalletProposal {}
 const SUPPORTED_ACCOUNT: &str = "0xBA5BA3955463ADcc7aa3E33bbdfb8A68e0933dD8";
 
 #[async_trait]
-impl WalletProposalHandler for WalletProposal {
+impl WalletSettlementHandler for WalletProposal {
     async fn settlement(&self, proposal: SessionProposeRequest) -> Result<Namespaces> {
         let mut settled: Namespaces = Namespaces(BTreeMap::new());
         for (name, namespace) in proposal.required_namespaces.iter() {
@@ -211,7 +211,7 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
     assert!(!restored);
     assert_ne!(original_pairing.topic, new_pairing.topic);
 
-    let (wallet_pairing, wallet_rx) = test
+    let (wallet_pairing, _) = test
         .wallet
         .pair(new_pairing.to_string(), NoopSessionHandler)
         .await?;

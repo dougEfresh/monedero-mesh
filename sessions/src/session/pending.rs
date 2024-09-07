@@ -2,7 +2,7 @@ use crate::{Error, PairingManager, Result, SessionEventRequest, SessionSettled, 
 use dashmap::DashMap;
 use std::sync::Arc;
 use tokio::sync::oneshot::Sender;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::warn;
 
 use crate::rpc::{RequestParams, SessionSettleRequest};
@@ -11,7 +11,7 @@ use crate::{ClientSession, PairingTopic, SessionHandler};
 
 pub struct HandlerContainer {
     pub tx: Sender<Result<ClientSession>>,
-    pub handlers: Arc<Box<dyn SessionHandler>>,
+    pub handlers: Arc<Mutex<Box<dyn SessionHandler>>>,
 }
 
 #[derive(Clone, Default)]
@@ -32,7 +32,7 @@ impl PendingSession {
         let (tx, rx) = oneshot::channel::<Result<ClientSession>>();
         let h = HandlerContainer {
             tx,
-            handlers: Arc::new(Box::new(handlers)),
+            handlers: Arc::new(Mutex::new(Box::new(handlers))),
         };
         self.pending.insert(topic, h);
         rx
@@ -69,9 +69,13 @@ impl PendingSession {
             topic: settled.topic.clone(),
             transport: mgr.topic_transport(),
         };
-        let (tx, rx) = mpsc::unbounded_channel::<SessionEventRequest>();
-        let client_session =
-            ClientSession::new(actors.session(), session_transport, settled.clone(), tx).await?;
+        let client_session = ClientSession::new(
+            actors.session(),
+            session_transport,
+            settled.clone(),
+            handlers.handlers,
+        )
+        .await?;
         if let Some(req) = send_to_peer {
             let result = client_session
                 .publish_request::<bool>(RequestParams::SessionSettle(req))

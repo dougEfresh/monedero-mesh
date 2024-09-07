@@ -4,6 +4,7 @@ use crate::rpc::{
 };
 use crate::SocketEvent;
 use async_trait::async_trait;
+use serde_json::json;
 use walletconnect_namespaces::Namespaces;
 
 #[async_trait]
@@ -13,16 +14,21 @@ pub trait SocketListener: Sync + Send + 'static {
 
 #[async_trait]
 pub trait SessionEventHandler: Send + Sync + 'static {
-    async fn event(&self, _event: Event) {}
+    async fn event(&self, event: Event) {}
+}
+
+pub enum WalletRequestResponse {
+    Success(serde_json::Value),
+    Error(crate::rpc::SdkErrors),
 }
 
 #[async_trait]
 pub trait SessionHandler: Send + Sync + 'static + SessionEventHandler {
-    async fn request(&self, _request: SessionRequestRequest) {}
+    async fn request(&self, request: SessionRequestRequest) -> WalletRequestResponse;
 }
 
 #[async_trait]
-pub trait WalletProposalHandler: Send + Sync + 'static {
+pub trait WalletSettlementHandler: Send + Sync + 'static {
     async fn settlement(&self, proposal: SessionProposeRequest)
         -> Result<Namespaces, crate::Error>;
 
@@ -54,8 +60,9 @@ impl SocketListener for NoopSessionHandler {}
 
 #[async_trait]
 impl SessionHandler for NoopSessionHandler {
-    async fn request(&self, request: SessionRequestRequest) {
+    async fn request(&self, request: SessionRequestRequest) -> WalletRequestResponse {
         tracing::info!("got session request {:#?}", request);
+        WalletRequestResponse::Success(json!({}))
     }
 }
 

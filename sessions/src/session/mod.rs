@@ -10,13 +10,14 @@ use serde::de::DeserializeOwned;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use tokio::sync::oneshot::Sender;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::{error, warn};
 use xtra::prelude::*;
 
 mod pending;
 mod session_delete;
 mod session_ping;
+mod session_request;
 
 use crate::actors::{ClearSession, SessionRequestHandlerActor};
 use crate::crypto::CipherError;
@@ -31,7 +32,7 @@ pub struct ClientSession {
     pub settled: Arc<SessionSettled>,
     transport: SessionTransport,
     session_actor: Address<SessionRequestHandlerActor>,
-    tx: mpsc::UnboundedSender<SessionEventRequest>,
+    handler: Arc<Mutex<Box<dyn SessionHandler>>>,
 }
 
 impl Debug for ClientSession {
@@ -45,13 +46,13 @@ impl ClientSession {
         session_actor: Address<SessionRequestHandlerActor>,
         transport: SessionTransport,
         settled: SessionSettled,
-        tx: mpsc::UnboundedSender<SessionEventRequest>,
+        handler: Arc<Mutex<Box<dyn SessionHandler>>>,
     ) -> Result<Self> {
         let me = Self {
-            session_actor: session_actor.clone(),
+            session_actor,
             transport,
             settled: Arc::new(settled),
-            tx,
+            handler,
         };
         me.register().await?;
         Ok(me)

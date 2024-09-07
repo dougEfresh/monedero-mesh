@@ -44,7 +44,6 @@ impl SessionRequestHandlerActor {
         if let Err(e) = self.responder.send(Unsubscribe(topic.clone())).await {
             warn!("failed to unsubscribe to {topic} '{e}'");
         }
-
         let _ = self.cipher.delete_session(&topic);
     }
 

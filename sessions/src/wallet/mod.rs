@@ -9,7 +9,7 @@ use crate::session::PendingSession;
 use crate::wallet::settlement::WalletSettlementActor;
 use crate::{
     ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandler, SessionSettled,
-    WalletProposalHandler,
+    WalletSettlementHandler,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Debug, Display, Formatter};
@@ -130,7 +130,7 @@ impl Handler<SessionProposeRequest> for Wallet {
 struct SessionProposePublicKey(pub String, pub SessionProposeRequest);
 
 impl Wallet {
-    pub async fn new<T: WalletProposalHandler>(
+    pub async fn new<T: WalletSettlementHandler>(
         manager: PairingManager,
         handler: T,
     ) -> Result<Self> {
@@ -142,16 +142,15 @@ impl Wallet {
             verify_url: None,
             redirect: None,
         };
-        let proposal_handler =
+        let settlement_handler =
             xtra::spawn_tokio(WalletSettlementActor::new(handler), Mailbox::unbounded());
 
         let me = Self {
             manager,
             pending: Arc::new(PendingSession::new()),
             metadata,
-            settlement_handler: proposal_handler,
+            settlement_handler,
         };
-
         me.manager.actors().proposal().send(me.clone()).await?;
         Ok(me)
     }

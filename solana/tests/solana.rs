@@ -1,8 +1,18 @@
 use anyhow::format_err;
 use assert_matches::assert_matches;
 use async_trait::async_trait;
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
+use serde::Deserialize;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use solana_rpc_client::rpc_client::SerializableTransaction;
+use solana_sdk::message::Message;
+use solana_sdk::pubkey::Pubkey;
+use solana_sdk::signature::Keypair;
+use solana_sdk::transaction::{Transaction, VersionedTransaction};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Once;
+use std::str::FromStr;
+use std::sync::{Arc, Once};
 use std::time::Duration;
 use tokio::time::timeout;
 use tracing::{error, info};
@@ -13,17 +23,20 @@ use walletconnect_namespaces::{
     Namespace, NamespaceName, Namespaces, SolanaMethod,
 };
 use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use walletconnect_session_solana::Solana;
+use walletconnect_session_solana::Result;
+use walletconnect_session_solana::{
+    Error, SolanaSession, SolanaSignatureResponse, WalletConnectSigner, WalletConnectTransaction,
+};
 use walletconnect_sessions::crypto::CipherError;
 use walletconnect_sessions::rpc::{
     Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
-    SessionProposeRequest, SessionProposeResponse,
+    SessionProposeRequest, SessionProposeResponse, SessionRequestRequest,
 };
 use walletconnect_sessions::{
     Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
-    RegisteredComponents, SdkErrors, Wallet, WalletConnectBuilder, WalletProposalHandler,
+    RegisteredComponents, SdkErrors, Topic, Wallet, WalletConnectBuilder, WalletRequestResponse,
+    WalletSettlementHandler,
 };
-use walletconnect_sessions::{Result, Topic};
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();
@@ -32,13 +45,19 @@ pub(crate) async fn yield_ms(ms: u64) {
     tokio::time::sleep(Duration::from_millis(ms)).await;
 }
 
-struct WalletProposal {}
+#[derive(Clone)]
+struct MockWallet {
+    rpc_client: Arc<RpcClient>,
+}
 
 const SUPPORTED_ACCOUNT: &str = "215r9xfTFVYcE9g3fAUGowauM84egyUvFCbSo3LKNaep";
 
 #[async_trait]
-impl WalletProposalHandler for WalletProposal {
-    async fn settlement(&self, proposal: SessionProposeRequest) -> Result<Namespaces> {
+impl WalletSettlementHandler for MockWallet {
+    async fn settlement(
+        &self,
+        proposal: SessionProposeRequest,
+    ) -> walletconnect_sessions::Result<Namespaces> {
         let mut settled: Namespaces = Namespaces(BTreeMap::new());
         for (name, namespace) in proposal.required_namespaces.iter() {
             let accounts: BTreeSet<Account> = namespace
@@ -69,7 +88,48 @@ impl WalletProposalHandler for WalletProposal {
     }
 }
 
-pub(crate) async fn init_test_components() -> anyhow::Result<(Dapp, Wallet)> {
+impl walletconnect_sessions::SessionEventHandler for MockWallet {}
+
+const KEYPAIR: [u8; 64] = [
+    186, 128, 232, 61, 254, 246, 197, 13, 125, 103, 212, 83, 16, 121, 144, 20, 93, 161, 35, 128,
+    89, 135, 157, 200, 81, 159, 83, 204, 204, 130, 28, 42, 14, 225, 43, 2, 44, 16, 255, 214, 161,
+    18, 184, 164, 253, 126, 16, 187, 134, 176, 75, 35, 179, 194, 181, 150, 67, 236, 131, 49, 45,
+    155, 45, 253,
+];
+
+impl MockWallet {
+    pub async fn sign(&self, value: serde_json::Value) -> Result<SolanaSignatureResponse> {
+        let kp = Keypair::from_bytes(&KEYPAIR).map_err(|_| Error::KeyPairFailure)?;
+        let req = serde_json::from_value::<WalletConnectTransaction>(value)?;
+        let decoded = BASE64_STANDARD.decode(req.transaction)?;
+        let mut tx = bincode::deserialize::<Transaction>(decoded.as_ref())?;
+        let block = self.rpc_client.get_latest_blockhash().await?;
+        tx.try_sign(&[&kp], block)?;
+        let sig = tx.get_signature();
+        let signature = solana_sdk::bs58::encode(sig).into_string();
+        Ok(SolanaSignatureResponse { signature })
+    }
+}
+
+#[async_trait]
+impl walletconnect_sessions::SessionHandler for MockWallet {
+    async fn request(&self, request: SessionRequestRequest) -> WalletRequestResponse {
+        match request.request.method {
+            Method::Solana(SolanaMethod::SignTransaction) => {
+                match self.sign(request.request.params).await {
+                    Err(e) => {
+                        tracing::warn!("failed sig: {e}");
+                        WalletRequestResponse::Error(SdkErrors::UserRejected)
+                    }
+                    Ok(sig) => WalletRequestResponse::Success(serde_json::to_value(&sig).unwrap()),
+                }
+            }
+            _ => WalletRequestResponse::Error(SdkErrors::InvalidMethod),
+        }
+    }
+}
+
+pub(crate) async fn init_test_components() -> anyhow::Result<(Dapp, Wallet, MockWallet)> {
     init_tracing();
     let shared_id = Topic::generate();
     let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
@@ -91,9 +151,15 @@ pub(crate) async fn init_test_components() -> anyhow::Result<(Dapp, Wallet)> {
         ..Default::default()
     };
     let dapp = Dapp::new(dapp_manager, md).await?;
-    let wallet = Wallet::new(wallet_manager, WalletProposal {}).await?;
-    yield_ms(500).await;
-    Ok((dapp, wallet))
+    dotenvy::dotenv()?;
+    let url = std::env::var(ChainId::Solana(ChainType::Test).to_string())
+        .ok()
+        .unwrap_or(String::from("https://api.devnet.solana.com"));
+    info!("using url {url}");
+    let rpc_client = Arc::new(RpcClient::new(url));
+    let mock_wallet = MockWallet { rpc_client };
+    let wallet = Wallet::new(wallet_manager, mock_wallet.clone()).await?;
+    Ok((dapp, wallet, mock_wallet))
 }
 
 pub(crate) fn init_tracing() {
@@ -119,24 +185,40 @@ async fn await_wallet_pair(rx: ProposeFuture) {
     }
 }
 
-async fn pair_dapp_wallet() -> anyhow::Result<ClientSession> {
-    let (dapp, wallet) = init_test_components().await?;
+async fn pair_dapp_wallet() -> anyhow::Result<(ClientSession, MockWallet)> {
+    let (dapp, wallet, mock_wallet) = init_test_components().await?;
     let (pairing, rx, _) = dapp
         .propose(NoopSessionHandler, &[ChainId::Solana(ChainType::Test)])
         .await?;
     info!("got pairing topic {pairing}");
-    let (_, wallet_rx) = wallet.pair(pairing.to_string(), NoopSessionHandler).await?;
+    let (_, wallet_rx) = wallet
+        .pair(pairing.to_string(), mock_wallet.clone())
+        .await?;
     tokio::spawn(async move { await_wallet_pair(wallet_rx).await });
     let session = timeout(Duration::from_secs(5), rx).await??;
     // let wallet get their ClientSession
     yield_ms(1000).await;
-    Ok(session)
+    Ok((session, mock_wallet))
 }
-
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_solana_session() -> anyhow::Result<()> {
-    let session = pair_dapp_wallet().await?;
+    let (session, mock_wallet) = pair_dapp_wallet().await?;
     info!("settlement complete");
-    let sol_session = Solana::try_from(&session)?;
+    let sol_session = SolanaSession::try_from(&session)?;
+    let signer = WalletConnectSigner::new(sol_session.clone());
+    let from = Pubkey::from_str(SUPPORTED_ACCOUNT)?;
+    let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
+    let amount = 100;
+    let block = mock_wallet.rpc_client.get_latest_blockhash().await?;
+    //solana_sdk::system_transaction::transfer(&[signer], &to, 1, block)
+    let instruction = solana_sdk::system_instruction::transfer(&sol_session.pubkey(), &to, amount);
+    let message = Message::new(&[instruction], Some(&from));
+    let tx = Transaction::new(&[&signer], message, block);
+    info!("sending transaction...");
+    let sig = mock_wallet
+        .rpc_client
+        .send_and_confirm_transaction(&tx)
+        .await?;
+    info!("got sig {sig}");
     Ok(())
 }

@@ -38,7 +38,7 @@ tokio = { workspace = true }
 tokio-tungstenite = { version = "0.23", optional = false }
 tracing = { version = "0.1" }
 walletconnect_sdk = { git = "https://github.com/WalletConnect/WalletConnectRust.git" , features = ["rpc", "client"]}
-ed25519-dalek = { version = "2.1.1", features = ["rand_core"] }
+ed25519-dalek = { version = "1.0.1", features = ["rand_core"] }
 
 ## wasm
 wasm-bindgen = { version = "0.2", optional = true}

@@ -1,5 +1,6 @@
 /// (wc_sessionRequest)[https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods#wc_sessionrequest]
 use super::IrnMetadata;
+use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
 use serde::{Deserialize, Serialize};
 use walletconnect_namespaces::ChainId;
 
@@ -17,21 +18,27 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Request {
-    method: String,
+pub struct RequestMethod {
+    pub method: walletconnect_namespaces::Method,
     /// Opaque blockchain RPC parameters.
     ///
     /// Parsing is deferred to a higher level, blockchain RPC aware code.
-    params: serde_json::Value,
+    pub params: serde_json::Value,
     #[serde(skip_serializing_if = "Option::is_none")]
-    expiry: Option<u64>,
+    pub expiry: Option<u64>,
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionRequestRequest {
-    pub request: Request,
+    pub request: RequestMethod,
     pub chain_id: ChainId,
+}
+
+impl IntoUnknownError for SessionRequestRequest {
+    fn unknown(&self) -> ResponseParamsError {
+        ResponseParamsError::SessionRequest(ErrorParams::unknown())
+    }
 }
 
 #[cfg(test)]
