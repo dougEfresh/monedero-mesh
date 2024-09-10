@@ -89,7 +89,9 @@ impl Client {
         ttl: Duration,
         prompt: bool,
     ) -> Result<()> {
-        self.wc.publish(topic, message, tag, ttl, prompt).await?;
+        self.wc
+            .publish(topic, message, None, tag, ttl, prompt)
+            .await?;
         Ok(())
     }
 

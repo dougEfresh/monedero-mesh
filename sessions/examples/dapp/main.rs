@@ -104,9 +104,7 @@ async fn dapp_test() -> anyhow::Result<()> {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     initialize_logging()?;
-    /*
     let runner = runner::Runner {};
     runner.run()
-     */
-    dapp_test().await
+    //dapp_test().await
 }

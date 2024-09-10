@@ -1,9 +1,9 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionsettle
 
-use std::fmt::{Display, Formatter};
 use crate::rpc::params::Controller;
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
+use std::fmt::{Display, Formatter};
 use walletconnect_namespaces::Namespaces;
 use {
     super::{IrnMetadata, RelayProtocol},

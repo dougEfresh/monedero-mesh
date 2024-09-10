@@ -4,7 +4,6 @@ mod pairing;
 mod registration;
 mod socket_handler;
 
-use std::fmt::{Debug, Formatter};
 use crate::actors::Actors;
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
@@ -16,13 +15,13 @@ use crate::transport::TopicTransport;
 use crate::{Cipher, Error, Pairing, Result, SessionSettled, SocketEvent, SocketListener};
 pub use builder::WalletConnectBuilder;
 use serde::de::DeserializeOwned;
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tracing::{info, warn};
 use walletconnect_namespaces::Namespaces;
 use walletconnect_relay::{Client, ConnectionOptions};
-
 
 #[derive(Clone, xtra::Actor)]
 pub struct PairingManager {
@@ -36,7 +35,10 @@ pub struct PairingManager {
 
 impl Debug for PairingManager {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let t: String =  self.topic().map(|t| crate::shorten_topic(&t)).unwrap_or(String::from("no-pairing"));
+        let t: String = self
+            .topic()
+            .map(|t| crate::shorten_topic(&t))
+            .unwrap_or(String::from("no-pairing"));
         write!(f, "pairing={} projectId={}", t, self.opts.project_id)
     }
 }

@@ -1,10 +1,6 @@
-use std::fmt::{Debug, Formatter};
 use crate::actors::proposal::ProposalActor;
 use crate::actors::session::SessionRequestHandlerActor;
-use crate::actors::{
-    ClearPairing, RegisteredComponents,
-    TransportActor,
-};
+use crate::actors::{ClearPairing, RegisteredComponents, TransportActor};
 use crate::domain::Topic;
 use crate::rpc::{
     ErrorParams, IntoUnknownError, PairPingRequest, Request, RequestParams, ResponseParamsError,
@@ -13,6 +9,7 @@ use crate::rpc::{
 use crate::PairingManager;
 use crate::{Dapp, MessageId, Result, Wallet};
 use dashmap::DashMap;
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 use walletconnect_relay::Client;
@@ -27,7 +24,11 @@ pub struct RequestHandlerActor {
 }
 impl Debug for RequestHandlerActor {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "actor-request pair_manager={}", self.pair_managers.is_some())
+        write!(
+            f,
+            "actor-request pair_manager={}",
+            self.pair_managers.is_some()
+        )
     }
 }
 

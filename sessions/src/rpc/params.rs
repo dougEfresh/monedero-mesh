@@ -183,7 +183,7 @@ impl Display for RequestParams {
             RequestParams::SessionRequest(args) => &format!("sessionRequest: {}", args),
             RequestParams::SessionEvent(args) => &format!("sessionEvent: {}", args.event.name),
             RequestParams::SessionDelete(_) => "sessionDelete",
-            RequestParams::SessionPing(_) => "sessionPing"
+            RequestParams::SessionPing(_) => "sessionPing",
         };
         write!(f, "{}", req)
     }

@@ -38,4 +38,13 @@ pub enum Error {
 
     #[error(transparent)]
     SolanaRpcError(#[from] solana_rpc_client_api::client_error::Error),
+
+    #[error(transparent)]
+    SolanaProgramError(#[from] solana_program::program_error::ProgramError),
+
+    #[error(transparent)]
+    TokenError(#[from] spl_token_client::token::TokenError),
+
+    #[error("didn't expect this type")]
+    InvalidRpcResponse,
 }

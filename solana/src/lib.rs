@@ -1,5 +1,8 @@
 mod error;
 mod signer;
+mod token;
+
+pub use token::*;
 
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
@@ -17,6 +20,11 @@ use walletconnect_sessions::rpc::{RequestMethod, RequestParams, SessionRequestRe
 use walletconnect_sessions::ClientSession;
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+pub enum Network {
+    Mainnet,
+    Devnet,
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

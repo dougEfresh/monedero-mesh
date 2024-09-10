@@ -6,9 +6,9 @@ use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::warn;
 
 use crate::rpc::{RequestParams, SessionSettleRequest};
+use crate::session::Category;
 use crate::transport::SessionTransport;
 use crate::{ClientSession, PairingTopic, SessionHandler};
-use crate::session::Category;
 
 pub struct HandlerContainer {
     pub tx: Sender<Result<ClientSession>>,

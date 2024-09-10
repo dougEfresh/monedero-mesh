@@ -1,9 +1,9 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionevent
 
+use super::IrnMetadata;
 use serde::{Deserialize, Serialize};
 use walletconnect_namespaces::ChainId;
-use super::IrnMetadata;
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1110,

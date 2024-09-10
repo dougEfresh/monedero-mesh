@@ -1,8 +1,8 @@
-use std::fmt::{Display, Formatter};
 /// (wc_sessionRequest)[https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods#wc_sessionrequest]
 use super::IrnMetadata;
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use walletconnect_namespaces::ChainId;
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
@@ -38,7 +38,11 @@ pub struct SessionRequestRequest {
 
 impl Display for SessionRequestRequest {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "chain: {} method: {}", self.chain_id, self.request.method)
+        write!(
+            f,
+            "chain: {} method: {}",
+            self.chain_id, self.request.method
+        )
     }
 }
 

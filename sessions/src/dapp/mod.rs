@@ -66,7 +66,9 @@ fn public_key(pairing: &Pairing) -> String {
 }
 
 async fn finalize_restore(dapp: Dapp, settled: SessionSettled) -> Result<()> {
-    dapp.pending.settled(&dapp.manager, settled, Category::Dapp, None).await?;
+    dapp.pending
+        .settled(&dapp.manager, settled, Category::Dapp, None)
+        .await?;
     Ok(())
 }
 

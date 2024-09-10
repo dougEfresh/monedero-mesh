@@ -34,7 +34,7 @@ impl Category {
     fn fmt_common(&self) -> String {
         match self {
             Category::Dapp => String::from("[dapp]"),
-            Category::Wallet => String::from("[wallet")
+            Category::Wallet => String::from("[wallet"),
         }
     }
 }
@@ -65,7 +65,12 @@ pub struct ClientSession {
 
 impl Debug for ClientSession {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} topic:{}", self.category, crate::shorten_topic(&self.topic()))
+        write!(
+            f,
+            "{} topic:{}",
+            self.category,
+            crate::shorten_topic(&self.topic())
+        )
     }
 }
 
@@ -82,7 +87,7 @@ impl ClientSession {
             transport,
             settled: Arc::new(settled),
             handler,
-            category
+            category,
         };
         me.register().await?;
         Ok(me)

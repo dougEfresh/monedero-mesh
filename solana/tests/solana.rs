@@ -5,16 +5,16 @@ use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use serde::Deserialize;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_rpc_client::rpc_client::SerializableTransaction;
+use solana_rpc_client::rpc_client::{RpcClientConfig, SerializableTransaction};
 use solana_sdk::message::Message;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Keypair;
+use solana_sdk::signer::Signer;
 use solana_sdk::transaction::{Transaction, VersionedTransaction};
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 use std::sync::{Arc, Once};
 use std::time::Duration;
-use solana_sdk::signer::Signer;
 use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -24,10 +24,10 @@ use walletconnect_namespaces::{
     Namespace, NamespaceName, Namespaces, SolanaMethod,
 };
 use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use walletconnect_session_solana::Result;
 use walletconnect_session_solana::{
     Error, SolanaSession, SolanaSignatureResponse, WalletConnectSigner, WalletConnectTransaction,
 };
+use walletconnect_session_solana::{Result, TokenSymbolDev, TokenTransferClient};
 use walletconnect_sessions::crypto::CipherError;
 use walletconnect_sessions::rpc::{
     Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
@@ -99,6 +99,11 @@ const KEYPAIR: [u8; 64] = [
 ];
 
 impl MockWallet {
+    pub fn pk(&self) -> Pubkey {
+        let kp = Keypair::from_bytes(&KEYPAIR).unwrap();
+        kp.pubkey()
+    }
+
     pub async fn sign(&self, value: serde_json::Value) -> Result<SolanaSignatureResponse> {
         let kp = Keypair::from_bytes(&KEYPAIR).map_err(|_| Error::KeyPairFailure)?;
         info!("PK of signer: {}", kp.pubkey());
@@ -155,11 +160,11 @@ pub(crate) async fn init_test_components() -> anyhow::Result<(Dapp, Wallet, Mock
     let dapp = Dapp::new(dapp_manager, md).await?;
     dotenvy::dotenv()?;
     //let url = std::env::var(ChainId::Solana(ChainType::Test).to_string())
-      //.ok()
-      //.unwrap_or(String::from("https://api.devnet.solana.com"));
+    //.ok()
+    //.unwrap_or(String::from("https://api.devnet.solana.com"));
     let url = std::env::var(ChainId::Solana(ChainType::Test).to_string())
-      .ok()
-      .unwrap_or(String::from("https://soldev.dougchimento.com"));
+        .ok()
+        .unwrap_or(String::from("https://soldev.dougchimento.com"));
     info!("using url {url}");
     let rpc_client = Arc::new(RpcClient::new(url));
     let mock_wallet = MockWallet { rpc_client };
@@ -230,17 +235,37 @@ async fn test_solana_session() -> anyhow::Result<()> {
         .await?;
     info!("got sig {sig}");
 
-    let usdc_mint = Pubkey::from_str("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU")?;
-    let usdc_account = spl_associated_token_account::get_associated_token_address(&from, &usdc_mint);
-    let create_usdc_account = spl_associated_token_account::instruction::create_associated_token_account(&from, &from, &usdc_mint, &spl_token::id());
-    let message = Message::new(&[create_usdc_account], Some(&from));
-    let block = mock_wallet.rpc_client.get_latest_blockhash().await?;
-    let tx = Transaction::new(&[&signer], message, block);
-    info!("sending usdc account tx...");
-        let sig = mock_wallet
-        .rpc_client
-        .send_and_confirm_transaction(&tx)
-        .await?;
-    info!("got sig {sig}");
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_solana_tokens() -> anyhow::Result<()> {
+    let (session, mock_wallet) = pair_dapp_wallet().await?;
+    let sol_session = SolanaSession::try_from(&session)?;
+    let signer = WalletConnectSigner::new(sol_session);
+    let token_client =
+        TokenTransferClient::init(signer, mock_wallet.rpc_client.clone(), TokenSymbolDev::USDC)
+            .await?;
+    let balance = token_client.balance().await?;
+    let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
+    info!(
+        "balance {} on token account {}  (wallet:{})",
+        balance,
+        token_client.account(),
+        mock_wallet.pk()
+    );
+    info!("sending to {to}");
+    let sig = token_client.transfer(&to, 1).await?;
+    info!("got signature {sig}");
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_solana_mint() -> anyhow::Result<()> {
+    let (session, mock_wallet) = pair_dapp_wallet().await?;
+    let sol_session = SolanaSession::try_from(&session)?;
+    let signer = WalletConnectSigner::new(sol_session);
+    let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
+
     Ok(())
 }

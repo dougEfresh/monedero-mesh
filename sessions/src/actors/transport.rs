@@ -1,4 +1,3 @@
-use std::fmt::{Debug, Formatter};
 use crate::actors::{AddRequest, ClearPairing, InboundResponseActor, SendRequest, Unsubscribe};
 use crate::domain::{MessageId, SubscriptionId};
 use crate::rpc::{
@@ -6,6 +5,7 @@ use crate::rpc::{
 };
 use crate::Cipher;
 use crate::Result;
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::oneshot;

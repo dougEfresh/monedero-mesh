@@ -29,30 +29,29 @@ pub use error::Error;
 pub struct Namespaces(pub BTreeMap<NamespaceName, Namespace>);
 
 impl Namespaces {
-  pub fn namespaces(&self) -> String {
-    self
-      .keys()
-      .map(|key| key.to_string())
-      .collect::<Vec<_>>()
-      .join(", ")
-  }
+    pub fn namespaces(&self) -> String {
+        self.keys()
+            .map(|key| key.to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
 }
 
 impl Default for Namespaces {
-  fn default() -> Self {
-    Self(BTreeMap::new())
-  }
+    fn default() -> Self {
+        Self(BTreeMap::new())
+    }
 }
 
 impl Debug for Namespaces {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    write!(f, "{}" , self.namespaces())
-  }
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.namespaces())
+    }
 }
 
 impl Display for Namespaces {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-      write!(f, "{}" , self.namespaces())
+        write!(f, "{}", self.namespaces())
     }
 }
 

@@ -6,13 +6,13 @@ mod session;
 mod session_handlers;
 mod transport;
 
-use std::fmt::{Debug, Display, Formatter};
 pub(crate) use crate::actors::session::SessionRequestHandlerActor;
 use crate::domain::Topic;
 use crate::rpc::RequestParams;
 use crate::{Cipher, PairingManager};
 use crate::{Dapp, Result, Wallet};
 pub(crate) use request::RequestHandlerActor;
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use walletconnect_relay::Client;
 
@@ -39,7 +39,12 @@ pub struct ClearSession(pub Topic);
 
 impl Display for SendRequest {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "topic={} request={}", crate::shorten_topic(&self.0), &self.1)
+        write!(
+            f,
+            "topic={} request={}",
+            crate::shorten_topic(&self.0),
+            &self.1
+        )
     }
 }
 

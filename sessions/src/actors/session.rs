@@ -1,4 +1,3 @@
-use std::fmt::{Debug, Formatter};
 use crate::actors::{
     ClearPairing, ClearSession, RequestHandlerActor, SessionPing, TransportActor, Unsubscribe,
 };
@@ -10,6 +9,7 @@ use crate::session::ClientSession;
 use crate::{Cipher, RegisteredComponents, Topic};
 use dashmap::DashMap;
 use serde_json::json;
+use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;

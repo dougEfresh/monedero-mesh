@@ -1,5 +1,6 @@
 use crate::app;
 use crate::event_reader::EventReader;
+use crate::msg::out::MsgOut;
 use crate::ui::UI;
 use ratatui::crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::crossterm::terminal::{
@@ -18,19 +19,49 @@ impl Runner {
         enable_raw_mode()?;
         let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
         terminal.clear()?;
-        let app = app::App::new();
+        let mut app = app::App::new();
         let mut ui = UI::new();
         let (tx_msg_in, rx_msg_in) = mpsc::channel::<app::Task>();
         let mut event_reader = EventReader::new(tx_msg_in.clone());
         event_reader.start();
 
-        loop {
-            terminal.draw(|frame| ui.draw(frame, &app))?;
-            if event::poll(std::time::Duration::from_millis(16))? {
-                if let event::Event::Key(key) = event::read()? {
-                    if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
-                        break;
+        tx_msg_in.send(app::Task::new(
+            app::MsgIn::External(app::ExternalMsg::Refresh),
+            None,
+        ))?;
+        let mut result = Ok(None);
+        'outer: for task in rx_msg_in {
+            match app.handle_task(task) {
+                Ok(a) => {
+                    app = a;
+                    while let Some(msg) = app.msg_out.pop_front() {
+                        use app::MsgOut::*;
+                        match msg {
+                            Refresh => {
+                                terminal.draw(|f| ui.draw(f, &app))?;
+                            }
+                            ClearScreen => terminal.clear()?,
+                            Debug(_) => {}
+                            EnableMouse => {}
+                            DisableMouse => {}
+                            ToggleMouse => {}
+                            StartFifo(_) => {}
+                            StopFifo => {}
+                            ToggleFifo(_) => {}
+                            ScrollUp => {}
+                            ScrollDown => {}
+                            ScrollUpHalf => {}
+                            ScrollDownHalf => {}
+                            Quit => break 'outer,
+                            Enqueue(task) => {
+                                tx_msg_in.send(task)?;
+                            }
+                        }
                     }
+                }
+                Err(e) => {
+                    result = Err(e);
+                    break;
                 }
             }
         }

@@ -119,7 +119,13 @@ pub(crate) struct RpcRequest {
 
 impl Display for RpcRequest {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "id:{} topic:{} request:{}", self.payload.id, crate::shorten_topic(&self.topic), self.payload.params)
+        write!(
+            f,
+            "id:{} topic:{} request:{}",
+            self.payload.id,
+            crate::shorten_topic(&self.topic),
+            self.payload.params
+        )
     }
 }
 /// Data structure representing a JSON RPC request.
