@@ -18,9 +18,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use spl_token_client::client::RpcClientResponse;
-use walletconnect_namespaces::{ChainId, NamespaceName, SolanaMethod};
-use walletconnect_sessions::rpc::{RequestMethod, RequestParams, SessionRequestRequest};
-use walletconnect_sessions::ClientSession;
+use monedero_namespaces::{ChainId, NamespaceName, SolanaMethod};
+use monedero_mesh::rpc::{RequestMethod, RequestParams, SessionRequestRequest};
+use monedero_mesh::ClientSession;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -119,7 +119,7 @@ impl SolanaSession {
     ) -> Result<SolanaSignatureResponse> {
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
             request: RequestMethod {
-                method: walletconnect_namespaces::Method::Solana(SolanaMethod::SignTransaction),
+                method: monedero_namespaces::Method::Solana(SolanaMethod::SignTransaction),
                 params: serde_json::to_value(tx)?,
                 expiry: None,
             },

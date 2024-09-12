@@ -2,7 +2,7 @@ use crate::actors::Actors;
 use crate::domain::ProjectId;
 use crate::{Cipher, KvStorage, PairingManager};
 use std::sync::Arc;
-use walletconnect_relay::{ConnectionOptions, SerializedAuthToken};
+use monedero_relay::{ConnectionOptions, SerializedAuthToken};
 
 pub struct WalletConnectBuilder {
     connect_opts: Option<ConnectionOptions>,

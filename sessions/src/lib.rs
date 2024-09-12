@@ -36,8 +36,8 @@ use crate::rpc::SessionRequestRequest;
 pub use actors::{Actors, RegisteredComponents};
 pub use domain::*;
 pub use rpc::{Metadata, SdkErrors};
-use walletconnect_namespaces::{Event, Namespaces};
-pub use walletconnect_relay::ClientError;
+use monedero_namespaces::{Event, Namespaces};
+pub use monedero_relay::ClientError;
 pub type PairingTopic = Topic;
 pub type SessionTopic = Topic;
 
@@ -132,7 +132,7 @@ pub(crate) mod test {
     use tokio::sync::Mutex;
     use tracing_subscriber::fmt::format::FmtSpan;
     use tracing_subscriber::EnvFilter;
-    use walletconnect_namespaces::Event;
+    use monedero_namespaces::Event;
     use xtra::prelude::*;
 
     pub(crate) fn init_tracing() {

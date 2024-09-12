@@ -5,7 +5,7 @@ use std::time::Duration;
 use tracing::info;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
-use walletconnect_relay::{
+use monedero_relay::{
     auth_token, Client, ClientError, CloseFrame, ConnectionHandler, ConnectionOptions, Message,
     ProjectId, Topic,
 };

@@ -10,13 +10,13 @@ mod ui;
 use std::collections::BTreeMap;
 use std::panic::{set_hook, take_hook};
 use tracing::info;
-use walletconnect_sessions;
+use monedero_mesh;
 
 use crate::log::initialize_logging;
 use std::time::Duration;
 use tokio::{select, signal};
-use walletconnect_namespaces::{ChainId, ChainType, Chains};
-use walletconnect_sessions::{
+use monedero_namespaces::{ChainId, ChainType, Chains};
+use monedero_mesh::{
     ClientSession, Dapp, KvStorage, Metadata, NoopSessionHandler, Pairing, ProjectId,
     WalletConnectBuilder,
 };
@@ -67,7 +67,7 @@ async fn do_dapp_stuff(dapp: Dapp) {
 
 async fn dapp_test() -> anyhow::Result<()> {
     info!("starting sanity test");
-    let auth = walletconnect_relay::auth_token("https://github.com/dougEfresh");
+    let auth = monedero_relay::auth_token("https://github.com/dougEfresh");
     let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
     let store = KvStorage::file(None)?;
     let builder = WalletConnectBuilder::new(p, auth);

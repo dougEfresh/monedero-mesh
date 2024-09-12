@@ -8,21 +8,21 @@ use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
-use walletconnect_namespaces::{
+use monedero_namespaces::{
     Account, Accounts, AlloyChain, ChainId, ChainType, Chains, EipMethod, Events, Method, Methods,
     Namespace, NamespaceName, Namespaces, SolanaMethod,
 };
-use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use walletconnect_sessions::crypto::CipherError;
-use walletconnect_sessions::rpc::{
+use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
+use monedero_mesh::crypto::CipherError;
+use monedero_mesh::rpc::{
     Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
     SessionProposeRequest, SessionProposeResponse,
 };
-use walletconnect_sessions::{
+use monedero_mesh::{
     Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
     RegisteredComponents, SdkErrors, Wallet, WalletConnectBuilder, WalletSettlementHandler,
 };
-use walletconnect_sessions::{Result, Topic};
+use monedero_mesh::{Result, Topic};
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();
@@ -196,7 +196,7 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
     assert_eq!(0, components);
     assert_matches!(
         session.ping().await,
-        Err(walletconnect_sessions::Error::NoClientSession(_))
+        Err(monedero_mesh::Error::NoClientSession(_))
     );
     yield_ms(500).await;
     // propose again should repair

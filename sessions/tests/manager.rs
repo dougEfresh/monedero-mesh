@@ -6,10 +6,10 @@ use std::time::Duration;
 use tracing::info;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
-use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use walletconnect_sessions::{Actors, Topic};
-use walletconnect_sessions::{Cipher, Pairing, PairingManager, WalletConnectBuilder};
-use walletconnect_sessions::{ProjectId, RegisteredComponents, SocketEvent, SocketListener};
+use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
+use monedero_mesh::{Actors, Topic};
+use monedero_mesh::{Cipher, Pairing, PairingManager, WalletConnectBuilder};
+use monedero_mesh::{ProjectId, RegisteredComponents, SocketEvent, SocketListener};
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();
@@ -100,7 +100,7 @@ pub(crate) async fn dapp_wallet_ciphers(t: &TestStuff) -> anyhow::Result<()> {
     let _ = t.wallet_cipher.create_common_topic(
         t.dapp_cipher
             .public_key_hex()
-            .ok_or(walletconnect_sessions::Error::NoPairingTopic)?,
+            .ok_or(monedero_mesh::Error::NoPairingTopic)?,
     );
 
     yield_ms(1000).await;
@@ -161,8 +161,8 @@ async fn test_relay_disconnect() -> anyhow::Result<()> {
     yield_ms(1000).await;
     assert_matches!(
         dapp.ping().await,
-        Err(walletconnect_sessions::Error::ConnectError(
-            walletconnect_sessions::ClientError::Disconnected
+        Err(monedero_mesh::Error::ConnectError(
+            monedero_mesh::ClientError::Disconnected
         ))
     );
     info!("waiting for reconnect");

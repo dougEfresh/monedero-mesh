@@ -3,7 +3,7 @@ use super::IrnMetadata;
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use walletconnect_namespaces::ChainId;
+use monedero_namespaces::ChainId;
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1108,
@@ -20,7 +20,7 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestMethod {
-    pub method: walletconnect_namespaces::Method,
+    pub method: monedero_namespaces::Method,
     /// Opaque blockchain RPC parameters.
     ///
     /// Parsing is deferred to a higher level, blockchain RPC aware code.

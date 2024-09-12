@@ -19,19 +19,19 @@ use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
-use walletconnect_namespaces::{
+use monedero_namespaces::{
     Account, Accounts, AlloyChain, ChainId, ChainType, Chains, EipMethod, Events, Method, Methods,
     Namespace, NamespaceName, Namespaces, SolanaMethod,
 };
-use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
+use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
 use walletconnect_session_solana::{Error, SolanaSession, SolanaSignatureResponse, TokenMintClient, WalletConnectSigner, WalletConnectTransaction};
 use walletconnect_session_solana::{Result, TokenSymbolDev, TokenTransferClient};
-use walletconnect_sessions::crypto::CipherError;
-use walletconnect_sessions::rpc::{
+use monedero_mesh::crypto::CipherError;
+use monedero_mesh::rpc::{
     Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
     SessionProposeRequest, SessionProposeResponse, SessionRequestRequest,
 };
-use walletconnect_sessions::{
+use monedero_mesh::{
     Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
     RegisteredComponents, SdkErrors, Topic, Wallet, WalletConnectBuilder, WalletRequestResponse,
     WalletSettlementHandler,
@@ -56,7 +56,7 @@ impl WalletSettlementHandler for MockWallet {
     async fn settlement(
         &self,
         proposal: SessionProposeRequest,
-    ) -> walletconnect_sessions::Result<Namespaces> {
+    ) -> monedero_mesh::Result<Namespaces> {
         let mut settled: Namespaces = Namespaces(BTreeMap::new());
         for (name, namespace) in proposal.required_namespaces.iter() {
             let accounts: BTreeSet<Account> = namespace
@@ -87,7 +87,7 @@ impl WalletSettlementHandler for MockWallet {
     }
 }
 
-impl walletconnect_sessions::SessionEventHandler for MockWallet {}
+impl monedero_mesh::SessionEventHandler for MockWallet {}
 
 const KEYPAIR: [u8; 64] = [
     186, 128, 232, 61, 254, 246, 197, 13, 125, 103, 212, 83, 16, 121, 144, 20, 93, 161, 35, 128,
@@ -122,7 +122,7 @@ impl MockWallet {
 }
 
 #[async_trait]
-impl walletconnect_sessions::SessionHandler for MockWallet {
+impl monedero_mesh::SessionHandler for MockWallet {
     async fn request(&self, request: SessionRequestRequest) -> WalletRequestResponse {
         match request.request.method {
             Method::Solana(SolanaMethod::SignTransaction) => {

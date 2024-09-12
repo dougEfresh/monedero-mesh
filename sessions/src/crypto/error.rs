@@ -1,4 +1,4 @@
-use walletconnect_relay::{ClientIdDecodingError, Topic};
+use monedero_relay::{ClientIdDecodingError, Topic};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CipherError {

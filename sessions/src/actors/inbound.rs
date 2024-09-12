@@ -5,7 +5,7 @@ use dashmap::DashMap;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 use tracing::{debug, error, warn};
-use walletconnect_relay::MessageIdGenerator;
+use monedero_relay::MessageIdGenerator;
 use xtra::{Context, Handler};
 
 #[derive(Default, xtra::Actor)]

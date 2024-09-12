@@ -1,5 +1,5 @@
 [package]
-name = "walletconnect-session-solana"
+name = "monedero-solana"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -11,35 +11,36 @@ workspace = true
 
 [features]
 default = ["relay"]
-relay = ["walletconnect-relay", "walletconnect-sessions"] # with default features
+relay = ["monedero-relay", "monedero-mesh"] # with default features
 mock = [
-    "walletconnect-sessions/mock",
-    "walletconnect-relay/mock"
+    "monedero-mesh/mock",
+    "monedero-relay/mock"
 ]
 
 [dependencies]
 anyhow = "1"
 base64 = { workspace = true }
 bincode = { workspace = true }
+monedero-mesh = { path = "../sessions", optional = true}
+monedero-namespaces = { path = "../namespaces"}
+monedero-relay = { path = "../relay", optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-solana-sdk = { version = "2.0.9"}
-solana-client ={ version = "2.0.9" }
-solana-rpc-client ={ version = "2.0.9" }
-solana-rpc-client-api = { version = "2.0.9" }
-solana-program = { version = "2.0.9"}
-spl-token = { version = "6.0.0" }
-spl-token-client = { version = "0.12.1"}
-spl-token-2022 = {version = "5.0.2" }
-spl-associated-token-account-client = {version = "1.0.0" }
-spl-associated-token-account = "5.0.1"
-solana-account-decoder = { version = "2.0.9" }
-walletconnect-sessions = { path = "../sessions", optional = true}
-walletconnect-namespaces = { path = "../namespaces"}
-walletconnect-relay = { path = "../relay", optional = true }
+spl-token = { workspace = true }
+spl-token-client ={ workspace = true }
+spl-token-2022 = { workspace = true }
+spl-associated-token-account-client = { workspace = true }
+spl-associated-token-account = { workspace = true }
+solana-account-decoder =  { workspace = true }
+solana-client = { workspace = true }
+solana-program = { workspace = true }
+solana-rpc-client = { workspace = true }
+solana-rpc-client-api = { workspace = true }
+solana-sdk = { workspace = true }
+
 
 [dev-dependencies]
 alloy = { version = "0.3", features = ["full"] }

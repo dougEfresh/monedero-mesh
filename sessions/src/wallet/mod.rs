@@ -18,7 +18,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{error, warn};
-use walletconnect_namespaces::{
+use monedero_namespaces::{
     Account, Accounts, ChainId, Chains, EipMethod, Events, Method, Methods, Namespace,
     NamespaceName, Namespaces, SolanaMethod,
 };

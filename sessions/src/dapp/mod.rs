@@ -12,7 +12,7 @@ use crate::{
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use tracing::{error, info};
-use walletconnect_namespaces::Namespaces;
+use monedero_namespaces::Namespaces;
 use x25519_dalek::PublicKey;
 
 #[derive(Clone, xtra::Actor)]

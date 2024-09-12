@@ -12,7 +12,7 @@ use dashmap::DashMap;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use tracing::{debug, info, warn};
-use walletconnect_relay::Client;
+use monedero_relay::Client;
 use xtra::prelude::*;
 
 #[derive(Clone, Actor)]

@@ -22,7 +22,7 @@ mod session_request;
 use crate::actors::{ClearSession, SessionRequestHandlerActor};
 use crate::crypto::CipherError;
 pub(crate) use pending::PendingSession;
-use walletconnect_namespaces::Namespaces;
+use monedero_namespaces::Namespaces;
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub(crate) enum Category {

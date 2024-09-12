@@ -20,8 +20,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tracing::{info, warn};
-use walletconnect_namespaces::Namespaces;
-use walletconnect_relay::{Client, ConnectionOptions};
+use monedero_namespaces::Namespaces;
+use monedero_relay::{Client, ConnectionOptions};
 
 #[derive(Clone, xtra::Actor)]
 pub struct PairingManager {
@@ -226,7 +226,7 @@ impl PairingManager {
 
 #[cfg(test)]
 mod test {
-    use walletconnect_namespaces::*;
+    use monedero_namespaces::*;
 
     #[test]
     fn test_namespace_compare() {

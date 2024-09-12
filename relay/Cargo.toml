@@ -1,5 +1,5 @@
 [package]
-name = "walletconnect-relay"
+name = "monedero-relay"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

@@ -1,5 +1,5 @@
 [package]
-name = "walletconnect-sessions"
+name = "monedero-mesh"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -15,10 +15,10 @@ workspace = true
 
 [features]
 default = ["kv", "relay"]
-relay = ["walletconnect-relay"] # with default features
+relay = ["monedero-relay"] # with default features
 kv = ["dep:kvx"]
 mock = [
-    "walletconnect-relay/mock"
+    "monedero-relay/mock"
 ]
 wasm = [
     "wasm-bindgen",
@@ -45,6 +45,8 @@ hkdf = { workspace = true }
 kvx = { version = "0.9", optional = true }
 lazy_static = { workspace = true }
 microxdg = { workspace = true }
+monedero-namespaces = { path = "../namespaces" }
+monedero-relay = { path = "../relay", optional = true }
 once_cell = { workspace = true }
 paste = { workspace = true }
 pin-project-lite = { workspace = true }
@@ -60,8 +62,6 @@ trait-variant = {workspace = true}
 url = { workspace = true }
 dashmap = {  workspace = true }
 x25519-dalek = { version = "2", features = ["static_secrets", "serde"] }
-walletconnect-namespaces = { path = "../namespaces" }
-walletconnect-relay = { path = "../relay", optional = true }
 xtra = {workspace = true, features = ["macros", "tokio", "instrumentation"]}
 
 ## wasm

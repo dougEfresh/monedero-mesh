@@ -4,7 +4,7 @@ use crate::rpc::{Payload, Response, RpcRequest};
 use crate::{Cipher, SocketEvent};
 use tokio::sync::mpsc;
 use tracing::{error, info, trace, warn};
-use walletconnect_relay::{ClientError, CloseFrame, ConnectionHandler};
+use monedero_relay::{ClientError, CloseFrame, ConnectionHandler};
 use xtra::prelude::*;
 
 pub struct RelayHandler {

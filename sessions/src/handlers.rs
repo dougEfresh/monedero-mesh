@@ -5,7 +5,7 @@ use crate::rpc::{
 use crate::SocketEvent;
 use async_trait::async_trait;
 use serde_json::json;
-use walletconnect_namespaces::Namespaces;
+use monedero_namespaces::Namespaces;
 
 #[async_trait]
 pub trait SocketListener: Sync + Send + 'static {

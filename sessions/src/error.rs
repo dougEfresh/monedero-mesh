@@ -18,7 +18,7 @@ pub enum Error {
     ActorSendError(#[from] xtra::Error),
 
     #[error(transparent)]
-    ConnectError(#[from] walletconnect_relay::ClientError),
+    ConnectError(#[from] monedero_relay::ClientError),
 
     #[error(transparent)]
     CorruptedPacket(#[from] serde_json::error::Error),

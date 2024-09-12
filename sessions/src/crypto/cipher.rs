@@ -12,8 +12,8 @@ use sha2::{Digest, Sha256};
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use tracing::debug;
-use walletconnect_relay::ed25519_dalek::{SecretKey, VerifyingKey};
-use walletconnect_relay::{DecodedTopic, Topic};
+use monedero_relay::ed25519_dalek::{SecretKey, VerifyingKey};
+use monedero_relay::{DecodedTopic, Topic};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 pub const MULTICODEC_ED25519_LENGTH: usize = 32;
@@ -420,7 +420,7 @@ mod tests {
     use crate::storage::KvStorage;
     use anyhow::format_err;
     use std::str::FromStr;
-    use walletconnect_relay::MessageIdGenerator;
+    use monedero_relay::MessageIdGenerator;
 
     fn temp_location() -> Option<String> {
         let topic = Topic::generate();

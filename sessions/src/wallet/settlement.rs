@@ -3,7 +3,7 @@ use crate::wallet::SessionProposePublicKey;
 use crate::{Result, WalletSettlementHandler};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use walletconnect_namespaces::Namespaces;
+use monedero_namespaces::Namespaces;
 use xtra::prelude::*;
 
 impl Handler<SessionProposePublicKey> for WalletSettlementActor {

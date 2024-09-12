@@ -14,7 +14,7 @@ use crate::{Dapp, Result, Wallet};
 pub(crate) use request::RequestHandlerActor;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
-use walletconnect_relay::Client;
+use monedero_relay::Client;
 
 use crate::actors::proposal::ProposalActor;
 pub(crate) use inbound::InboundResponseActor;

@@ -3,7 +3,7 @@
 
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
 use std::fmt::{Debug, Display, Formatter};
-use walletconnect_namespaces::Namespaces;
+use monedero_namespaces::Namespaces;
 use {
     super::{IrnMetadata, Metadata, RelayProtocol},
     serde::{Deserialize, Serialize},

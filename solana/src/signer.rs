@@ -10,8 +10,8 @@ use solana_sdk::transaction::Transaction;
 use std::time::Duration;
 use tokio::sync::oneshot::error::TryRecvError;
 use tracing::{debug, warn};
-use walletconnect_namespaces::ChainId;
-use walletconnect_sessions::ClientSession;
+use monedero_namespaces::ChainId;
+use monedero_mesh::ClientSession;
 
 struct ChannelProps {
     tx: tokio::sync::oneshot::Sender<Result<Signature>>,

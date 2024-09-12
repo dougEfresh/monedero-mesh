@@ -22,7 +22,7 @@ pub enum Error {
     SerdeError(#[from] serde_json::error::Error),
 
     #[error(transparent)]
-    RpcError(#[from] walletconnect_sessions::Error),
+    RpcError(#[from] monedero_mesh::Error),
 
     #[error("error decoding bs58: #{0}")]
     Bs58Error(String),

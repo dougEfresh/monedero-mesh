@@ -3,7 +3,7 @@
 
 use super::IrnMetadata;
 use serde::{Deserialize, Serialize};
-use walletconnect_namespaces::ChainId;
+use monedero_namespaces::ChainId;
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1110,
