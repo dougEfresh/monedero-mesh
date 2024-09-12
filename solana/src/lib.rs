@@ -15,11 +15,28 @@ use solana_sdk::signature::Signature;
 use solana_sdk::transaction::Transaction;
 use std::ops::Deref;
 use std::str::FromStr;
+use std::sync::Arc;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use spl_token_client::client::RpcClientResponse;
 use walletconnect_namespaces::{ChainId, NamespaceName, SolanaMethod};
 use walletconnect_sessions::rpc::{RequestMethod, RequestParams, SessionRequestRequest};
 use walletconnect_sessions::ClientSession;
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+
+async fn finish_tx(client: Arc<RpcClient>, rpc_response: &RpcClientResponse) -> Result<Signature> {
+    match rpc_response {
+        RpcClientResponse::Signature(s) => {
+            match client.confirm_transaction(s).await? {
+                true => Ok(s.clone()),
+                false => Err(Error::ConfirmationFailure(s.clone()))
+            }
+        }
+        RpcClientResponse::Transaction(_) => unreachable!(),
+        RpcClientResponse::Simulation(_) => unreachable!(),
+    }
+}
 
 pub enum Network {
     Mainnet,

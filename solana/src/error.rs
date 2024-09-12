@@ -1,3 +1,6 @@
+use solana_program::pubkey::Pubkey;
+use solana_sdk::signature::Signature;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("invalid solana public key {0:#?}")]
@@ -43,8 +46,19 @@ pub enum Error {
     SolanaProgramError(#[from] solana_program::program_error::ProgramError),
 
     #[error(transparent)]
+    TransactionError(#[from] solana_sdk::transaction::TransactionError),
+
+    #[error(transparent)]
     TokenError(#[from] spl_token_client::token::TokenError),
 
-    #[error("didn't expect this type")]
-    InvalidRpcResponse,
+    #[error("signature failed to confirm {0}")]
+    ConfirmationFailure(Signature),
+
+    #[cfg(feature = "mock")]
+    #[error("got a transaction but I have nothing to sign")]
+    NothingToSign,
+
+    #[error("spl-token program is not valid for this operation try spl-token-2022")]
+    InvalidTokenProgram,
+
 }

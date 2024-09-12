@@ -13,42 +13,12 @@ use spl_token_client::{
 };
 use std::sync::Arc;
 
-pub struct TokenClientBuilder {
-    tc: Arc<Box<dyn ProgramClient<ProgramRpcClientSendTransaction>>>,
-    token_address: Pubkey,
-    session: SolanaSession,
-}
-
-impl TokenClientBuilder {
-    pub fn new(
-        session: SolanaSession,
-        rpc: Arc<RpcClient>,
-        token_address: impl Into<Pubkey>,
-    ) -> Self {
-        let token = token_address.into();
-        let tc: Arc<Box<dyn ProgramClient<ProgramRpcClientSendTransaction>>> = Arc::new(Box::new(
-            ProgramRpcClient::new(rpc, ProgramRpcClientSendTransaction),
-        ));
-        Self {
-            tc,
-            session,
-            token_address: token,
-        }
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct MintInfo {
-    pub program_id: Pubkey,
-    pub mint: StateWithExtensionsOwned<Mint>,
-    pub decimals: u8,
-    pub address: Pubkey,
-}
-
 pub struct TokenTransferClient {
     account: Pubkey,
     signer: WalletConnectSigner,
     token: Token<ProgramRpcClientSendTransaction>,
+    client: Arc<RpcClient>,
+    program_id: Pubkey,
 }
 
 impl TokenTransferClient {
@@ -56,14 +26,15 @@ impl TokenTransferClient {
         signer: WalletConnectSigner,
         client: Arc<RpcClient>,
         token_address: impl Into<Pubkey>,
+        program_id: Pubkey,
     ) -> Result<Self> {
         let token_address = token_address.into();
         let tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>> = Arc::new(
-            ProgramRpcClient::new(client, ProgramRpcClientSendTransaction),
+            ProgramRpcClient::new(client.clone(), ProgramRpcClientSendTransaction),
         );
         let token = Token::new(
             tc,
-            &spl_token::id(),
+            &program_id,
             &token_address,
             None,
             Arc::new(signer.clone()),
@@ -73,7 +44,32 @@ impl TokenTransferClient {
             signer,
             account,
             token,
+            client,
+            program_id,
         })
+    }
+
+    pub fn init_wrap_native(
+        signer: WalletConnectSigner,
+        client: Arc<RpcClient>,
+        program_id: Pubkey,
+    ) -> Self {
+        let tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>> = Arc::new(
+            ProgramRpcClient::new(client.clone(), ProgramRpcClientSendTransaction),
+        );
+        let token = Token::new_native(
+            tc,
+            &program_id,
+            Arc::new(signer.clone()),
+        );
+        let account = token.get_associated_token_address(&signer.pubkey());
+        Self {
+            signer,
+            account,
+            token,
+            client,
+            program_id,
+        }
     }
 
     pub fn account(&self) -> &Pubkey {
@@ -82,10 +78,12 @@ impl TokenTransferClient {
 
     pub async fn balance(&self) -> Result<u64> {
         let info = self.token.get_account_info(&self.account).await?;
+
         Ok(info.base.amount)
     }
 
     pub async fn transfer(&self, to: &Pubkey, amt: u64) -> Result<Signature> {
+
         let to_account = self.token.get_associated_token_address(to);
         tracing::info!("destination account {to_account}");
         let result = self
@@ -100,13 +98,26 @@ impl TokenTransferClient {
                 &[&self.signer],
             )
             .await?;
-        match result {
-            RpcClientResponse::Signature(sig) => Ok(sig),
-            RpcClientResponse::Transaction(t) => {
-                tracing::debug!("weird, got back a transaction");
-                Err(crate::Error::InvalidRpcResponse)
-            }
-            RpcClientResponse::Simulation(sim) => Err(crate::Error::InvalidRpcResponse),
+        crate::finish_tx(self.client.clone(), &result).await
+    }
+
+    pub async fn mint_to(&self, to: &Pubkey, amount: u64) -> Result<Signature> {
+        // TODO optimize to one transaction
+        self.token.get_or_create_associated_account_info(to).await?;
+        let to_account = self.token.get_associated_token_address(to);
+        let result = self.token.mint_to(&to_account, &self.signer.pubkey(), amount, &[&self.signer]).await?;
+        crate::finish_tx(self.client.clone(), &result).await
+    }
+
+    pub async fn wrap(&self, amount: u64, immutable_owner: bool ) -> Result<Signature> {
+        if immutable_owner && self.program_id == spl_token::id() {
+            return Err(crate::Error::InvalidTokenProgram);
         }
+        if immutable_owner {
+            let result = self.token.wrap(&self.account, &self.signer.pubkey(), amount, &[&self.signer]).await?;
+            return crate::finish_tx(self.client.clone(), &result).await
+        }
+        let result = self.token.wrap_with_mutable_ownership(&self.account, &self.signer.pubkey(), amount, &[&self.signer]).await?;
+        crate::finish_tx(self.client.clone(), &result).await
     }
 }

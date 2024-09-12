@@ -36,7 +36,13 @@ pub struct KeyBindings {
     pub on_navigation: Option<Action>,
 
     #[serde(default)]
+    pub on_function: Option<Action>,
+
+    #[serde(default)]
     pub on_alphanumeric: Option<Action>,
+
+    #[serde(default)]
+    pub on_special_character: Option<Action>,
 
     #[serde(default)]
     pub default: Option<Action>,
@@ -66,6 +72,8 @@ impl Default for KeyBindings {
             on_navigation: None,
             on_alphanumeric: None,
             default: None,
+            on_special_character: None,
+            on_function: None,
         }
     }
 }

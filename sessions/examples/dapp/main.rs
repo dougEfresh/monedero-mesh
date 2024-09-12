@@ -8,6 +8,7 @@ mod runner;
 mod ui;
 
 use std::collections::BTreeMap;
+use std::panic::{set_hook, take_hook};
 use tracing::info;
 use walletconnect_sessions;
 
@@ -100,6 +101,7 @@ async fn dapp_test() -> anyhow::Result<()> {
     pairing_mgr.shutdown().await?;
     Ok(())
 }
+
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

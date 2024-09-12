@@ -24,9 +24,7 @@ use walletconnect_namespaces::{
     Namespace, NamespaceName, Namespaces, SolanaMethod,
 };
 use walletconnect_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use walletconnect_session_solana::{
-    Error, SolanaSession, SolanaSignatureResponse, WalletConnectSigner, WalletConnectTransaction,
-};
+use walletconnect_session_solana::{Error, SolanaSession, SolanaSignatureResponse, TokenMintClient, WalletConnectSigner, WalletConnectTransaction};
 use walletconnect_session_solana::{Result, TokenSymbolDev, TokenTransferClient};
 use walletconnect_sessions::crypto::CipherError;
 use walletconnect_sessions::rpc::{
@@ -110,7 +108,12 @@ impl MockWallet {
         let req = serde_json::from_value::<WalletConnectTransaction>(value)?;
         let decoded = BASE64_STANDARD.decode(req.transaction)?;
         let mut tx = bincode::deserialize::<Transaction>(decoded.as_ref())?;
-        tx.try_sign(&[&kp], tx.get_recent_blockhash().clone())?;
+        let positions = tx.get_signing_keypair_positions(&[kp.pubkey()])?;
+        if positions.is_empty() {
+            return Err(Error::NothingToSign)
+        }
+        tx.try_partial_sign(&[&kp], tx.get_recent_blockhash().clone())?;
+        //tx.try_sign(&[&kp], tx.get_recent_blockhash().clone())?;
         let sig = tx.get_signature();
         let signature = solana_sdk::bs58::encode(sig).into_string();
         info!("returning sig: {signature}");
@@ -244,8 +247,8 @@ async fn test_solana_tokens() -> anyhow::Result<()> {
     let sol_session = SolanaSession::try_from(&session)?;
     let signer = WalletConnectSigner::new(sol_session);
     let token_client =
-        TokenTransferClient::init(signer, mock_wallet.rpc_client.clone(), TokenSymbolDev::USDC)
-            .await?;
+      TokenTransferClient::init(signer, mock_wallet.rpc_client.clone(), TokenSymbolDev::USDC, spl_token::id())
+        .await?;
     let balance = token_client.balance().await?;
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     info!(
@@ -266,6 +269,46 @@ async fn test_solana_mint() -> anyhow::Result<()> {
     let sol_session = SolanaSession::try_from(&session)?;
     let signer = WalletConnectSigner::new(sol_session);
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
+    let mint = TokenMintClient::new(mock_wallet.rpc_client.clone(), signer.clone());
+    let (token_address, sig) = mint.create_mint(6, None).await?;
+    info!("created mint {token_address} signature: {sig}");
+    Ok(())
+}
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_solana_wrap_sol() -> anyhow::Result<()> {
+    let (session, mock_wallet) = pair_dapp_wallet().await?;
+    let sol_session = SolanaSession::try_from(&session)?;
+    let signer = WalletConnectSigner::new(sol_session);
+    let token_client =
+      TokenTransferClient::init_wrap_native(signer, mock_wallet.rpc_client.clone(), spl_token::id());
+    info!("wrapped account {}", token_client.account());
+    let wrapped = token_client.wrap(5000, false).await?;
+    let balance = token_client.balance().await?;
+    info!("immutable wrapped {wrapped} balance: {balance}");
+
+    let wrapped = token_client.wrap(5000, true).await?;
+    let balance = token_client.balance().await?;
+    info!("mut wrapped {wrapped} balance: {balance}");
+    Ok(())
+}
+
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_solana_mint_new_tokens() -> anyhow::Result<()> {
+    // this came from  test_solana_mint above
+    let token_address = Pubkey::from_str("8m3uKEn4fMPNVr7nv6RmQYktT4zRqEZzhuZDpG8hQZT4")?;
+    let (session, mock_wallet) = pair_dapp_wallet().await?;
+    let sol_session = SolanaSession::try_from(&session)?;
+    let signer = WalletConnectSigner::new(sol_session);
+    let me = Pubkey::from_str(SUPPORTED_ACCOUNT)?;
+    let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
+    let token_client =
+      TokenTransferClient::init(signer, mock_wallet.rpc_client.clone(), token_address, spl_token::id())
+        .await?;
+    let sig = token_client.mint_to(&me, 100_000_000).await?;
+    info!("signature for minting to me {sig}");
+    let sig = token_client.transfer(&to, 1000000).await?;
+    info!("signature for sending to {to} {sig}");
     Ok(())
 }

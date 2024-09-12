@@ -109,11 +109,6 @@ impl PairingManager {
         }
     }
 
-    #[cfg(not(feature = "mock"))]
-    pub(crate) fn ciphers(&self) -> Cipher {
-        self.ciphers.clone()
-    }
-
     #[cfg(feature = "mock")]
     pub fn ciphers(&self) -> Cipher {
         self.ciphers.clone()

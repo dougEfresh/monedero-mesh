@@ -52,6 +52,7 @@ fn keep_reading(tx_msg_in: Sender<Task>, rx_stopper: Receiver<bool>, tx_ack: Sen
             let res = match event::read() {
                 Ok(Event::Key(key)) => {
                     let key = Key::from_event(key);
+                    tracing::debug!("handling key {:?}", key);
                     let msg = MsgIn::Internal(InternalMsg::HandleKey(key));
                     tx_msg_in
                         .send(Task::new(msg, Some(key)))

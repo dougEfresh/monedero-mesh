@@ -29,6 +29,7 @@ pub use mock::*;
 pub use error::ClientError;
 pub type Result<T> = std::result::Result<T, ClientError>;
 
+#[cfg(feature = "mock")]
 pub(crate) fn shorten_topic(id: &Topic) -> String {
     let mut id = format!("{id}");
     if id.len() > 10 {
