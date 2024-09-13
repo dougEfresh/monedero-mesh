@@ -38,7 +38,7 @@ impl Debug for PairingManager {
         let t: String = self
             .topic()
             .map(|t| crate::shorten_topic(&t))
-            .unwrap_or(String::from("no-pairing"));
+            .unwrap_or(String::from("none"));
         write!(f, "pairing={} projectId={}", t, self.opts.project_id)
     }
 }

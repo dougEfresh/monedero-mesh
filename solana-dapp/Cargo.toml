@@ -1,0 +1,29 @@
+[package]
+name = "monedero-solana-dapp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = {version = "1" }
+crossbeam = { workspace = true }
+clap = { workspace = true }
+ctrlc = { workspace = true }
+crossterm = { workspace = true }
+futures = { workspace = true }
+microxdg = { workspace = true }
+monedero-mesh = { path = "../sessions" }
+monedero-namespaces = { path = "../namespaces" }
+ratatui = { workspace = true }
+tokio = { version = "1", features = ["full"] }
+tracing = { workspace = true }
+tracing-error = { workspace = true }
+tracing-subscriber = { workspace = true }
+tuirealm = { workspace = true }
+tui-realm-stdlib = { workspace = true }
+dotenvy = { workspace = true }

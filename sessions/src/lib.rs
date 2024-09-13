@@ -41,6 +41,7 @@ pub use monedero_relay::ClientError;
 pub type PairingTopic = Topic;
 pub type SessionTopic = Topic;
 
+pub use monedero_relay::auth_token;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {
     Connected,
