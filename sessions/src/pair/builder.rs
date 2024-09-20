@@ -1,8 +1,8 @@
 use crate::actors::Actors;
 use crate::domain::ProjectId;
 use crate::{Cipher, KvStorage, PairingManager};
-use std::sync::Arc;
 use monedero_relay::{ConnectionOptions, SerializedAuthToken};
+use std::sync::Arc;
 
 pub struct WalletConnectBuilder {
     connect_opts: Option<ConnectionOptions>,

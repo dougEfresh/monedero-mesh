@@ -9,10 +9,10 @@ use crate::{
     Pairing, PairingManager, PairingTopic, ProposeFuture, Result, SessionHandler, SessionSettled,
     SessionTopic, SocketListener,
 };
+use monedero_namespaces::Namespaces;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use tracing::{error, info};
-use monedero_namespaces::Namespaces;
 use x25519_dalek::PublicKey;
 
 #[derive(Clone, xtra::Actor)]

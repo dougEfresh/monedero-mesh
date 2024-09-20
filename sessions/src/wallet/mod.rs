@@ -11,6 +11,10 @@ use crate::{
     ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandler, SessionSettled,
     WalletSettlementHandler,
 };
+use monedero_namespaces::{
+    Account, Accounts, ChainId, Chains, EipMethod, Events, Method, Methods, Namespace,
+    NamespaceName, Namespaces, SolanaMethod,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -18,10 +22,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{error, warn};
-use monedero_namespaces::{
-    Account, Accounts, ChainId, Chains, EipMethod, Events, Method, Methods, Namespace,
-    NamespaceName, Namespaces, SolanaMethod,
-};
 use xtra::prelude::*;
 use xtra::Error;
 

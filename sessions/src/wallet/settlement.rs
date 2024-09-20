@@ -1,9 +1,9 @@
 use crate::rpc::{RpcResponsePayload, SessionProposeRequest};
 use crate::wallet::SessionProposePublicKey;
 use crate::{Result, WalletSettlementHandler};
+use monedero_namespaces::Namespaces;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use monedero_namespaces::Namespaces;
 use xtra::prelude::*;
 
 impl Handler<SessionProposePublicKey> for WalletSettlementActor {

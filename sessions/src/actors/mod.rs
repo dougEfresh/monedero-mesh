@@ -11,10 +11,10 @@ use crate::domain::Topic;
 use crate::rpc::RequestParams;
 use crate::{Cipher, PairingManager};
 use crate::{Dapp, Result, Wallet};
+use monedero_relay::Client;
 pub(crate) use request::RequestHandlerActor;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
-use monedero_relay::Client;
 
 use crate::actors::proposal::ProposalActor;
 pub(crate) use inbound::InboundResponseActor;

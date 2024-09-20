@@ -11,13 +11,15 @@ workspace = true
 
 [dependencies]
 anyhow = {version = "1" }
+config = { workspace = true }
 crossbeam = { workspace = true }
 clap = { workspace = true }
 ctrlc = { workspace = true }
 crossterm = { workspace = true }
+dashmap = { workspace = true }
 futures = { workspace = true }
 microxdg = { workspace = true }
-monedero-mesh = { path = "../sessions" }
+monedero-solana = { path = "../solana" }
 monedero-namespaces = { path = "../namespaces" }
 ratatui = { workspace = true }
 tokio = { version = "1", features = ["full"] }
@@ -25,5 +27,8 @@ tracing = { workspace = true }
 tracing-error = { workspace = true }
 tracing-subscriber = { workspace = true }
 tuirealm = { workspace = true }
+tui-logger = { workspace = true }
 tui-realm-stdlib = { workspace = true }
+tui-widgets = { workspace = true }
 dotenvy = { workspace = true }
+serde = { version = "1.0.210", features = ["derive"] }

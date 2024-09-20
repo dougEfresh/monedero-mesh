@@ -1,38 +1,38 @@
 mod error;
 mod signer;
+mod stake;
 mod token;
 
+use std::fmt::{Debug, Display, Formatter};
 pub use token::*;
 
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 pub use error::Error;
+use monedero_mesh::rpc::{RequestMethod, RequestParams, SessionRequestRequest};
+use monedero_mesh::ClientSession;
+use monedero_namespaces::{ChainId, ChainType, NamespaceName, SolanaMethod};
 use serde::{Deserialize, Serialize};
 pub use signer::WalletConnectSigner;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::message::Message;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
 use solana_sdk::transaction::Transaction;
+use spl_token_client::client::RpcClientResponse;
+pub use stake::*;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use spl_token_client::client::RpcClientResponse;
-use monedero_namespaces::{ChainId, NamespaceName, SolanaMethod};
-use monedero_mesh::rpc::{RequestMethod, RequestParams, SessionRequestRequest};
-use monedero_mesh::ClientSession;
-
 pub type Result<T> = std::result::Result<T, Error>;
-
+pub use monedero_mesh;
 
 async fn finish_tx(client: Arc<RpcClient>, rpc_response: &RpcClientResponse) -> Result<Signature> {
     match rpc_response {
-        RpcClientResponse::Signature(s) => {
-            match client.confirm_transaction(s).await? {
-                true => Ok(s.clone()),
-                false => Err(Error::ConfirmationFailure(s.clone()))
-            }
-        }
+        RpcClientResponse::Signature(s) => match client.confirm_transaction(s).await? {
+            true => Ok(s.clone()),
+            false => Err(Error::ConfirmationFailure(s.clone())),
+        },
         RpcClientResponse::Transaction(_) => unreachable!(),
         RpcClientResponse::Simulation(_) => unreachable!(),
     }
@@ -70,6 +70,35 @@ pub struct SolanaSession {
     pk: Pubkey,
     chain: ChainId,
     session: ClientSession,
+}
+
+fn fmt_common(s: &SolanaSession) -> String {
+    let c = match s.chain {
+        ChainId::Solana(ChainType::Main) => "main".to_string(),
+        ChainId::Solana(ChainType::Test) => "dev".to_string(),
+        _ => "unknown".to_string(),
+    };
+    format!("pk={} chain={c}", s.pk)
+}
+
+impl Eq for SolanaSession {}
+
+impl PartialEq for SolanaSession {
+    fn eq(&self, other: &Self) -> bool {
+        self.pk.eq(&other.pk)
+    }
+}
+
+impl Debug for SolanaSession {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", fmt_common(self))
+    }
+}
+
+impl Display for SolanaSession {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", fmt_common(self))
+    }
 }
 
 impl TryFrom<&ClientSession> for SolanaSession {

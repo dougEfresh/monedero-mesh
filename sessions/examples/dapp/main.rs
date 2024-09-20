@@ -7,19 +7,19 @@ mod msg;
 mod runner;
 mod ui;
 
+use monedero_mesh;
 use std::collections::BTreeMap;
 use std::panic::{set_hook, take_hook};
 use tracing::info;
-use monedero_mesh;
 
 use crate::log::initialize_logging;
-use std::time::Duration;
-use tokio::{select, signal};
-use monedero_namespaces::{ChainId, ChainType, Chains};
 use monedero_mesh::{
     ClientSession, Dapp, KvStorage, Metadata, NoopSessionHandler, Pairing, ProjectId,
     WalletConnectBuilder,
 };
+use monedero_namespaces::{ChainId, ChainType, Chains};
+use std::time::Duration;
+use tokio::{select, signal};
 
 async fn propose(dapp: &Dapp) -> anyhow::Result<(Pairing, ClientSession)> {
     let chains = Chains::from([
@@ -101,7 +101,6 @@ async fn dapp_test() -> anyhow::Result<()> {
     pairing_mgr.shutdown().await?;
     Ok(())
 }
-
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

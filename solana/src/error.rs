@@ -49,6 +49,12 @@ pub enum Error {
     TransactionError(#[from] solana_sdk::transaction::TransactionError),
 
     #[error(transparent)]
+    PubkeyError(#[from] solana_sdk::pubkey::PubkeyError),
+
+    #[error(transparent)]
+    InstructionError(#[from] solana_program::instruction::InstructionError),
+
+    #[error(transparent)]
     TokenError(#[from] spl_token_client::token::TokenError),
 
     #[error("signature failed to confirm {0}")]
@@ -61,4 +67,10 @@ pub enum Error {
     #[error("spl-token program is not valid for this operation try spl-token-2022")]
     InvalidTokenProgram,
 
+    #[error("Account decoding rpc issue {0}")]
+    RpcRequestError(String),
+    #[error("Account exists! {0}")]
+    AccountExists(String),
+    #[error("Invalid param for rpc {0}")]
+    BadParameter(String),
 }

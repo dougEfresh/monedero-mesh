@@ -1,54 +1,54 @@
+use crate::DappContext;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, MouseEvent};
-use crate::workers::DappMessage;
 
-#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, PartialOrd, Eq)]
 pub enum UserEvent {
-  Key(KeyEvent),
-  Mouse(MouseEvent),
-  FocusGained,
-  FocusLost,
+    Key(KeyEvent),
+    Mouse(MouseEvent),
+    FocusGained,
+    FocusLost,
+    SettledError(String),
+    Settled(DappContext),
 }
 
 impl From<char> for UserEvent {
-  fn from(c: char) -> Self {
-    UserEvent::Key(KeyEvent::from(KeyCode::Char(c)))
-  }
+    fn from(c: char) -> Self {
+        UserEvent::Key(KeyEvent::from(KeyCode::Char(c)))
+    }
 }
 
 impl From<KeyCode> for UserEvent {
-  fn from(code: KeyCode) -> Self {
-    UserEvent::Key(KeyEvent::from(code))
-  }
+    fn from(code: KeyCode) -> Self {
+        UserEvent::Key(KeyEvent::from(code))
+    }
 }
 
 impl From<KeyEvent> for UserEvent {
-  fn from(ev: KeyEvent) -> Self {
-    UserEvent::Key(ev)
-  }
+    fn from(ev: KeyEvent) -> Self {
+        UserEvent::Key(ev)
+    }
 }
 
 impl From<UserEvent> for Msg {
-  fn from(value: UserEvent) -> Self {
-    Self::User(value)
-  }
+    fn from(value: UserEvent) -> Self {
+        Self::User(value)
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Msg {
-  Dapp(DappMessage),
-  User(UserEvent),
-  AppClose,
-  Tick,
-  None,
-  ShowQuitPopup,
-  Quit,
-  CloseQuitPopup,
-  CloseErrorPopup,
+    AppClose,
+    None,
+    ShowQuitPopup,
+    Quit,
+    CloseQuitPopup,
+    CloseErrorPopup,
+    ClosePairQrCode,
 }
 
 #[derive(PartialEq, Eq, Clone, PartialOrd)]
 pub enum AppEvent {
-  ErrorInitialized,
+    ErrorInitialized,
 }
 
 #[macro_export]

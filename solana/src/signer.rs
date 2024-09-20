@@ -1,17 +1,18 @@
 use crate::{serialize_raw_message, Result, SolanaSession, WalletConnectTransaction};
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use monedero_mesh::ClientSession;
+use monedero_namespaces::ChainId;
 use solana_sdk::message::Message;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::{Signature, SignerError};
 use solana_sdk::signer::Signer;
 use solana_sdk::signers::Signers;
 use solana_sdk::transaction::Transaction;
+use std::fmt::{Debug, Formatter};
 use std::time::Duration;
 use tokio::sync::oneshot::error::TryRecvError;
 use tracing::{debug, warn};
-use monedero_namespaces::ChainId;
-use monedero_mesh::ClientSession;
 
 struct ChannelProps {
     tx: tokio::sync::oneshot::Sender<Result<Signature>>,
@@ -22,6 +23,18 @@ struct ChannelProps {
 pub struct WalletConnectSigner {
     session: SolanaSession,
     tx: tokio::sync::mpsc::UnboundedSender<ChannelProps>,
+}
+
+impl Debug for WalletConnectSigner {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "signer {}", self.session.pubkey())
+    }
+}
+
+impl PartialEq for WalletConnectSigner {
+    fn eq(&self, other: &Self) -> bool {
+        self.session.eq(&other.session)
+    }
 }
 
 impl Signer for WalletConnectSigner {

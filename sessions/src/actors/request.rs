@@ -9,10 +9,10 @@ use crate::rpc::{
 use crate::PairingManager;
 use crate::{Dapp, MessageId, Result, Wallet};
 use dashmap::DashMap;
+use monedero_relay::Client;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use tracing::{debug, info, warn};
-use monedero_relay::Client;
 use xtra::prelude::*;
 
 #[derive(Clone, Actor)]

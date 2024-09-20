@@ -2,10 +2,10 @@ use crate::actors::{AddRequest, ClearPairing};
 use crate::domain::MessageId;
 use crate::rpc::Response;
 use dashmap::DashMap;
+use monedero_relay::MessageIdGenerator;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 use tracing::{debug, error, warn};
-use monedero_relay::MessageIdGenerator;
 use xtra::{Context, Handler};
 
 #[derive(Default, xtra::Actor)]

@@ -1,15 +1,15 @@
 use assert_matches::assert_matches;
 use async_trait::async_trait;
+use monedero_mesh::{Actors, Topic};
+use monedero_mesh::{Cipher, Pairing, PairingManager, WalletConnectBuilder};
+use monedero_mesh::{ProjectId, RegisteredComponents, SocketEvent, SocketListener};
+use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, Once};
 use std::time::Duration;
 use tracing::info;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
-use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use monedero_mesh::{Actors, Topic};
-use monedero_mesh::{Cipher, Pairing, PairingManager, WalletConnectBuilder};
-use monedero_mesh::{ProjectId, RegisteredComponents, SocketEvent, SocketListener};
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();

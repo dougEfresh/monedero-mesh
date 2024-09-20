@@ -3,8 +3,8 @@
 
 use crate::rpc::params::Controller;
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
-use std::fmt::{Display, Formatter};
 use monedero_namespaces::Namespaces;
+use std::fmt::{Display, Formatter};
 use {
     super::{IrnMetadata, RelayProtocol},
     serde::{Deserialize, Serialize},

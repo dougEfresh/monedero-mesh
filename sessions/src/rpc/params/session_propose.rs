@@ -2,8 +2,8 @@
 //! #wc_sessionpropose
 
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
-use std::fmt::{Debug, Display, Formatter};
 use monedero_namespaces::Namespaces;
+use std::fmt::{Debug, Display, Formatter};
 use {
     super::{IrnMetadata, Metadata, RelayProtocol},
     serde::{Deserialize, Serialize},

@@ -1,9 +1,9 @@
 /// (wc_sessionRequest)[https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods#wc_sessionrequest]
 use super::IrnMetadata;
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
+use monedero_namespaces::ChainId;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use monedero_namespaces::ChainId;
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1108,

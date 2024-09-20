@@ -1,7 +1,6 @@
 /// Application result type.
 pub type AppResult<T> = anyhow::Result<T>;
 
-
 /// Application.
 #[derive(Debug)]
 pub struct App {

@@ -1,8 +1,8 @@
 //! (wc_sessionUpdate)[https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods#wc_sessionupdate]
 
 use super::IrnMetadata;
-use serde::{Deserialize, Serialize};
 use monedero_namespaces::Namespaces;
+use serde::{Deserialize, Serialize};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1104,

@@ -1,3 +1,7 @@
+use monedero_relay::{
+    auth_token, Client, ClientError, CloseFrame, ConnectionHandler, ConnectionOptions, Message,
+    ProjectId, Topic,
+};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, Once};
@@ -5,10 +9,6 @@ use std::time::Duration;
 use tracing::info;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
-use monedero_relay::{
-    auth_token, Client, ClientError, CloseFrame, ConnectionHandler, ConnectionOptions, Message,
-    ProjectId, Topic,
-};
 
 static INIT: Once = Once::new();
 

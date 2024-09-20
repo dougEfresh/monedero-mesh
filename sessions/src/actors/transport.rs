@@ -5,12 +5,12 @@ use crate::rpc::{
 };
 use crate::Cipher;
 use crate::Result;
+use monedero_relay::Client;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::oneshot;
 use tracing::{debug, error, warn};
-use monedero_relay::Client;
 use xtra::{Address, Context, Handler};
 
 #[derive(Clone, xtra::Actor)]

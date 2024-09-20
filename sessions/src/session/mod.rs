@@ -21,8 +21,8 @@ mod session_request;
 
 use crate::actors::{ClearSession, SessionRequestHandlerActor};
 use crate::crypto::CipherError;
-pub(crate) use pending::PendingSession;
 use monedero_namespaces::Namespaces;
+pub(crate) use pending::PendingSession;
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub(crate) enum Category {

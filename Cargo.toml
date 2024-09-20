@@ -38,6 +38,7 @@ bs58 = "0.4.0"
 bincode = { version = "1.3"}
 base64 = "0.22"
 chacha20poly1305 = "0.10"
+config  = { version = "0.14"}
 crossbeam = "0.8.4"
 clap = { version = "4.5.4", features = ["wrap_help", "derive", "cargo"] }
 ctrlc = { version = "3.4.3", features = ["termination"] }
@@ -68,6 +69,7 @@ spl-token-client = { version = "0.12.1"}
 spl-token-2022 = {version = "5.0.2" }
 solana-account-decoder = { version = "2.0.9" }
 solana-client ={ version = "2.0.9" }
+solana-feature-set ={ version = "0.0.1" }
 solana-program = { version = "2.0.9"}
 solana-rpc-client ={ version = "2.0.9" }
 solana-rpc-client-api = { version = "2.0.9" }
@@ -80,7 +82,9 @@ tracing-error = { version = "0.2.0" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
 trait-variant = "0.1.2"
 tuirealm = { version = "1.9" }
+tui-logger = { version = "0.12" , features = ["crossterm", "tracing-support"]}
 tui-realm-stdlib = { version = "1.3" }
+tui-widgets = { version = "0.3" }
 url = "2.4"
 xtra = { version = "0.6.0", features = ["macros", "tokio"]}
 

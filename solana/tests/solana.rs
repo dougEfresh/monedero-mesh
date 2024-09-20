@@ -3,7 +3,27 @@ use assert_matches::assert_matches;
 use async_trait::async_trait;
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use monedero_mesh::crypto::CipherError;
+use monedero_mesh::rpc::{
+    Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
+    SessionProposeRequest, SessionProposeResponse, SessionRequestRequest,
+};
+use monedero_mesh::{
+    Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
+    RegisteredComponents, SdkErrors, Topic, Wallet, WalletConnectBuilder, WalletRequestResponse,
+    WalletSettlementHandler,
+};
+use monedero_namespaces::{
+    Account, Accounts, AlloyChain, ChainId, ChainType, Chains, EipMethod, Events, Method, Methods,
+    Namespace, NamespaceName, Namespaces, SolanaMethod,
+};
+use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
+use monedero_solana::{
+    Error, Result, SolanaSession, SolanaSignatureResponse, StakeClient, TokenMintClient,
+    TokenSymbolDev, TokenTransferClient, WalletConnectSigner, WalletConnectTransaction,
+};
 use serde::Deserialize;
+use solana_program::native_token::LAMPORTS_PER_SOL;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_rpc_client::rpc_client::{RpcClientConfig, SerializableTransaction};
 use solana_sdk::message::Message;
@@ -19,23 +39,6 @@ use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
-use monedero_namespaces::{
-    Account, Accounts, AlloyChain, ChainId, ChainType, Chains, EipMethod, Events, Method, Methods,
-    Namespace, NamespaceName, Namespaces, SolanaMethod,
-};
-use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use walletconnect_session_solana::{Error, SolanaSession, SolanaSignatureResponse, TokenMintClient, WalletConnectSigner, WalletConnectTransaction};
-use walletconnect_session_solana::{Result, TokenSymbolDev, TokenTransferClient};
-use monedero_mesh::crypto::CipherError;
-use monedero_mesh::rpc::{
-    Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
-    SessionProposeRequest, SessionProposeResponse, SessionRequestRequest,
-};
-use monedero_mesh::{
-    Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
-    RegisteredComponents, SdkErrors, Topic, Wallet, WalletConnectBuilder, WalletRequestResponse,
-    WalletSettlementHandler,
-};
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();
@@ -110,7 +113,7 @@ impl MockWallet {
         let mut tx = bincode::deserialize::<Transaction>(decoded.as_ref())?;
         let positions = tx.get_signing_keypair_positions(&[kp.pubkey()])?;
         if positions.is_empty() {
-            return Err(Error::NothingToSign)
+            return Err(Error::NothingToSign);
         }
         tx.try_partial_sign(&[&kp], tx.get_recent_blockhash().clone())?;
         //tx.try_sign(&[&kp], tx.get_recent_blockhash().clone())?;
@@ -214,6 +217,7 @@ async fn pair_dapp_wallet() -> anyhow::Result<(ClientSession, MockWallet)> {
     Ok((session, mock_wallet))
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+
 async fn test_solana_session() -> anyhow::Result<()> {
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     info!("settlement complete");
@@ -246,9 +250,13 @@ async fn test_solana_tokens() -> anyhow::Result<()> {
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     let sol_session = SolanaSession::try_from(&session)?;
     let signer = WalletConnectSigner::new(sol_session);
-    let token_client =
-      TokenTransferClient::init(signer, mock_wallet.rpc_client.clone(), TokenSymbolDev::USDC, spl_token::id())
-        .await?;
+    let token_client = TokenTransferClient::init(
+        signer,
+        mock_wallet.rpc_client.clone(),
+        TokenSymbolDev::USDC,
+        spl_token::id(),
+    )
+    .await?;
     let balance = token_client.balance().await?;
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     info!(
@@ -280,8 +288,11 @@ async fn test_solana_wrap_sol() -> anyhow::Result<()> {
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     let sol_session = SolanaSession::try_from(&session)?;
     let signer = WalletConnectSigner::new(sol_session);
-    let token_client =
-      TokenTransferClient::init_wrap_native(signer, mock_wallet.rpc_client.clone(), spl_token::id());
+    let token_client = TokenTransferClient::init_wrap_native(
+        signer,
+        mock_wallet.rpc_client.clone(),
+        spl_token::id(),
+    );
     info!("wrapped account {}", token_client.account());
     let wrapped = token_client.wrap(5000, false).await?;
     let balance = token_client.balance().await?;
@@ -293,7 +304,6 @@ async fn test_solana_wrap_sol() -> anyhow::Result<()> {
     Ok(())
 }
 
-
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_solana_mint_new_tokens() -> anyhow::Result<()> {
     // this came from  test_solana_mint above
@@ -303,12 +313,36 @@ async fn test_solana_mint_new_tokens() -> anyhow::Result<()> {
     let signer = WalletConnectSigner::new(sol_session);
     let me = Pubkey::from_str(SUPPORTED_ACCOUNT)?;
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
-    let token_client =
-      TokenTransferClient::init(signer, mock_wallet.rpc_client.clone(), token_address, spl_token::id())
-        .await?;
+    let token_client = TokenTransferClient::init(
+        signer,
+        mock_wallet.rpc_client.clone(),
+        token_address,
+        spl_token::id(),
+    )
+    .await?;
     let sig = token_client.mint_to(&me, 100_000_000).await?;
     info!("signature for minting to me {sig}");
     let sig = token_client.transfer(&to, 1000000).await?;
     info!("signature for sending to {to} {sig}");
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+async fn test_solana_stake_accounts() -> anyhow::Result<()> {
+    let (session, mock_wallet) = pair_dapp_wallet().await?;
+    info!("settlement complete");
+    let sol_session = SolanaSession::try_from(&session)?;
+    let signer = WalletConnectSigner::new(sol_session.clone());
+    let staker = StakeClient::new(sol_session, signer, mock_wallet.rpc_client.clone());
+    let validators = staker.validators().await?;
+    info!("there are {} validators", validators.len());
+    let accounts = staker.accounts().await?;
+    info!("you have {} staked accounts", accounts.len());
+    for a in &accounts {
+        info!("{a}")
+    }
+    let seed: &str = "seed";
+    let (account, sig) = staker.create_account(seed, LAMPORTS_PER_SOL).await?;
+    info!("create new account {account} with seed {seed}  sig: {sig}");
     Ok(())
 }

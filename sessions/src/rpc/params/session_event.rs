@@ -2,8 +2,8 @@
 //! #wc_sessionevent
 
 use super::IrnMetadata;
-use serde::{Deserialize, Serialize};
 use monedero_namespaces::ChainId;
+use serde::{Deserialize, Serialize};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1110,

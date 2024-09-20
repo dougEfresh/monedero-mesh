@@ -70,8 +70,8 @@ impl Runner {
                             ScrollDownHalf => {}
                             Quit => {
                                 tracing::info!("quiting");
-                                break 'outer
-                            },
+                                break 'outer;
+                            }
                             Enqueue(task) => {
                                 tx_msg_in.send(task)?;
                             }

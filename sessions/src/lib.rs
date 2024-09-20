@@ -35,9 +35,9 @@ pub type Atomic<T> = Arc<Mutex<T>>;
 use crate::rpc::SessionRequestRequest;
 pub use actors::{Actors, RegisteredComponents};
 pub use domain::*;
-pub use rpc::{Metadata, SdkErrors};
 use monedero_namespaces::{Event, Namespaces};
 pub use monedero_relay::ClientError;
+pub use rpc::{Metadata, SdkErrors};
 pub type PairingTopic = Topic;
 pub type SessionTopic = Topic;
 
@@ -128,12 +128,12 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{NoopSessionHandler, SessionHandler, INIT};
+    use monedero_namespaces::Event;
     use std::sync::Arc;
     use std::time::Duration;
     use tokio::sync::Mutex;
     use tracing_subscriber::fmt::format::FmtSpan;
     use tracing_subscriber::EnvFilter;
-    use monedero_namespaces::Event;
     use xtra::prelude::*;
 
     pub(crate) fn init_tracing() {

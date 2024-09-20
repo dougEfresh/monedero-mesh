@@ -11,14 +11,32 @@ use spl_token_client::{
     client::{ProgramClient, ProgramRpcClient, ProgramRpcClientSendTransaction},
     token::{ComputeUnitLimit, Token},
 };
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct TokenTransferClient {
     account: Pubkey,
     signer: WalletConnectSigner,
-    token: Token<ProgramRpcClientSendTransaction>,
+    token: Arc<Token<ProgramRpcClientSendTransaction>>,
     client: Arc<RpcClient>,
     program_id: Pubkey,
+}
+
+impl PartialEq for TokenTransferClient {
+    fn eq(&self, other: &Self) -> bool {
+        self.account.eq(&other.account) && self.program_id.eq(&other.program_id)
+    }
+}
+
+impl Debug for TokenTransferClient {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[token-client] {} program: {} ",
+            self.account, self.program_id
+        )
+    }
 }
 
 impl TokenTransferClient {
@@ -43,7 +61,7 @@ impl TokenTransferClient {
         Ok(Self {
             signer,
             account,
-            token,
+            token: Arc::new(token),
             client,
             program_id,
         })
@@ -57,16 +75,12 @@ impl TokenTransferClient {
         let tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>> = Arc::new(
             ProgramRpcClient::new(client.clone(), ProgramRpcClientSendTransaction),
         );
-        let token = Token::new_native(
-            tc,
-            &program_id,
-            Arc::new(signer.clone()),
-        );
+        let token = Token::new_native(tc, &program_id, Arc::new(signer.clone()));
         let account = token.get_associated_token_address(&signer.pubkey());
         Self {
             signer,
             account,
-            token,
+            token: Arc::new(token),
             client,
             program_id,
         }
@@ -83,7 +97,6 @@ impl TokenTransferClient {
     }
 
     pub async fn transfer(&self, to: &Pubkey, amt: u64) -> Result<Signature> {
-
         let to_account = self.token.get_associated_token_address(to);
         tracing::info!("destination account {to_account}");
         let result = self
@@ -105,19 +118,38 @@ impl TokenTransferClient {
         // TODO optimize to one transaction
         self.token.get_or_create_associated_account_info(to).await?;
         let to_account = self.token.get_associated_token_address(to);
-        let result = self.token.mint_to(&to_account, &self.signer.pubkey(), amount, &[&self.signer]).await?;
+        let result = self
+            .token
+            .mint_to(&to_account, &self.signer.pubkey(), amount, &[&self.signer])
+            .await?;
         crate::finish_tx(self.client.clone(), &result).await
     }
 
-    pub async fn wrap(&self, amount: u64, immutable_owner: bool ) -> Result<Signature> {
+    pub async fn wrap(&self, amount: u64, immutable_owner: bool) -> Result<Signature> {
         if immutable_owner && self.program_id == spl_token::id() {
             return Err(crate::Error::InvalidTokenProgram);
         }
         if immutable_owner {
-            let result = self.token.wrap(&self.account, &self.signer.pubkey(), amount, &[&self.signer]).await?;
-            return crate::finish_tx(self.client.clone(), &result).await
+            let result = self
+                .token
+                .wrap(
+                    &self.account,
+                    &self.signer.pubkey(),
+                    amount,
+                    &[&self.signer],
+                )
+                .await?;
+            return crate::finish_tx(self.client.clone(), &result).await;
         }
-        let result = self.token.wrap_with_mutable_ownership(&self.account, &self.signer.pubkey(), amount, &[&self.signer]).await?;
+        let result = self
+            .token
+            .wrap_with_mutable_ownership(
+                &self.account,
+                &self.signer.pubkey(),
+                amount,
+                &[&self.signer],
+            )
+            .await?;
         crate::finish_tx(self.client.clone(), &result).await
     }
 }
