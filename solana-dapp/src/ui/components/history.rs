@@ -21,6 +21,11 @@ impl Default for History {
 
 impl Component<Msg, UserEvent> for History {
     fn on(&mut self, ev: Event<UserEvent>) -> Option<Msg> {
-        None
+        match ev {
+            Event::User(UserEvent::Settled) => {
+                Some(Msg::Settled)
+            }
+            _ => None
+        }
     }
 }

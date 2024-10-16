@@ -120,7 +120,7 @@ fn main() -> Result<()> {
         .iter()
         .cloned()
         .into_iter()
-        .filter(|t| t.symbol == "ORE")
+        .filter(|t| t.symbol.contains("ORE"))
         .collect();
     let mut top_tokens: Vec<Token> = tokens.into_iter().take(20).collect();
     // Now sort these top 20 tokens alphabetically by symbol

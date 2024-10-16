@@ -7,7 +7,7 @@ impl PairingManager {
     pub(super) async fn restore_saved_pairing(&self) -> Result<()> {
         if let Some(pairing) = self.pairing() {
             info!("found existing topic {pairing}");
-            self.subscribe(pairing.topic.clone()).await?;
+            self.resubscribe().await?;
             info!("Checking if peer is alive");
             if !self.alive().await {
                 info!("clearing pairing topics and sessions");

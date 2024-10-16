@@ -7,9 +7,10 @@ license = "MIT"
 
 [workspace]
 resolver = "2"
-members = [
+members = [ "cli",
     "namespaces", "relay",
-    "sessions", "solana", "solana-dapp"
+    "sessions", "solana",
+    "cli"
 ]
 #unused_variables = "warn"
 #unused_imports = "deny"
@@ -38,13 +39,17 @@ bs58 = "0.4.0"
 bincode = { version = "1.3"}
 base64 = "0.22"
 chacha20poly1305 = "0.10"
-config  = { version = "0.14"}
+chrono = { version = "0.4", features = ["serde"]}
+config  = { version = "0.14" }
+console-subscriber = { version = "0.4" }
+copypasta = { version = "0.10" }
 crossbeam = "0.8.4"
 clap = { version = "4.5.4", features = ["wrap_help", "derive", "cargo"] }
 ctrlc = { version = "3.4.3", features = ["termination"] }
 dashmap = {version = "5"}
 data-encoding = { version = "2"}
 derive_more = {version = "1", features = ["full"]}
+dirs = { version = "5"}
 dotenvy = {version = "0.15"}
 futures = { version = "0.3"}
 futures-util = { version = "0.3" }
@@ -67,13 +72,13 @@ spl-associated-token-account = {  version = "5.0.1"  }
 spl-token = { version = "6.0.0" }
 spl-token-client = { version = "0.12.1"}
 spl-token-2022 = {version = "5.0.2" }
-solana-account-decoder = { version = "2.0.9" }
-solana-client ={ version = "2.0.9" }
+solana-account-decoder = { version = "2.0.13" }
+solana-client ={ version = "2.0.13" }
 solana-feature-set ={ version = "0.0.1" }
-solana-program = { version = "2.0.9"}
-solana-rpc-client ={ version = "2.0.9" }
-solana-rpc-client-api = { version = "2.0.9" }
-solana-sdk = { version = "2.0.9" }
+solana-program = { version = "2.0.13"}
+solana-rpc-client ={ version = "2.0.13" }
+solana-rpc-client-api = { version = "2.0.13" }
+solana-sdk = { version = "2.0.13" }
 
 thiserror = "1.0"
 tokio = { version = "1", features = ["rt", "time", "sync", "macros", "rt-multi-thread"] }
@@ -81,15 +86,15 @@ tracing = { version = "0.1" }
 tracing-error = { version = "0.2.0" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
 trait-variant = "0.1.2"
-tuirealm = { version = "1.9" }
-tui-logger = { version = "0.12" , features = ["crossterm", "tracing-support"]}
-tui-realm-stdlib = { version = "1.3" }
-tui-widgets = { version = "0.3" }
+#tuirealm = { version = "1.9" }
+# tui-realm-stdlib = { version = "1.3" }
+#tui-logger = { version = "0.12" , features = ["crossterm", "tracing-support"]}
+#tui-widgets = { version = "0.3" }
 url = "2.4"
 xtra = { version = "0.6.0", features = ["macros", "tokio"]}
 
-crossterm = { version = "0.28.1", features = ["event-stream"] }
-ratatui = { version = "0.28" }
+#crossterm = { version = "0.28.1", features = ["event-stream"] }
+#ratatui = { version = "0.28" }
 
 [patch.crates-io]
 # aes-gcm-siv 0.10.3 and curve25519-dalek 3.x pin zeroize to <1.4

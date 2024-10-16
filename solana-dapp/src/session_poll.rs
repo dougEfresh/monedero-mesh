@@ -31,14 +31,12 @@ impl Eq for DappContext {}
 enum SettlementState {
     None,
     Error(String),
-    Settled(DappContext),
+    Settled,
 }
 
 #[derive(Clone)]
 pub struct SessionPoll {
-    pub pairing: Pairing,
-    // lazy lock
-    session_state: Arc<DashMap<Topic, SettlementState>>,
+    pub rx: Arc<Box<tokio::sync::mpsc::UnboundedReceiver<SettlementState>>>
 }
 
 impl SessionPoll {
@@ -87,7 +85,7 @@ impl Poll<UserEvent> for SessionPoll {
                     Ok(None)
                 }
                 SettlementState::Error(e) => {
-                    Ok(Some(Event::User(UserEvent::SettledError(e.to_string()))))
+                    221
                 }
                 SettlementState::Settled(dapp) => {
                     tracing::debug!("settled returning to tuireal");

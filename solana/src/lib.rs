@@ -14,6 +14,7 @@ use monedero_mesh::ClientSession;
 use monedero_namespaces::{ChainId, ChainType, NamespaceName, SolanaMethod};
 use serde::{Deserialize, Serialize};
 pub use signer::WalletConnectSigner;
+use solana_program::native_token::LAMPORTS_PER_SOL;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::message::Message;
 use solana_sdk::pubkey::Pubkey;
@@ -24,6 +25,7 @@ pub use stake::*;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
+
 pub type Result<T> = std::result::Result<T, Error>;
 pub use monedero_mesh;
 
@@ -142,6 +144,18 @@ impl SolanaSession {
         self.chain.clone()
     }
 
+    pub async fn balance(&self, rpc: &RpcClient) -> f64 {
+        let balance = rpc.get_balance(&self.pk).await.ok().unwrap_or_default();
+        (balance as f64) / (LAMPORTS_PER_SOL as f64)
+    }
+
+    pub fn chain_type(&self) -> String {
+        match self.chain {
+            ChainId::Solana(ChainType::Main) => "main".to_string(),
+            ChainId::Solana(ChainType::Test) => "dev".to_string(),
+            _ => "unknown".to_string(),
+        }
+    }
     pub async fn send_wallet_connect(
         &self,
         tx: WalletConnectTransaction,

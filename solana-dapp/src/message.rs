@@ -1,4 +1,3 @@
-use crate::DappContext;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, MouseEvent};
 
 #[derive(Debug, PartialEq, Clone, PartialOrd, Eq)]
@@ -7,8 +6,7 @@ pub enum UserEvent {
     Mouse(MouseEvent),
     FocusGained,
     FocusLost,
-    SettledError(String),
-    Settled(DappContext),
+    Settled,
 }
 
 impl From<char> for UserEvent {
@@ -29,12 +27,6 @@ impl From<KeyEvent> for UserEvent {
     }
 }
 
-impl From<UserEvent> for Msg {
-    fn from(value: UserEvent) -> Self {
-        Self::User(value)
-    }
-}
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Msg {
     AppClose,
@@ -44,6 +36,7 @@ pub enum Msg {
     CloseQuitPopup,
     CloseErrorPopup,
     ClosePairQrCode,
+    Settled,
 }
 
 #[derive(PartialEq, Eq, Clone, PartialOrd)]

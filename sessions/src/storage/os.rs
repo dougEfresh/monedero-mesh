@@ -3,8 +3,9 @@ use crate::storage::Error::SegmentErr;
 use crate::storage::Result;
 use kvx::{Key, KeyValueStore, Namespace, ReadStore, Segment, WriteStore};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::sync::Arc;
-use tracing::debug;
+use tracing::{debug, info};
 use url::Url;
 
 #[derive(Clone)]
@@ -19,17 +20,10 @@ impl Default for KvStorage {
 }
 
 impl KvStorage {
-    pub fn file(location: Option<String>) -> Result<Self> {
-        let location: std::path::PathBuf = if let Some(l) = location {
-            std::path::PathBuf::from(l)
-        } else {
-            let app_name = env!("CARGO_PKG_NAME");
-            let app = microxdg::XdgApp::new(app_name)?;
-            app.app_cache()?
-        };
-        debug!("using storage path location {:#?}", location);
+    pub fn path(location: PathBuf, ns: &str) -> Result<Self> {
+        info!("using storage path location {}", location.display());
         let namespace =
-            Namespace::parse("wc2").map_err(|_| crate::storage::Error::NamespaceInvalid)?;
+            Namespace::parse(ns).map_err(|_| crate::storage::Error::NamespaceInvalid)?;
         let store = KeyValueStore::new(
             &Url::parse(&format!("local://{}", location.display()))?,
             namespace,
@@ -37,6 +31,16 @@ impl KvStorage {
         Ok(Self {
             store: Arc::new(store),
         })
+    }
+    pub fn file(location: Option<String>) -> Result<Self> {
+        let location: PathBuf = if let Some(l) = location {
+            std::path::PathBuf::from(l)
+        } else {
+            let app_name = env!("CARGO_PKG_NAME");
+            let app = microxdg::XdgApp::new(app_name)?;
+            app.app_cache()?
+        };
+        Self::path(location, "wc2")
     }
 
     /// # Panics

@@ -21,12 +21,14 @@ mock = [
 anyhow = "1"
 base64 = { workspace = true }
 bincode = { workspace = true }
+chrono = { workspace = true }
 monedero-mesh = { path = "../sessions", optional = true}
 monedero-namespaces = { path = "../namespaces"}
 monedero-relay = { path = "../relay", optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 spl-token = { workspace = true }
@@ -41,6 +43,7 @@ solana-program = { workspace = true }
 solana-rpc-client = { workspace = true }
 solana-rpc-client-api = { workspace = true }
 solana-sdk = { workspace = true }
+microxdg = { workspace = true }
 
 
 [dev-dependencies]
@@ -48,7 +51,6 @@ alloy = { version = "0.3", features = ["full"] }
 assert_matches = { version = "1.5.0" }
 async-trait = "0.1.82"
 anyhow = "1"
-chrono = "0.4"
 tokio = { version = "1", features = ["full"] }
 env_logger = { version = "0.9.3" }
 tracing = { version = "0.1" }

@@ -4,6 +4,7 @@ mod client;
 use crate::{SolanaSession, WalletConnectSigner};
 use serde::{Deserialize, Serialize};
 use solana_program::clock::{Epoch, Slot, UnixTimestamp};
+use solana_program::pubkey::Pubkey;
 use solana_program::stake::state::{Authorized, Lockup};
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::account_utils::StateMut;
@@ -93,13 +94,17 @@ impl Display for StakeState {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyedStakeState {
-    pub stake_pubkey: String,
+    pub stake_pubkey: Pubkey,
     #[serde(flatten)]
     pub stake_state: StakeState,
 }
 
 impl Display for KeyedStakeState {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "accont:{} state:{}", self.stake_pubkey, self.stake_state)
+        write!(
+            f,
+            "account:{} state:{}",
+            self.stake_pubkey, self.stake_state
+        )
     }
 }

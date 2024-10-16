@@ -85,10 +85,19 @@ impl PairingManager {
         l.push(Box::new(listener));
     }
 
-    pub(crate) async fn resubsribe(&self) -> Result<()> {
+    pub(crate) async fn resubscribe(&self) -> Result<()> {
         self.pairing().ok_or(Error::NoPairingTopic)?;
         let topics = self.ciphers.subscriptions();
         self.relay.batch_subscribe(topics).await?;
+        Ok(())
+    }
+
+    pub(crate) async fn unsubscribe_all(&self) -> Result<()> {
+        self.pairing().ok_or(Error::NoPairingTopic)?;
+        let topics = self.ciphers.subscriptions();
+        for topic in topics {
+            let _ = self.relay.unsubscribe(topic).await;
+        }
         Ok(())
     }
 
@@ -163,15 +172,16 @@ impl PairingManager {
 
     pub async fn delete(&self) -> Result<bool> {
         let t = self.topic().ok_or(Error::NoPairingTopic)?;
-        let result = self
-            .transport
-            .publish_request::<bool>(
+        let result = tokio::time::timeout(
+            Duration::from_millis(1100),
+            self.transport.publish_request::<bool>(
                 t.clone(),
                 RequestParams::PairDelete(PairDeleteRequest::default()),
-            )
-            .await;
+            ),
+        )
+        .await;
         self.cleanup(t).await;
-        result
+        Ok(result.is_ok())
     }
 
     // Epoch

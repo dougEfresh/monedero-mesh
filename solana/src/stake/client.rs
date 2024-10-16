@@ -74,7 +74,7 @@ impl StakeClient {
             match stake_state {
                 StakeStateV2::Initialized(_) | StakeStateV2::Stake(_, _, _) => {
                     stake_accounts.push(KeyedStakeState {
-                        stake_pubkey: stake_pubkey.to_string(),
+                        stake_pubkey,
                         stake_state: build_stake_state(
                             stake_account.lamports,
                             &stake_state,

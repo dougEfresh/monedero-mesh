@@ -1,5 +1,5 @@
 use crate::ui::{draw_area_in, Id, Ui};
-use tuirealm::tui::layout::{Constraint, Direction, Layout, Rect};
+use tuirealm::tui::layout::{Constraint, Direction, Layout};
 use tuirealm::tui::widgets::Clear;
 
 impl Ui {

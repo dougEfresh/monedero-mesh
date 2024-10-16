@@ -6,7 +6,7 @@ use solana_sdk::signature::Signature;
 use solana_sdk::signer::Signer;
 use solana_sdk::stake::{
     self,
-    instruction::{self as stake_instruction, LockupArgs, StakeError},
+    instruction::{self as stake_instruction},
 };
 use solana_sdk::transaction::Transaction;
 

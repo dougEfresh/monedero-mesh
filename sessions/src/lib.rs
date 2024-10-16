@@ -41,6 +41,8 @@ pub use rpc::{Metadata, SdkErrors};
 pub type PairingTopic = Topic;
 pub type SessionTopic = Topic;
 
+pub use storage::Error as StorageError;
+
 pub use monedero_relay::auth_token;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {

@@ -1,8 +1,10 @@
 use crate::{Error, PairingManager, Result, SessionEventRequest, SessionSettled, SessionTopic};
 use dashmap::DashMap;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::oneshot::Sender;
 use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::time::timeout;
 use tracing::warn;
 
 use crate::rpc::{RequestParams, SessionSettleRequest};
@@ -79,6 +81,10 @@ impl PendingSession {
             category,
         )
         .await?;
+        // sanity check on connection
+        if let Err(e) = timeout(Duration::from_secs(5), client_session.ping()).await {
+            warn!("failed to ping session: {e}. Session maybe broken, try new pairing");
+        }
         if let Some(req) = send_to_peer {
             let result = client_session
                 .publish_request::<bool>(RequestParams::SessionSettle(req))

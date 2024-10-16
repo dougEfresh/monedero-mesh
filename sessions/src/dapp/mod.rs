@@ -12,7 +12,7 @@ use crate::{
 use monedero_namespaces::Namespaces;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use x25519_dalek::PublicKey;
 
 #[derive(Clone, xtra::Actor)]
@@ -93,6 +93,7 @@ impl Dapp {
         handlers: T,
     ) -> Result<(Pairing, ProposeFuture)> {
         info!("dapp session restore");
+
         let pairing = self.manager.pairing().ok_or(NoPairingTopic)?;
         let rx = self.pending.add(pairing.topic.clone(), handlers);
         let dapp = self.clone();
@@ -145,5 +146,10 @@ impl Dapp {
 
     pub fn pairing(&self) -> Option<Pairing> {
         self.manager.pairing()
+    }
+
+    pub async fn purge(&self) -> Result<()> {
+        let _ = self.manager.delete().await;
+        Ok(())
     }
 }

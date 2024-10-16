@@ -1,9 +1,8 @@
 use crate::app::App;
 use crate::message::{AppEvent, UserEvent};
-use crate::session_poll::SessionPoll;
 use crate::ui::components::popups::PairQrCode;
 use crate::ui::components::*;
-use crate::{DappContext, Msg};
+use crate::Msg;
 use components::popups::{ErrorPopup, QuitPopup};
 use dashmap::DashMap;
 use monedero_solana::monedero_mesh::{Pairing, ProposeFuture, Topic};
@@ -18,9 +17,8 @@ use std::time::{Duration, SystemTime};
 use tuirealm::event::{Key, KeyEvent, KeyModifiers};
 use tuirealm::terminal::TerminalBridge;
 use tuirealm::tui::layout::{Constraint, Direction, Layout, Rect};
-use tuirealm::{
-    Application, EventListenerCfg, PollStrategy, Sub, SubClause, SubEventClause, Update,
-};
+use tuirealm::{Application, Event, EventListenerCfg, PollStrategy, Sub, SubClause, SubEventClause, Update};
+use tuirealm::listener::{ListenerResult, Poll};
 
 mod components;
 mod model;
@@ -63,31 +61,37 @@ enum Id {
     QuitPopup,
 }
 
+
+
 pub struct Ui {
     application: Application<Id, Msg, UserEvent>,
     terminal: TerminalBridge,
     redraw: bool,
-    paired: DashMap<Topic, DappContext>,
 }
 
 impl Ui {
-    pub fn init(pairing: Pairing, fut: ProposeFuture) -> anyhow::Result<Self> {
+    pub fn init() -> anyhow::Result<Self> {
         let ticks = Duration::from_millis(10);
         let mut app = Application::<Id, Msg, UserEvent>::init(
-            EventListenerCfg::default().default_input_listener(ticks),
+            EventListenerCfg::default().default_input_listener(ticks)
         );
 
         app.mount(Id::NavBar, Box::new(Nav::default()), vec![])?;
-        app.mount(Id::Home, Box::new(History::default()), vec![])?;
+        app.mount(Id::Home, Box::new(History::default()), vec![
+            Sub::new(
+                SubEventClause::User(UserEvent::Settled),
+                SubClause::Always,
+            )
+        ])?;
         app.mount(Id::Legend, Box::new(ShortcutsLegend::default()), vec![])?;
-        app.mount(Id::Pairing, Box::new(PairQrCode::new(pairing)), vec![])?;
+        //app.mount(Id::Pairing, Box::new(PairQrCode::new(pairing)), vec![])?;
 
         app.mount(
             Id::GlobalListener,
             Box::new(GlobalListener::default()),
             Self::subs(),
         )?;
-        app.active(&Id::Pairing)?;
+        app.active(&Id::Home)?;
         let terminal = TerminalBridge::new()?;
 
         Ok(Self {
@@ -101,6 +105,13 @@ impl Ui {
     pub(super) fn init_terminal(&mut self) {
         let _ = self.terminal.enable_raw_mode();
         let _ = self.terminal.enter_alternate_screen();
+        let _ = self.terminal.clear_screen();
+    }
+
+    /// finalize terminal
+    pub(super) fn finalize_terminal(&mut self) {
+        let _ = self.terminal.disable_raw_mode();
+        let _ = self.terminal.leave_alternate_screen();
         let _ = self.terminal.clear_screen();
     }
 
@@ -136,27 +147,7 @@ impl Ui {
         self.finalize_terminal();
     }
 
-    /// Mount error and give focus to it
-    pub(super) fn mount_error_popup(&mut self, err: impl ToString) {
-        assert!(self
-            .application
-            .remount(
-                Id::ErrorPopup,
-                Box::new(ErrorPopup::new(err.to_string())),
-                vec![]
-            )
-            .is_ok());
-        assert!(self.application.active(&Id::ErrorPopup).is_ok());
-    }
-
-    /// finalize terminal
-    pub(super) fn finalize_terminal(&mut self) {
-        let _ = self.terminal.disable_raw_mode();
-        let _ = self.terminal.leave_alternate_screen();
-        let _ = self.terminal.clear_screen();
-    }
-
-    pub(super) fn subs() -> Vec<Sub<Id, UserEvent>> {
+    pub fn subs() -> Vec<Sub<Id, UserEvent>> {
         vec![Sub::new(
             SubEventClause::Keyboard(KeyEvent {
                 code: Key::Esc,
@@ -165,13 +156,28 @@ impl Ui {
             SubClause::Always,
         )]
     }
+}
+
+impl Ui {
+    /// Mount error and give focus to it
+    pub(super) fn mount_error_popup(&mut self, err: impl ToString) {
+        assert!(self
+          .application
+          .remount(
+              Id::ErrorPopup,
+              Box::new(ErrorPopup::new(err.to_string())),
+              vec![]
+          )
+          .is_ok());
+        assert!(self.application.active(&Id::ErrorPopup).is_ok());
+    }
 
     /// Mount quit popup
     pub(super) fn mount_quit_popup(&mut self) {
         assert!(self
-            .application
-            .remount(Id::QuitPopup, Box::new(QuitPopup::default()), vec![])
-            .is_ok());
+          .application
+          .remount(Id::QuitPopup, Box::new(QuitPopup::default()), vec![])
+          .is_ok());
         assert!(self.application.active(&Id::QuitPopup).is_ok());
     }
 
@@ -182,15 +188,15 @@ impl Ui {
     pub(super) fn umount_error_popup(&mut self) {
         let _ = self.application.umount(&Id::ErrorPopup);
     }
-
-    pub(super) fn umount_pairing(&mut self) {
-        let _ = self.application.umount(&Id::Pairing);
-    }
 }
 
 impl Update<Msg> for Ui {
     fn update(&mut self, msg: Option<Msg>) -> Option<Msg> {
         match msg.unwrap_or(Msg::None) {
+            Msg::Settled => {
+                tracing::info!("Settled");
+                None
+            },
             Msg::None => None,
             Msg::CloseErrorPopup => {
                 self.umount_error_popup();
@@ -205,22 +211,21 @@ impl Update<Msg> for Ui {
                 self.mount_quit_popup();
                 None
             }
+            /*
             Msg::User(UserEvent::SettledError(e)) => {
                 tracing::warn!("settlement error {e}");
                 self.umount_pairing();
                 None
             }
+
             Msg::User(UserEvent::Settled(_)) => {
                 tracing::warn!("settlement sucess!");
                 self.umount_pairing();
                 None
             }
-            Msg::User(_) => None,
+             */
             Msg::AppClose => Some(Msg::Quit),
-            Msg::ClosePairQrCode => {
-                self.umount_pairing();
-                None
-            }
+            _ => None
         }
     }
 }

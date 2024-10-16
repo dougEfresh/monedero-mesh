@@ -73,4 +73,13 @@ pub enum Error {
     AccountExists(String),
     #[error("Invalid param for rpc {0}")]
     BadParameter(String),
+
+    #[error(transparent)]
+    StorageError(#[from] monedero_mesh::StorageError),
+
+    #[error(transparent)]
+    HttpError(#[from] reqwest::Error),
+
+    #[error(transparent)]
+    XdgError(#[from] microxdg::XdgError),
 }

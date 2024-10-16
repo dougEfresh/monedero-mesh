@@ -1,6 +1,7 @@
 mod history;
 mod nav;
 pub mod popups;
+mod qrcode;
 
 use crate::message::{Msg, UserEvent};
 use tui_realm_stdlib::{List, Phantom, Textarea};
@@ -18,6 +19,7 @@ use crate::ui::Id;
 pub use history::*;
 use monedero_solana::monedero_mesh::Pairing;
 pub use nav::*;
+pub use qrcode::*;
 
 pub trait ComponentMeta: Component<Msg, UserEvent> {
     fn id() -> Id;
