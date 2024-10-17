@@ -13,9 +13,10 @@ use monedero_mesh::rpc::{RequestMethod, RequestParams, SessionRequestRequest};
 use monedero_mesh::ClientSession;
 use monedero_namespaces::{ChainId, ChainType, NamespaceName, SolanaMethod};
 use serde::{Deserialize, Serialize};
-pub use signer::WalletConnectSigner;
+pub use signer::ReownSigner;
 use solana_program::native_token::LAMPORTS_PER_SOL;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
 use solana_sdk::message::Message;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
@@ -23,6 +24,7 @@ use solana_sdk::transaction::Transaction;
 use spl_token_client::client::RpcClientResponse;
 pub use stake::*;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -135,6 +137,48 @@ pub(crate) fn serialize_message(message: Message) -> Result<String> {
     Ok(BASE64_STANDARD.encode(hash))
 }
 
+#[derive(Clone)]
+pub struct SolanaWallet {
+    signer: ReownSigner,
+    rpc: Arc<RpcClient>,
+    token_accounts_client: Arc<TokenAccountsClient>,
+    pk: Pubkey,
+}
+
+impl SolanaWallet {
+    pub async fn init(
+        sol_session: SolanaSession,
+        rpc: Arc<RpcClient>,
+        storage_path: PathBuf,
+    ) -> Result<Self> {
+        let signer = ReownSigner::new(sol_session.clone());
+        let metadata_client = TokenMetadataClient::init(storage_path).await?;
+        let tc = TokenAccountsClient::new(sol_session.pubkey(), rpc.clone(), metadata_client);
+        Ok(Self {
+            signer,
+            rpc,
+            token_accounts_client: Arc::new(tc),
+            pk: sol_session.pubkey(),
+        })
+    }
+
+    pub async fn transfer(&self, to: &Pubkey, lamports: u64) -> Result<Signature> {
+        let instruction = solana_sdk::system_instruction::transfer(&self.pk, &to, lamports);
+        let message = Message::new(&[instruction], Some(&self.pk));
+        let block = self.rpc.get_latest_blockhash().await?;
+        let tx = Transaction::new(&[&self.signer], message, block);
+        Ok(self
+            .rpc
+            .send_and_confirm_transaction_with_spinner_and_commitment(
+                &tx,
+                CommitmentConfig {
+                    commitment: CommitmentLevel::Finalized,
+                },
+            )
+            .await?)
+    }
+}
+
 impl SolanaSession {
     pub fn pubkey(&self) -> Pubkey {
         self.pk
@@ -156,6 +200,7 @@ impl SolanaSession {
             _ => "unknown".to_string(),
         }
     }
+
     pub async fn send_wallet_connect(
         &self,
         tx: WalletConnectTransaction,

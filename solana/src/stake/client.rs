@@ -1,5 +1,5 @@
 use crate::stake::{KeyedStakeState, StakeClient, StakeState};
-use crate::{SolanaSession, WalletConnectSigner};
+use crate::{ReownSigner, SolanaSession};
 use solana_program::clock::{Clock, Epoch, Slot};
 use solana_program::feature::Feature;
 use solana_program::pubkey::Pubkey;
@@ -25,7 +25,7 @@ async fn get_feature_activation_slot(
 }
 
 impl StakeClient {
-    pub fn new(sol: SolanaSession, signer: WalletConnectSigner, rpc: Arc<RpcClient>) -> Self {
+    pub fn new(sol: SolanaSession, signer: ReownSigner, rpc: Arc<RpcClient>) -> Self {
         Self {
             session: sol,
             signer,

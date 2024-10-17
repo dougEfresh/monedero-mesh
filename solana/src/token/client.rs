@@ -1,5 +1,5 @@
 use crate::token::TokenMetadata;
-use crate::{Result, SolanaSession, TokenAccounts, WalletConnectSigner};
+use crate::{ReownSigner, Result, SolanaSession, TokenAccounts};
 use chrono::{DateTime, Utc};
 use monedero_mesh::KvStorage;
 use solana_account_decoder::parse_token::{UiTokenAccount, UiTokenAmount};
@@ -145,7 +145,7 @@ impl TokenAccountsClient {
 #[derive(Clone)]
 pub struct TokenTransferClient {
     account: Pubkey,
-    signer: WalletConnectSigner,
+    signer: ReownSigner,
     token: Arc<Token<ProgramRpcClientSendTransaction>>,
     client: Arc<RpcClient>,
     program_id: Pubkey,
@@ -169,7 +169,7 @@ impl Debug for TokenTransferClient {
 
 impl TokenTransferClient {
     pub async fn init(
-        signer: WalletConnectSigner,
+        signer: ReownSigner,
         client: Arc<RpcClient>,
         token_address: impl Into<Pubkey>,
         program_id: Pubkey,
@@ -196,7 +196,7 @@ impl TokenTransferClient {
     }
 
     pub fn init_wrap_native(
-        signer: WalletConnectSigner,
+        signer: ReownSigner,
         client: Arc<RpcClient>,
         program_id: Pubkey,
     ) -> Self {

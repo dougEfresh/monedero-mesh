@@ -11,14 +11,20 @@ anyhow = {version = "1" }
 config = { workspace = true }
 clap = { workspace = true }
 ctrlc = { workspace = true }
+console-subscriber = { version = "0.4" }
+copypasta = { version = "0.10" }
 dirs = { workspace = true }
+dotenvy = { workspace = true }
 console = { version = "0.15" }
 dialoguer = { version = "0.11", default-features = false, features = ["history", "fuzzy-matcher", "fuzzy-select"]}
+enum-str-derive = { workspace = true }
 futures = { workspace = true }
 kvx = { version = "0.9" }
 microxdg = { workspace = true }
 monedero-solana = { path = "../solana" }
 monedero-namespaces = { path = "../namespaces" }
+promkit = { version = "0.5"  }
+serde = { version = "1", features = ["derive"] }
 solana-rpc-client = { workspace = true }
 solana-client = { workspace = true }
 solana-sdk = { workspace = true }
@@ -26,10 +32,6 @@ tokio = { version = "1", features = ["full", "tracing"] }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
 tracing-subscriber = { workspace = true }
-dotenvy = { workspace = true }
-serde = { version = "1", features = ["derive"] }
-copypasta = { version = "0.10" }
-console-subscriber = { version = "0.4" }
 
 [lints]
 workspace = true

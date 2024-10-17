@@ -1,21 +1,27 @@
+use crate::cmd::MainMenu;
 use crate::config::AppConfig;
+use crate::context::Context;
 use crate::log::initialize_logging;
 use console::Term;
 use copypasta::{ClipboardContext, ClipboardProvider};
+use dialoguer::theme::ColorfulTheme;
 use monedero_solana::monedero_mesh::{
     auth_token, Dapp, KvStorage, Metadata, NoopSessionHandler, Pairing, ProjectId, ProposeFuture,
     WalletConnectBuilder,
 };
 use monedero_solana::{
-    SolanaSession, TokenAccountsClient, TokenMetadataClient, WalletConnectSigner,
+    ReownSigner, SolanaSession, SolanaWallet, TokenAccountsClient, TokenMetadataClient,
+    TokenTransferClient,
 };
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use std::io::Write;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
 mod cmd;
 mod config;
+mod context;
 mod log;
 
 async fn pair_ping(dapp: Dapp) {
@@ -57,6 +63,58 @@ async fn show_pair(pairing: Pairing) {
     println!("Pairing: {:?}", pairing);
 }
 
+async fn main_menu(mut ctx: Context) -> anyhow::Result<()> {
+    let menu_items = vec![
+        cmd::MainMenu::Transfer,
+        cmd::MainMenu::Tokens,
+        cmd::MainMenu::Stake,
+        cmd::MainMenu::Swap,
+        cmd::MainMenu::Quit,
+    ];
+    loop {
+        let mut p = promkit::preset::listbox::Listbox::new(&menu_items)
+            .title("Main Menu")
+            .prompt()?;
+        let item = MainMenu::from_str(&p.run()?).expect("blah");
+        let result = match item {
+            MainMenu::Transfer => cmd::transfer::invoke(&mut ctx).await,
+            MainMenu::Quit => break,
+            _ => Ok(()),
+        };
+        if let Err(e) = result {
+            tracing::error!("error! {}", e);
+            writeln!(ctx.term, "error: {}", e)?;
+            let mut p = promkit::preset::confirm::Confirm::new("Continue?").prompt()?;
+            let confirm = p.run()?;
+            if confirm.contains("n") {
+                break;
+            }
+        }
+    }
+    /*
+    loop {
+        let menu_item = dialoguer::Select::with_theme(&ColorfulTheme::default()).items(&menu_items).interact_on(&ctx.term)?;
+        let result = match &menu_items[menu_item] {
+            MainMenu::Transfer => {
+                cmd::transfer::invoke(&mut ctx).await
+            }
+            MainMenu::Quit => break,
+            _ => Ok(())
+        };
+        if let Err(e) = result {
+            tracing::error!("error! {}", e);
+            writeln!(ctx.term, "error: {}", e)?;
+            let confirm = dialoguer::Confirm::with_theme(&ColorfulTheme::default()).with_prompt("Continue?").interact_on(&ctx.term)?;
+            if !confirm {
+                break
+            }
+        }
+        ctx.term.clear_screen()?;
+    }
+     */
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     initialize_logging()?;
@@ -68,7 +126,7 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to set clipboard");
     let mut term = Term::stdout();
     if !cached {
-        write!(term, "Pairing: {}", pairing)?;
+        writeln!(term, "Pairing: {}", pairing)?;
     }
 
     tracing::info!("restored from cache {:?}", cached);
@@ -76,7 +134,9 @@ async fn main() -> anyhow::Result<()> {
     if let Err(e) = cs.ping().await {
         tracing::info!("ping error {e}");
     }
+
     let sol_session = SolanaSession::try_from(&cs)?;
+    let signer = ReownSigner::new(sol_session.clone());
     let rpc_client = cfg.rpc_client();
     tokio::spawn(pair_ping(dapp.clone()));
     let pk = sol_session.pubkey();
@@ -84,13 +144,13 @@ async fn main() -> anyhow::Result<()> {
     //let signer = WalletConnectSigner::new(sol_session.clone());
     //write!(term, "Chain: {} Account: {} Balance: {}\n", sol_session.chain_type(), pk, sol_session.balance(&rpc_client).await )?;
     let storage_path = cfg.storage()?;
-    let metadata_client = TokenMetadataClient::init(storage_path).await?;
-    let tc = TokenAccountsClient::new(sol_session.pubkey(), rpc_client.clone(), metadata_client);
-    let accounts = tc.accounts().await?;
-    writeln!(term, "{}", accounts)?;
-    for t in accounts.accounts {
-        writeln!(term, "{}", t)?;
-    }
-    tokio::time::sleep(Duration::from_secs(1200)).await;
+    let wallet = SolanaWallet::init(sol_session.clone(), rpc_client, storage_path).await?;
+    //let mut hist = dialoguer::BasicHistory::new().max_entries(8).no_duplicates(true);
+    let mut ctx = Context {
+        sol_session,
+        wallet,
+        term,
+    };
+    main_menu(ctx).await?;
     Ok(())
 }

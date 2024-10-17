@@ -1,4 +1,4 @@
-use crate::{Result, WalletConnectSigner};
+use crate::{ReownSigner, Result};
 use solana_program::pubkey::Pubkey;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::signature::{Keypair, Signature};
@@ -8,13 +8,13 @@ use spl_token_client::token::{ExtensionInitializationParams, Token};
 use std::sync::Arc;
 
 pub struct TokenMintClient {
-    signer: WalletConnectSigner,
+    signer: ReownSigner,
     tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>>,
     client: Arc<RpcClient>,
 }
 
 impl TokenMintClient {
-    pub fn new(client: Arc<RpcClient>, signer: WalletConnectSigner) -> Self {
+    pub fn new(client: Arc<RpcClient>, signer: ReownSigner) -> Self {
         let tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>> = Arc::new(
             ProgramRpcClient::new(client.clone(), ProgramRpcClientSendTransaction),
         );

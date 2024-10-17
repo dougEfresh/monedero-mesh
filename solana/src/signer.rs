@@ -20,24 +20,24 @@ struct ChannelProps {
 }
 
 #[derive(Clone)]
-pub struct WalletConnectSigner {
+pub struct ReownSigner {
     session: SolanaSession,
     tx: tokio::sync::mpsc::UnboundedSender<ChannelProps>,
 }
 
-impl Debug for WalletConnectSigner {
+impl Debug for ReownSigner {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "signer {}", self.session.pubkey())
     }
 }
 
-impl PartialEq for WalletConnectSigner {
+impl PartialEq for ReownSigner {
     fn eq(&self, other: &Self) -> bool {
         self.session.eq(&other.session)
     }
 }
 
-impl Signer for WalletConnectSigner {
+impl Signer for ReownSigner {
     fn try_pubkey(&self) -> std::result::Result<Pubkey, SignerError> {
         Ok(self.session.pubkey())
     }
@@ -81,7 +81,7 @@ impl Signer for WalletConnectSigner {
 }
 
 async fn handler_signer(
-    signer: WalletConnectSigner,
+    signer: ReownSigner,
     mut rx: tokio::sync::mpsc::UnboundedReceiver<ChannelProps>,
 ) {
     while let Some(props) = rx.recv().await {
@@ -92,10 +92,10 @@ async fn handler_signer(
     }
 }
 
-impl WalletConnectSigner {
+impl ReownSigner {
     pub fn new(session: SolanaSession) -> Self {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<ChannelProps>();
-        let wc_signer = WalletConnectSigner { session, tx };
+        let wc_signer = ReownSigner { session, tx };
         tokio::spawn(handler_signer(wc_signer.clone(), rx));
         wc_signer
     }

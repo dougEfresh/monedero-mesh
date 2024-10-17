@@ -1,7 +1,7 @@
 mod account;
 mod client;
 
-use crate::{SolanaSession, WalletConnectSigner};
+use crate::{ReownSigner, SolanaSession};
 use serde::{Deserialize, Serialize};
 use solana_program::clock::{Epoch, Slot, UnixTimestamp};
 use solana_program::pubkey::Pubkey;
@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 pub struct StakeClient {
     session: SolanaSession,
-    signer: WalletConnectSigner,
+    signer: ReownSigner,
     rpc: Arc<RpcClient>,
 }
 

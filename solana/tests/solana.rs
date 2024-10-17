@@ -19,8 +19,8 @@ use monedero_namespaces::{
 };
 use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
 use monedero_solana::{
-    Error, Result, SolanaSession, SolanaSignatureResponse, StakeClient, TokenMintClient,
-    TokenSymbolDev, TokenTransferClient, WalletConnectSigner, WalletConnectTransaction,
+    Error, ReownSigner, Result, SolanaSession, SolanaSignatureResponse, StakeClient,
+    TokenMintClient, TokenSymbolDev, TokenTransferClient, WalletConnectTransaction,
 };
 use serde::Deserialize;
 use solana_program::native_token::LAMPORTS_PER_SOL;
@@ -222,7 +222,7 @@ async fn test_solana_session() -> anyhow::Result<()> {
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     info!("settlement complete");
     let sol_session = SolanaSession::try_from(&session)?;
-    let signer = WalletConnectSigner::new(sol_session.clone());
+    let signer = ReownSigner::new(sol_session.clone());
     let from = Pubkey::from_str(SUPPORTED_ACCOUNT)?;
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let amount = 100;
@@ -249,7 +249,7 @@ async fn test_solana_session() -> anyhow::Result<()> {
 async fn test_solana_tokens() -> anyhow::Result<()> {
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     let sol_session = SolanaSession::try_from(&session)?;
-    let signer = WalletConnectSigner::new(sol_session);
+    let signer = ReownSigner::new(sol_session);
     let token_client = TokenTransferClient::init(
         signer,
         mock_wallet.rpc_client.clone(),
@@ -275,7 +275,7 @@ async fn test_solana_tokens() -> anyhow::Result<()> {
 async fn test_solana_mint() -> anyhow::Result<()> {
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     let sol_session = SolanaSession::try_from(&session)?;
-    let signer = WalletConnectSigner::new(sol_session);
+    let signer = ReownSigner::new(sol_session);
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let mint = TokenMintClient::new(mock_wallet.rpc_client.clone(), signer.clone());
     let (token_address, sig) = mint.create_mint(6, None).await?;
@@ -287,7 +287,7 @@ async fn test_solana_mint() -> anyhow::Result<()> {
 async fn test_solana_wrap_sol() -> anyhow::Result<()> {
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     let sol_session = SolanaSession::try_from(&session)?;
-    let signer = WalletConnectSigner::new(sol_session);
+    let signer = ReownSigner::new(sol_session);
     let token_client = TokenTransferClient::init_wrap_native(
         signer,
         mock_wallet.rpc_client.clone(),
@@ -310,7 +310,7 @@ async fn test_solana_mint_new_tokens() -> anyhow::Result<()> {
     let token_address = Pubkey::from_str("8m3uKEn4fMPNVr7nv6RmQYktT4zRqEZzhuZDpG8hQZT4")?;
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     let sol_session = SolanaSession::try_from(&session)?;
-    let signer = WalletConnectSigner::new(sol_session);
+    let signer = ReownSigner::new(sol_session);
     let me = Pubkey::from_str(SUPPORTED_ACCOUNT)?;
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let token_client = TokenTransferClient::init(
@@ -332,7 +332,7 @@ async fn test_solana_stake_accounts() -> anyhow::Result<()> {
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     info!("settlement complete");
     let sol_session = SolanaSession::try_from(&session)?;
-    let signer = WalletConnectSigner::new(sol_session.clone());
+    let signer = ReownSigner::new(sol_session.clone());
     let staker = StakeClient::new(sol_session, signer, mock_wallet.rpc_client.clone());
     let validators = staker.validators().await?;
     info!("there are {} validators", validators.len());

@@ -29,7 +29,7 @@ pub struct TokenMetadata {
 
 impl Display for TokenMetadata {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} {}", self.name, self.symbol, self.address)
+        write!(f, "{} ({})", self.name, self.symbol)
     }
 }
 
@@ -101,15 +101,11 @@ pub struct TokenAccount {
 
 impl Display for TokenAccount {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let program = if self.program_id == spl_token_2022::id() {
-            "2022"
-        } else {
-            "legacy"
-        };
         write!(
             f,
-            "{} {} {} {} ",
-            self.metadata, self.address, program, self.account.token_amount.amount
+            "{} {} ",
+            self.metadata,
+            self.account.token_amount.real_number_string(),
         )
     }
 }

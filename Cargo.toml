@@ -51,6 +51,7 @@ data-encoding = { version = "2"}
 derive_more = {version = "1", features = ["full"]}
 dirs = { version = "5"}
 dotenvy = {version = "0.15"}
+enum-str-derive = { version = "0.1" }
 futures = { version = "0.3"}
 futures-util = { version = "0.3" }
 hkdf = "0.12"
