@@ -1,12 +1,14 @@
-use assert_matches::assert_matches;
-use async_trait::async_trait;
-use monedero_mesh::{Actors, Topic};
-use monedero_mesh::{Cipher, Pairing, PairingManager, WalletConnectBuilder};
-use monedero_mesh::{ProjectId, RegisteredComponents, SocketEvent, SocketListener};
-use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, Once};
 use std::time::Duration;
+
+use assert_matches::assert_matches;
+use async_trait::async_trait;
+use monedero_mesh::{
+    Actors, Cipher, Pairing, PairingManager, ProjectId, RegisteredComponents, SocketEvent,
+    SocketListener, Topic, WalletConnectBuilder,
+};
+use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
 use tracing::info;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;

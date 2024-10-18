@@ -1,10 +1,12 @@
-use crate::chain_id::ChainId;
-use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
+
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
+
+use crate::chain_id::ChainId;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(transparent)]

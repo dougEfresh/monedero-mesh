@@ -1,12 +1,13 @@
+use tracing::{error, info, warn};
+use xtra::prelude::*;
+use xtra::Address;
+
 use crate::actors::TransportActor;
 use crate::rpc::{
     ErrorParams, IntoUnknownError, RequestParams, ResponseParamsError, RpcRequest, RpcResponse,
     SessionProposeRequest,
 };
 use crate::{Dapp, SessionSettled, Wallet};
-use tracing::{error, info, warn};
-use xtra::prelude::*;
-use xtra::Address;
 
 #[derive(Clone, Actor)]
 pub struct ProposalActor {

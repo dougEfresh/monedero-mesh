@@ -1,7 +1,7 @@
-use crate::{Error, PairingManager, Result, SessionEventRequest, SessionSettled, SessionTopic};
-use dashmap::DashMap;
 use std::sync::Arc;
 use std::time::Duration;
+
+use dashmap::DashMap;
 use tokio::sync::oneshot::Sender;
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio::time::timeout;
@@ -10,7 +10,10 @@ use tracing::warn;
 use crate::rpc::{RequestParams, SessionSettleRequest};
 use crate::session::Category;
 use crate::transport::SessionTransport;
-use crate::{ClientSession, PairingTopic, SessionHandler};
+use crate::{
+    ClientSession, Error, PairingManager, PairingTopic, Result, SessionEventRequest,
+    SessionHandler, SessionSettled, SessionTopic,
+};
 
 pub struct HandlerContainer {
     pub tx: Sender<Result<ClientSession>>,

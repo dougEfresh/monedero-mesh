@@ -1,5 +1,12 @@
 mod session_settle;
 
+use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
+
+use monedero_namespaces::Namespaces;
+use tracing::{error, info, warn};
+use x25519_dalek::PublicKey;
+
 use crate::rpc::{
     Metadata, RequestParams, SessionProposeRequest, SessionProposeResponse, SessionSettleRequest,
 };
@@ -9,11 +16,6 @@ use crate::{
     Pairing, PairingManager, PairingTopic, ProposeFuture, Result, SessionHandler, SessionSettled,
     SessionTopic, SocketListener,
 };
-use monedero_namespaces::Namespaces;
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
-use tracing::{error, info, warn};
-use x25519_dalek::PublicKey;
 
 #[derive(Clone, xtra::Actor)]
 pub struct Dapp {

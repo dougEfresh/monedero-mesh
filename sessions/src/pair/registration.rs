@@ -1,7 +1,8 @@
+use tracing::{debug, info, warn};
+
 use crate::actors::ClearPairing;
 use crate::rpc::{Proposer, SessionProposeResponse};
 use crate::{Dapp, Pairing, PairingManager, Result, SessionTopic, SubscriptionId, Topic, Wallet};
-use tracing::{debug, info, warn};
 
 impl PairingManager {
     pub(super) async fn restore_saved_pairing(&self) -> Result<()> {

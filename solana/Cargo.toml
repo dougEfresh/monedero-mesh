@@ -22,6 +22,7 @@ anyhow = "1"
 base64 = { workspace = true }
 bincode = { workspace = true }
 chrono = { workspace = true }
+dashmap = { workspace = true }
 monedero-mesh = { path = "../sessions", optional = true}
 monedero-namespaces = { path = "../namespaces"}
 monedero-relay = { path = "../relay", optional = true }

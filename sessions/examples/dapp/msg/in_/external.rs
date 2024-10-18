@@ -1,5 +1,6 @@
-use crate::input::InputOperation;
 use serde::{Deserialize, Serialize};
+
+use crate::input::InputOperation;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ExternalMsg {

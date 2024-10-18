@@ -1,6 +1,7 @@
+use std::cmp::Ordering;
+
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 use tui_input::InputRequest;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

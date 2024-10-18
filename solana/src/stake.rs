@@ -1,15 +1,17 @@
 mod account;
 mod client;
 
-use crate::{ReownSigner, SolanaSession};
+use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use solana_program::clock::{Epoch, Slot, UnixTimestamp};
 use solana_program::pubkey::Pubkey;
 use solana_program::stake::state::{Authorized, Lockup};
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::account_utils::StateMut;
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
+
+use crate::{ReownSigner, SolanaSession};
 
 pub struct StakeClient {
     session: SolanaSession,

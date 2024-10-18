@@ -1,9 +1,10 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionevent
 
-use super::IrnMetadata;
 use monedero_namespaces::ChainId;
 use serde::{Deserialize, Serialize};
+
+use super::IrnMetadata;
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1110,
@@ -36,10 +37,10 @@ pub struct SessionEventRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use anyhow::Result;
 
     use super::super::tests::param_serde_test;
-    use anyhow::Result;
+    use super::*;
 
     #[test]
     fn test_serde_accounts_changed_event() -> Result<()> {

@@ -1,8 +1,9 @@
-use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use std::time::Duration;
+
+use serde::{Deserialize, Serialize};
 use walletconnect_sdk::client::websocket::PublishedMessage;
 use walletconnect_sdk::client::Authorization;
 pub use walletconnect_sdk::client::MessageIdGenerator;
@@ -23,10 +24,9 @@ pub use client::Client;
 
 #[cfg(feature = "mock")]
 mod mock;
+pub use error::ClientError;
 #[cfg(feature = "mock")]
 pub use mock::*;
-
-pub use error::ClientError;
 pub type Result<T> = std::result::Result<T, ClientError>;
 
 #[cfg(feature = "mock")]

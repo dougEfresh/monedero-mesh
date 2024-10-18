@@ -4,15 +4,14 @@
 mod params;
 mod sdkerrors;
 
-use std::fmt::{Display, Formatter};
-use {
-    serde::{Deserialize, Serialize},
-    std::{fmt::Debug, sync::Arc},
-};
+use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
 
-use crate::domain::{MessageId, Topic};
 pub use params::*;
 pub use sdkerrors::SdkErrors;
+use serde::{Deserialize, Serialize};
+
+use crate::domain::{MessageId, Topic};
 
 /// Version of the WalletConnect protocol that we're implementing.
 pub const JSON_RPC_VERSION_STR: &str = "2.0";

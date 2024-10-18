@@ -1,6 +1,8 @@
-use crate::app::ExternalMsg;
-use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
+
+use serde::{Deserialize, Serialize};
+
+use crate::app::ExternalMsg;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum HelpMenuLine {

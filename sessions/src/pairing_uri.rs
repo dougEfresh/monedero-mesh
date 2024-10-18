@@ -1,19 +1,16 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/core/pairing/pairing-uri
 
+use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
+
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use url::Url;
+use x25519_dalek::StaticSecret;
+
 use crate::crypto::cipher::DecodedSymKey;
 use crate::domain::{DecodedTopic, Topic};
 use crate::rpc::RELAY_PROTOCOL;
-use serde::{Deserialize, Serialize};
-use std::fmt::Display;
-use x25519_dalek::StaticSecret;
-use {
-    regex::Regex,
-    std::{
-        fmt::{Debug, Formatter},
-        str::FromStr,
-    },
-    url::Url,
-};
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq)]
 pub enum ParseError {

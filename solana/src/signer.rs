@@ -1,4 +1,6 @@
-use crate::{serialize_raw_message, Result, SolanaSession, WalletConnectTransaction};
+use std::fmt::{Debug, Display, Formatter};
+use std::time::Duration;
+
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use monedero_mesh::ClientSession;
@@ -9,10 +11,10 @@ use solana_sdk::signature::{Signature, SignerError};
 use solana_sdk::signer::Signer;
 use solana_sdk::signers::Signers;
 use solana_sdk::transaction::Transaction;
-use std::fmt::{Debug, Formatter};
-use std::time::Duration;
 use tokio::sync::oneshot::error::TryRecvError;
 use tracing::{debug, warn};
+
+use crate::{serialize_raw_message, Result, SolanaSession, WalletConnectTransaction};
 
 struct ChannelProps {
     tx: tokio::sync::oneshot::Sender<Result<Signature>>,
@@ -28,6 +30,12 @@ pub struct ReownSigner {
 impl Debug for ReownSigner {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "signer {}", self.session.pubkey())
+    }
+}
+
+impl Display for ReownSigner {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "signer={}", self.session.pubkey())
     }
 }
 

@@ -1,15 +1,17 @@
 mod eip;
 mod solana;
 
-pub use crate::method::eip::EipMethod;
-pub use crate::method::solana::SolanaMethod;
-use crate::name::NamespaceName;
-use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
+
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
+
+pub use crate::method::eip::EipMethod;
+pub use crate::method::solana::SolanaMethod;
+use crate::name::NamespaceName;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]

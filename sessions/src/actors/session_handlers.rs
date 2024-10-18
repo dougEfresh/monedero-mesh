@@ -1,7 +1,8 @@
+use tracing::warn;
+
 use crate::actors::{SessionRequestHandlerActor, Unsubscribe};
 use crate::rpc::{IntoUnknownError, RpcResponse, RpcResponsePayload};
 use crate::{ClientSession, MessageId, Result, Topic};
-use tracing::warn;
 
 impl SessionRequestHandlerActor {
     pub(super) async fn send_response(&self, resp: RpcResponse) {

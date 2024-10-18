@@ -1,7 +1,8 @@
+use xtra::prelude::*;
+
 use crate::actors::SessionPing;
 use crate::rpc::{ResponseParamsSuccess, RpcResponsePayload};
 use crate::ClientSession;
-use xtra::prelude::*;
 
 impl Handler<SessionPing> for ClientSession {
     type Return = RpcResponsePayload;

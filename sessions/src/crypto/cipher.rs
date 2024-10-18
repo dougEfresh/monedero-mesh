@@ -1,8 +1,8 @@
-use crate::crypto::error::CipherError;
-use crate::pairing_uri::Pairing;
-use crate::rpc::SessionSettleRequest;
-use crate::{KvStorage, SessionSettled, SessionTopic};
-use chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, KeyInit, Nonce};
+use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
+
+use chacha20poly1305::aead::Aead;
+use chacha20poly1305::{AeadCore, ChaCha20Poly1305, KeyInit, Nonce};
 use dashmap::DashMap;
 use derive_more::{AsMut, AsRef};
 use hkdf::Hkdf;
@@ -11,10 +11,13 @@ use monedero_relay::{DecodedTopic, Topic};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
 use tracing::debug;
 use x25519_dalek::{PublicKey, StaticSecret};
+
+use crate::crypto::error::CipherError;
+use crate::pairing_uri::Pairing;
+use crate::rpc::SessionSettleRequest;
+use crate::{KvStorage, SessionSettled, SessionTopic};
 
 pub const MULTICODEC_ED25519_LENGTH: usize = 32;
 const CRYPTO_STORAGE_PREFIX_KEY: &str = "crypto";
@@ -412,15 +415,17 @@ impl Cipher {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
+    use anyhow::format_err;
+    use monedero_relay::MessageIdGenerator;
+
     use super::*;
     use crate::crypto::session::SessionKey;
     use crate::rpc::{
         Controller, Metadata, PairPingRequest, Request, RequestParams, SessionExtendRequest,
     };
     use crate::storage::KvStorage;
-    use anyhow::format_err;
-    use monedero_relay::MessageIdGenerator;
-    use std::str::FromStr;
 
     fn temp_location() -> Option<String> {
         let topic = Topic::generate();

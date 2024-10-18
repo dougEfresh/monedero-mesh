@@ -1,8 +1,10 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use std::time::Duration;
-use walletconnect_sdk::client::websocket::ConnectionHandler as WcHandler;
-use walletconnect_sdk::client::websocket::{Client as WcClient, PublishedMessage};
+
+use walletconnect_sdk::client::websocket::{
+    Client as WcClient, ConnectionHandler as WcHandler, PublishedMessage,
+};
 use walletconnect_sdk::client::ConnectionOptions as WcOptions;
 
 use crate::{ConnectionHandler, ConnectionOptions, Result, SubscriptionId, Topic};

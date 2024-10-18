@@ -1,5 +1,4 @@
-use ratatui::layout::Constraint as TuiConstraint;
-use ratatui::layout::Rect as TuiRect;
+use ratatui::layout::{Constraint as TuiConstraint, Rect as TuiRect};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

@@ -5,8 +5,9 @@ use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use crate::method::Method;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
+
+use crate::method::Method;
 
 const SIGN_MESSAGE: &str = "solana_signMessage";
 const SIGN_TRANSACTION: &str = "solana_signTransaction";

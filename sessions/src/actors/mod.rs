@@ -6,20 +6,20 @@ mod session;
 mod session_handlers;
 mod transport;
 
-pub(crate) use crate::actors::session::SessionRequestHandlerActor;
-use crate::domain::Topic;
-use crate::rpc::RequestParams;
-use crate::{Cipher, PairingManager};
-use crate::{Dapp, Result, Wallet};
-use monedero_relay::Client;
-pub(crate) use request::RequestHandlerActor;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 
-use crate::actors::proposal::ProposalActor;
 pub(crate) use inbound::InboundResponseActor;
+use monedero_relay::Client;
+pub(crate) use request::RequestHandlerActor;
 pub(crate) use transport::TransportActor;
 use xtra::{Address, Mailbox};
+
+use crate::actors::proposal::ProposalActor;
+pub(crate) use crate::actors::session::SessionRequestHandlerActor;
+use crate::domain::Topic;
+use crate::rpc::RequestParams;
+use crate::{Cipher, Dapp, PairingManager, Result, Wallet};
 
 #[derive(Clone)]
 pub struct Actors {

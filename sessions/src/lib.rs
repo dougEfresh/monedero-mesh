@@ -12,38 +12,39 @@ pub mod session;
 mod storage;
 mod transport;
 mod wallet;
-pub use handlers::*;
-
-pub use crate::session::ClientSession;
-pub use crypto::cipher::Cipher;
-pub use dapp::Dapp;
-pub use domain::Message;
-pub use error::Error;
-pub use pair::{PairingManager, WalletConnectBuilder};
-pub use pairing_uri::Pairing;
-use pin_project_lite::pin_project;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex, Once};
 use std::task::{Context, Poll};
+
+pub use crypto::cipher::Cipher;
+pub use dapp::Dapp;
+pub use domain::Message;
+pub use error::Error;
+pub use handlers::*;
+pub use pair::{PairingManager, WalletConnectBuilder};
+pub use pairing_uri::Pairing;
+use pin_project_lite::pin_project;
+use serde::{Deserialize, Serialize};
 pub use storage::KvStorage;
 use tokio::sync::oneshot;
 pub use wallet::Wallet;
+
+pub use crate::session::ClientSession;
 pub type Atomic<T> = Arc<Mutex<T>>;
-use crate::rpc::SessionRequestRequest;
 pub use actors::{Actors, RegisteredComponents};
 pub use domain::*;
 use monedero_namespaces::{Event, Namespaces};
 pub use monedero_relay::ClientError;
 pub use rpc::{Metadata, SdkErrors};
+
+use crate::rpc::SessionRequestRequest;
 pub type PairingTopic = Topic;
 pub type SessionTopic = Topic;
 
-pub use storage::Error as StorageError;
-
 pub use monedero_relay::auth_token;
+pub use storage::Error as StorageError;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {
     Connected,
@@ -129,14 +130,16 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::{NoopSessionHandler, SessionHandler, INIT};
-    use monedero_namespaces::Event;
     use std::sync::Arc;
     use std::time::Duration;
+
+    use monedero_namespaces::Event;
     use tokio::sync::Mutex;
     use tracing_subscriber::fmt::format::FmtSpan;
     use tracing_subscriber::EnvFilter;
     use xtra::prelude::*;
+
+    use crate::{NoopSessionHandler, SessionHandler, INIT};
 
     pub(crate) fn init_tracing() {
         INIT.call_once(|| {

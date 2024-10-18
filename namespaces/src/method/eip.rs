@@ -1,9 +1,11 @@
-use crate::method::Method;
-use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+
+use serde_with::{DeserializeFromStr, SerializeDisplay};
+
+use crate::method::Method;
 
 const PERSONAL_SIGN: &str = "personal_sign";
 const SIGN_TRANSACTION: &str = "eth_signTransaction";

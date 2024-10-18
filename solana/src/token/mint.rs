@@ -1,11 +1,13 @@
-use crate::{ReownSigner, Result};
+use std::sync::Arc;
+
 use solana_program::pubkey::Pubkey;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::signature::{Keypair, Signature};
 use solana_sdk::signer::Signer;
 use spl_token_client::client::{ProgramClient, ProgramRpcClient, ProgramRpcClientSendTransaction};
 use spl_token_client::token::{ExtensionInitializationParams, Token};
-use std::sync::Arc;
+
+use crate::{ReownSigner, Result};
 
 pub struct TokenMintClient {
     signer: ReownSigner,

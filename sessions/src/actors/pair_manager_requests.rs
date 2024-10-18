@@ -1,9 +1,10 @@
+use tracing::warn;
+
 use crate::actors::RequestHandlerActor;
 use crate::rpc::{
     ErrorParams, IntoUnknownError, PairDeleteRequest, RpcResponse, RpcResponsePayload,
 };
 use crate::{MessageId, PairingManager, Result, Topic};
-use tracing::warn;
 
 impl RequestHandlerActor {
     pub(super) fn send_response(&self, resp: RpcResponse) {

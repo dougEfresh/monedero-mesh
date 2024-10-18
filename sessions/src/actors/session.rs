@@ -1,3 +1,13 @@
+use std::fmt::{Debug, Formatter};
+use std::future::Future;
+use std::sync::Arc;
+use std::time::Duration;
+
+use dashmap::DashMap;
+use serde_json::json;
+use tracing::{error, info, warn};
+use xtra::prelude::*;
+
 use crate::actors::{
     ClearPairing, ClearSession, RequestHandlerActor, SessionPing, TransportActor, Unsubscribe,
 };
@@ -7,14 +17,6 @@ use crate::rpc::{
 };
 use crate::session::ClientSession;
 use crate::{Cipher, RegisteredComponents, Topic};
-use dashmap::DashMap;
-use serde_json::json;
-use std::fmt::{Debug, Formatter};
-use std::future::Future;
-use std::sync::Arc;
-use std::time::Duration;
-use tracing::{error, info, warn};
-use xtra::prelude::*;
 
 #[derive(Clone, xtra::Actor)]
 pub struct SessionRequestHandlerActor {

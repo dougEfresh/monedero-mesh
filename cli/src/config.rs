@@ -1,12 +1,13 @@
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::sync::Arc;
+
 use anyhow::format_err;
 use config::{Config, File, FileFormat};
 use microxdg::{XdgApp, XdgError};
 use monedero_namespaces::{AlloyChain, ChainId, ChainType, Chains};
 use serde::Deserialize;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::sync::Arc;
 use tracing::Instrument;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -35,7 +36,7 @@ fn expand_tilde(path: &str) -> String {
 
 impl AppConfig {
     pub fn new(profile: Option<String>) -> anyhow::Result<Self> {
-        let x = XdgApp::new(env!("CARGO_CRATE_NAME"))?;
+        let x = XdgApp::new(env!("CARGO_BIN_NAME"))?;
         match x.app_config_file("config.toml") {
             Ok(p) => {
                 let cfg =
@@ -48,7 +49,7 @@ impl AppConfig {
         /*
         tracing::debug!("using config {}", cfg);
         if let Some(p) = profile {
-            let x = XdgApp::new(env!("CARGO_CRATE_NAME"))?;
+            let x = XdgApp::new(env!("CARGO_BIN_NAME"))?;
             let p = x.app_config_file(p)?;
             return Self::new_with_override(cfg, Some(p));
         }
@@ -83,7 +84,7 @@ impl AppConfig {
     pub fn storage(&self) -> anyhow::Result<PathBuf> {
         match &self.storage_path {
             None => {
-                let x = XdgApp::new(env!("CARGO_CRATE_NAME"))?;
+                let x = XdgApp::new(env!("CARGO_BIN_NAME"))?;
                 Ok(x.app_cache()?)
             }
             Some(path) => Ok(PathBuf::from_str(path)?),

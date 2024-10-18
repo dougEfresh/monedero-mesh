@@ -12,20 +12,26 @@ pub(super) mod session_update;
 pub(super) mod shared_types;
 
 use std::fmt::{Debug, Display, Formatter};
-pub use {
-    pair_delete::*, pair_extend::*, pair_ping::*, session_delete::*, session_event::*,
-    session_extend::*, session_ping::*, session_propose::*, session_request::*, session_settle::*,
-    session_update::*, shared_types::*,
-};
+use std::result::Result;
+
+pub use pair_delete::*;
+pub use pair_extend::*;
+pub use pair_ping::*;
+use paste::paste;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+pub use session_delete::*;
+pub use session_event::*;
+pub use session_extend::*;
+pub use session_ping::*;
+pub use session_propose::*;
+pub use session_request::*;
+pub use session_settle::*;
+pub use session_update::*;
+pub use shared_types::*;
 
 use crate::rpc::sdkerrors::SdkError;
 use crate::rpc::SdkErrors;
-use {
-    paste::paste,
-    serde::{Deserialize, Serialize},
-    serde_json::Value,
-    std::result::Result,
-};
 
 pub const RELAY_PROTOCOL: &str = "irn";
 
@@ -314,11 +320,11 @@ pub struct Controller {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
-
     use anyhow::Result;
     use serde::de::DeserializeOwned;
     use serde_json;
+
+    use super::*;
 
     /// Trims json of the whitespaces and newlines.
     ///

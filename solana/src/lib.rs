@@ -4,7 +4,10 @@ mod stake;
 mod token;
 
 use std::fmt::{Debug, Display, Formatter};
-pub use token::*;
+use std::ops::Deref;
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::sync::Arc;
 
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
@@ -23,10 +26,7 @@ use solana_sdk::signature::Signature;
 use solana_sdk::transaction::Transaction;
 use spl_token_client::client::RpcClientResponse;
 pub use stake::*;
-use std::ops::Deref;
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::sync::Arc;
+pub use token::*;
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub use monedero_mesh;
@@ -139,7 +139,7 @@ pub(crate) fn serialize_message(message: Message) -> Result<String> {
 
 #[derive(Clone)]
 pub struct SolanaWallet {
-    signer: ReownSigner,
+    signer: Arc<ReownSigner>,
     rpc: Arc<RpcClient>,
     token_accounts_client: Arc<TokenAccountsClient>,
     pk: Pubkey,
@@ -151,7 +151,7 @@ impl SolanaWallet {
         rpc: Arc<RpcClient>,
         storage_path: PathBuf,
     ) -> Result<Self> {
-        let signer = ReownSigner::new(sol_session.clone());
+        let signer = Arc::new(ReownSigner::new(sol_session.clone()));
         let metadata_client = TokenMetadataClient::init(storage_path).await?;
         let tc = TokenAccountsClient::new(sol_session.pubkey(), rpc.clone(), metadata_client);
         Ok(Self {
@@ -176,6 +176,14 @@ impl SolanaWallet {
                 },
             )
             .await?)
+    }
+
+    pub fn token_accounts_client(&self) -> Arc<TokenAccountsClient> {
+        self.token_accounts_client.clone()
+    }
+
+    pub fn token_transfer_client(&self, token: &TokenAccount) -> TokenTransferClient {
+        TokenTransferClient::new(self.signer.clone(), self.rpc.clone(), token)
     }
 }
 

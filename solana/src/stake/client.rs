@@ -1,5 +1,6 @@
-use crate::stake::{KeyedStakeState, StakeClient, StakeState};
-use crate::{ReownSigner, SolanaSession};
+use std::str::FromStr;
+use std::sync::Arc;
+
 use solana_program::clock::{Clock, Epoch, Slot};
 use solana_program::feature::Feature;
 use solana_program::pubkey::Pubkey;
@@ -12,8 +13,9 @@ use solana_rpc_client_api::filter::{Memcmp, RpcFilterType};
 use solana_rpc_client_api::response::RpcVoteAccountInfo;
 use solana_sdk::account::{from_account, ReadableAccount};
 use solana_sdk::account_utils::StateMut;
-use std::str::FromStr;
-use std::sync::Arc;
+
+use crate::stake::{KeyedStakeState, StakeClient, StakeState};
+use crate::{ReownSigner, SolanaSession};
 
 async fn get_feature_activation_slot(
     rpc: &RpcClient,

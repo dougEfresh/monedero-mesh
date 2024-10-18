@@ -1,14 +1,16 @@
+use std::time::Duration;
+
+use backoff::future::retry;
+use backoff::ExponentialBackoffBuilder;
+use tracing::{info, warn};
+use xtra::prelude::*;
+
 use crate::actors::ClearPairing;
 use crate::rpc::{
     PairDeleteRequest, PairExtendRequest, PairPingRequest, ResponseParamsSuccess,
     RpcResponsePayload,
 };
 use crate::{PairingManager, SocketEvent, Topic};
-use backoff::future::retry;
-use backoff::ExponentialBackoffBuilder;
-use std::time::Duration;
-use tracing::{info, warn};
-use xtra::prelude::*;
 
 impl Handler<PairExtendRequest> for PairingManager {
     type Return = RpcResponsePayload;

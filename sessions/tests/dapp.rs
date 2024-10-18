@@ -1,3 +1,7 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Once;
+use std::time::Duration;
+
 use anyhow::format_err;
 use assert_matches::assert_matches;
 use async_trait::async_trait;
@@ -8,17 +12,14 @@ use monedero_mesh::rpc::{
 };
 use monedero_mesh::{
     Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
-    RegisteredComponents, SdkErrors, Wallet, WalletConnectBuilder, WalletSettlementHandler,
+    RegisteredComponents, Result, SdkErrors, Topic, Wallet, WalletConnectBuilder,
+    WalletSettlementHandler,
 };
-use monedero_mesh::{Result, Topic};
 use monedero_namespaces::{
     Account, Accounts, AlloyChain, ChainId, ChainType, Chains, EipMethod, Events, Method, Methods,
     Namespace, NamespaceName, Namespaces, SolanaMethod,
 };
 use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Once;
-use std::time::Duration;
 use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;

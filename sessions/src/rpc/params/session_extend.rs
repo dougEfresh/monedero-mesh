@@ -25,10 +25,10 @@ pub struct SessionExtendRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use anyhow::Result;
 
     use super::super::tests::param_serde_test;
-    use anyhow::Result;
+    use super::*;
 
     #[test]
     fn test_serde_session_extend_request() -> Result<()> {

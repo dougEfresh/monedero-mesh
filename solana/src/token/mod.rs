@@ -1,17 +1,23 @@
+mod account_client;
 mod client;
+mod metadata;
 mod mint;
 mod sort;
 mod symbol;
 
-use crate::Result;
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
+
+pub use account_client::*;
 pub use client::*;
+pub use metadata::*;
 pub use mint::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use solana_account_decoder::parse_token::UiTokenAccount;
 use solana_program::pubkey::Pubkey;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 pub use symbol::*;
+
+use crate::Result;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TokenMetadata {
@@ -74,15 +80,6 @@ where
     serializer.serialize_str(&pubkey.to_string())
 }
 
-fn deserialize_null_default<'de, D, T>(deserializer: D) -> std::result::Result<T, D::Error>
-where
-    T: Default + Deserialize<'de>,
-    D: Deserializer<'de>,
-{
-    let opt = Option::deserialize(deserializer)?;
-    Ok(opt.unwrap_or_default())
-}
-
 #[derive(Debug)]
 pub struct UnsupportedAccount {
     pub address: String,
@@ -101,12 +98,7 @@ pub struct TokenAccount {
 
 impl Display for TokenAccount {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {} ",
-            self.metadata,
-            self.account.token_amount.real_number_string(),
-        )
+        write!(f, "{}", self.metadata.symbol,)
     }
 }
 

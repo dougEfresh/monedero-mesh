@@ -1,5 +1,6 @@
-use crate::input::Key;
 use serde::{Deserialize, Serialize};
+
+use crate::input::Key;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum InternalMsg {

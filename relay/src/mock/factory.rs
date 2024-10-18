@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+use once_cell::sync::Lazy;
+use tokio::sync::mpsc;
+
 use crate::mock::mocker::Mocker;
 use crate::mock::{ConnectionCategory, ConnectionPair};
 use crate::{ConnectionHandler, Message, MessageIdGenerator};
-use once_cell::sync::Lazy;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc;
 
 pub static MOCK_FACTORY: Lazy<MockerFactory> = Lazy::new(MockerFactory::new);
 

@@ -1,8 +1,9 @@
 //! (wc_sessionUpdate)[https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods#wc_sessionupdate]
 
-use super::IrnMetadata;
 use monedero_namespaces::Namespaces;
 use serde::{Deserialize, Serialize};
+
+use super::IrnMetadata;
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1104,
@@ -24,10 +25,10 @@ pub struct SessionUpdateRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use anyhow::Result;
 
     use super::super::tests::param_serde_test;
-    use anyhow::Result;
+    use super::*;
 
     #[test]
     fn test_serde_session_update_request() -> Result<()> {

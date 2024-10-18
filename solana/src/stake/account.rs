@@ -1,14 +1,13 @@
-use crate::{Result, StakeClient};
 use solana_program::message::Message;
 use solana_program::pubkey::Pubkey;
 use solana_program::stake::state::{Authorized, StakeStateV2};
 use solana_sdk::signature::Signature;
 use solana_sdk::signer::Signer;
-use solana_sdk::stake::{
-    self,
-    instruction::{self as stake_instruction},
-};
+use solana_sdk::stake::instruction::{self as stake_instruction};
+use solana_sdk::stake::{self};
 use solana_sdk::transaction::Transaction;
+
+use crate::{Result, StakeClient};
 
 impl StakeClient {
     pub async fn create_account(

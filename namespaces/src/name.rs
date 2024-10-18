@@ -1,11 +1,13 @@
-use crate::chain_id::{ChainId, Chains};
-use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
+
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
+
+use crate::chain_id::{ChainId, Chains};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr)]
 pub enum NamespaceName {

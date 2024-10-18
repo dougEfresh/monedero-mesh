@@ -1,12 +1,14 @@
-use crate::actors::{AddRequest, ClearPairing};
-use crate::domain::MessageId;
-use crate::rpc::Response;
+use std::sync::Arc;
+
 use dashmap::DashMap;
 use monedero_relay::MessageIdGenerator;
-use std::sync::Arc;
 use tokio::sync::oneshot;
 use tracing::{debug, error, warn};
 use xtra::{Context, Handler};
+
+use crate::actors::{AddRequest, ClearPairing};
+use crate::domain::MessageId;
+use crate::rpc::Response;
 
 #[derive(Default, xtra::Actor)]
 pub struct InboundResponseActor {
@@ -54,14 +56,16 @@ impl Handler<Response> for InboundResponseActor {
 
 #[cfg(test)]
 mod test {
+    use std::time::Duration;
+
+    use anyhow::format_err;
+    use xtra::prelude::*;
+
     use super::*;
     use crate::actors::inbound::{AddRequest, InboundResponseActor};
     use crate::rpc::{
         RelayProtocolHelpers, ResponseParams, ResponseParamsSuccess, SessionProposeResponse,
     };
-    use anyhow::format_err;
-    use std::time::Duration;
-    use xtra::prelude::*;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
     async fn test_payload_response() -> anyhow::Result<()> {

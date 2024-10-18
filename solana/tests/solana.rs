@@ -1,3 +1,8 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::str::FromStr;
+use std::sync::{Arc, Once};
+use std::time::Duration;
+
 use anyhow::format_err;
 use assert_matches::assert_matches;
 use async_trait::async_trait;
@@ -31,10 +36,6 @@ use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signer::Signer;
 use solana_sdk::transaction::{Transaction, VersionedTransaction};
-use std::collections::{BTreeMap, BTreeSet};
-use std::str::FromStr;
-use std::sync::{Arc, Once};
-use std::time::Duration;
 use tokio::time::timeout;
 use tracing::{error, info};
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -310,7 +311,7 @@ async fn test_solana_mint_new_tokens() -> anyhow::Result<()> {
     let token_address = Pubkey::from_str("8m3uKEn4fMPNVr7nv6RmQYktT4zRqEZzhuZDpG8hQZT4")?;
     let (session, mock_wallet) = pair_dapp_wallet().await?;
     let sol_session = SolanaSession::try_from(&session)?;
-    let signer = ReownSigner::new(sol_session);
+    let signer = Arc::new(ReownSigner::new(sol_session));
     let me = Pubkey::from_str(SUPPORTED_ACCOUNT)?;
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let token_client = TokenTransferClient::init(

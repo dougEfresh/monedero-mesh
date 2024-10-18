@@ -3,8 +3,9 @@
 //mod propose_namespaces;
 mod settle_namespaces;
 
-use crate::rpc::{ResponseParamsError, RELAY_PROTOCOL};
 use serde::{Deserialize, Serialize};
+
+use crate::rpc::{ResponseParamsError, RELAY_PROTOCOL};
 
 /// The maximum number of topics allowed for a batch subscribe request.
 ///

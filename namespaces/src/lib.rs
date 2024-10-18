@@ -4,10 +4,11 @@
 // - validates namespaces match at least all requiredNamespaces
 // ========================================================================================================
 
-use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
+
+use serde::{Deserialize, Serialize};
 
 mod account;
 mod chain_id;
@@ -16,13 +17,14 @@ mod event;
 mod method;
 mod name;
 
+pub use alloy_chains::Chain as AlloyChain;
+pub use error::Error;
+
 pub use crate::account::*;
 pub use crate::chain_id::*;
 pub use crate::event::*;
 pub use crate::method::*;
 pub use crate::name::NamespaceName;
-pub use alloy_chains::Chain as AlloyChain;
-pub use error::Error;
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -146,8 +148,9 @@ impl Namespaces {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::json;
+
+    use super::*;
 
     #[test]
     #[allow(clippy::unwrap_used)]

@@ -1,28 +1,31 @@
-use crate::rpc::{RequestParams, SessionDeleteRequest};
-use crate::transport::SessionTransport;
-use crate::{
-    Cipher, Error, PairingManager, PairingTopic, SessionEventRequest, SessionHandler,
-    SessionSettled, Topic,
-};
-use crate::{Result, SessionDeleteHandler};
-use dashmap::DashMap;
-use serde::de::DeserializeOwned;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
+use std::time::Duration;
+
+use dashmap::DashMap;
+use serde::de::DeserializeOwned;
 use tokio::sync::oneshot::Sender;
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::{error, warn};
 use xtra::prelude::*;
+
+use crate::rpc::{RequestParams, SessionDeleteRequest};
+use crate::transport::SessionTransport;
+use crate::{
+    Cipher, Dapp, Error, PairingManager, PairingTopic, Result, SessionDeleteHandler,
+    SessionEventRequest, SessionHandler, SessionSettled, Topic,
+};
 
 mod pending;
 mod session_delete;
 mod session_ping;
 mod session_request;
 
-use crate::actors::{ClearSession, SessionRequestHandlerActor};
-use crate::crypto::CipherError;
 use monedero_namespaces::Namespaces;
 pub(crate) use pending::PendingSession;
+
+use crate::actors::{ClearSession, SessionRequestHandlerActor};
+use crate::crypto::CipherError;
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub(crate) enum Category {
@@ -142,5 +145,15 @@ impl ClientSession {
             .send(ClearSession(self.transport.topic.clone()))
             .await;
         accepted
+    }
+
+    pub async fn pinger(&self, duration: Duration) {
+        let me = self.clone();
+        loop {
+            if let Err(e) = me.ping().await {
+                tracing::warn!("pair ping failed! {e}");
+            }
+            tokio::time::sleep(duration).await;
+        }
     }
 }

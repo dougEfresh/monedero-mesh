@@ -4,6 +4,17 @@ mod pairing;
 mod registration;
 mod socket_handler;
 
+use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
+use std::time::Duration;
+
+pub use builder::WalletConnectBuilder;
+use monedero_namespaces::Namespaces;
+use monedero_relay::{Client, ConnectionOptions};
+use serde::de::DeserializeOwned;
+use tokio::sync::mpsc;
+use tracing::{info, warn};
+
 use crate::actors::Actors;
 use crate::domain::{SubscriptionId, Topic};
 use crate::relay::RelayHandler;
@@ -13,15 +24,6 @@ use crate::rpc::{
 };
 use crate::transport::TopicTransport;
 use crate::{Cipher, Error, Pairing, Result, SessionSettled, SocketEvent, SocketListener};
-pub use builder::WalletConnectBuilder;
-use monedero_namespaces::Namespaces;
-use monedero_relay::{Client, ConnectionOptions};
-use serde::de::DeserializeOwned;
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::mpsc;
-use tracing::{info, warn};
 
 #[derive(Clone, xtra::Actor)]
 pub struct PairingManager {
@@ -92,6 +94,7 @@ impl PairingManager {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub(crate) async fn unsubscribe_all(&self) -> Result<()> {
         self.pairing().ok_or(Error::NoPairingTopic)?;
         let topics = self.ciphers.subscriptions();

@@ -1,17 +1,19 @@
-use crate::mock::{ConnectionPair, MockEvent};
-use crate::{
-    ClientError, ConnectionHandler, Message, MessageIdGenerator, Result, SubscriptionId, Topic,
-};
-use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use std::collections::VecDeque;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
 use tokio::select;
 use tokio::sync::{broadcast, mpsc, RwLock};
 use tracing::{debug, info, warn};
+
+use crate::mock::{ConnectionPair, MockEvent};
+use crate::{
+    ClientError, ConnectionHandler, Message, MessageIdGenerator, Result, SubscriptionId, Topic,
+};
 
 pub static DISCONNECT_TOPIC: Lazy<Topic> =
     Lazy::new(|| Topic::from("92b2701dbdbb72abea51591a06d41e7d76ebfe18e1a1ca5680a5ac6e3717c6d9"));

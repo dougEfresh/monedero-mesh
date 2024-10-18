@@ -1,7 +1,8 @@
-use crate::app;
 use ratatui::prelude::*;
 use ratatui::widgets::{List, ListItem, Paragraph};
 use ratatui::Frame;
+
+use crate::app;
 mod layout;
 pub use layout::*;
 

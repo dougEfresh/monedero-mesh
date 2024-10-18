@@ -1,11 +1,9 @@
-use {
-    base64::{prelude::BASE64_STANDARD, DecodeError, Engine},
-    chacha20poly1305::{
-        aead::{Aead, KeyInit, OsRng, Payload},
-        AeadCore, ChaCha20Poly1305, Nonce,
-    },
-    std::string::FromUtf8Error,
-};
+use std::string::FromUtf8Error;
+
+use base64::prelude::BASE64_STANDARD;
+use base64::{DecodeError, Engine};
+use chacha20poly1305::aead::{Aead, KeyInit, OsRng, Payload};
+use chacha20poly1305::{AeadCore, ChaCha20Poly1305, Nonce};
 
 // https://specs.walletconnect.com/2.0/specs/clients/core/crypto/
 // crypto-envelopes

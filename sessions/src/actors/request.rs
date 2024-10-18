@@ -1,3 +1,11 @@
+use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
+
+use dashmap::DashMap;
+use monedero_relay::Client;
+use tracing::{debug, info, warn};
+use xtra::prelude::*;
+
 use crate::actors::proposal::ProposalActor;
 use crate::actors::session::SessionRequestHandlerActor;
 use crate::actors::{ClearPairing, RegisteredComponents, TransportActor};
@@ -6,14 +14,7 @@ use crate::rpc::{
     ErrorParams, IntoUnknownError, PairPingRequest, Request, RequestParams, ResponseParamsError,
     ResponseParamsSuccess, RpcRequest, RpcResponse, RpcResponsePayload, SessionProposeRequest,
 };
-use crate::PairingManager;
-use crate::{Dapp, MessageId, Result, Wallet};
-use dashmap::DashMap;
-use monedero_relay::Client;
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
-use tracing::{debug, info, warn};
-use xtra::prelude::*;
+use crate::{Dapp, MessageId, PairingManager, Result, Wallet};
 
 #[derive(Clone, Actor)]
 pub struct RequestHandlerActor {

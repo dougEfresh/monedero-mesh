@@ -1,8 +1,9 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/core/pairing/rpc-methods
 
+use serde::{Deserialize, Serialize};
+
 use super::IrnMetadata;
 use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
-use serde::{Deserialize, Serialize};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: crate::rpc::TAG_PAIR_DELETE_REQUEST,
@@ -37,11 +38,11 @@ impl IntoUnknownError for PairDeleteRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use super::super::tests::param_serde_test;
     use anyhow::Result;
     use serde_json::json;
+
+    use super::super::tests::param_serde_test;
+    use super::*;
 
     #[test]
     fn test_serde_pair_delete_request() -> Result<()> {

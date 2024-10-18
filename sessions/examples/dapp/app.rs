@@ -1,12 +1,12 @@
-use crate::config::Mode;
-use crate::input::Key;
-pub use crate::msg::in_::ExternalMsg;
-pub use crate::msg::in_::InternalMsg;
-pub use crate::msg::in_::MsgIn;
-pub use crate::msg::out::MsgOut;
+use std::collections::VecDeque;
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
+
+use crate::config::Mode;
+use crate::input::Key;
+pub use crate::msg::in_::{ExternalMsg, InternalMsg, MsgIn};
+pub use crate::msg::out::MsgOut;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Task {
