@@ -169,7 +169,7 @@ pub(crate) async fn init_test_components() -> anyhow::Result<(Dapp, Wallet, Mock
     //let url = std::env::var(ChainId::Solana(ChainType::Test).to_string())
     //.ok()
     //.unwrap_or(String::from("https://api.devnet.solana.com"));
-    let url = std::env::var(ChainId::Solana(ChainType::Test).to_string())
+    let url = std::env::var(ChainId::Solana(ChainType::Dev).to_string())
         .ok()
         .unwrap_or(String::from("https://soldev.dougchimento.com"));
     info!("using url {url}");
@@ -205,7 +205,7 @@ async fn await_wallet_pair(rx: ProposeFuture) {
 async fn pair_dapp_wallet() -> anyhow::Result<(ClientSession, MockWallet)> {
     let (dapp, wallet, mock_wallet) = init_test_components().await?;
     let (pairing, rx, _) = dapp
-        .propose(NoopSessionHandler, &[ChainId::Solana(ChainType::Test)])
+        .propose(NoopSessionHandler, &[ChainId::Solana(ChainType::Dev)])
         .await?;
     info!("got pairing topic {pairing}");
     let (_, wallet_rx) = wallet

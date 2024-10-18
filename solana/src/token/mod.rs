@@ -5,6 +5,8 @@ mod mint;
 mod sort;
 mod symbol;
 
+use std::cmp::Ordering;
+use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -104,11 +106,37 @@ impl Display for TokenAccount {
 
 #[derive(Debug)]
 pub struct TokenAccounts {
-    pub accounts: Vec<TokenAccount>,
+    pub accounts: BTreeSet<TokenAccount>,
     pub unsupported_accounts: Vec<UnsupportedAccount>,
     pub max_len_balance: usize,
     pub aux_len: usize,
     pub explicit_token: bool,
+}
+
+impl PartialEq<Self> for TokenAccount {
+    fn eq(&self, other: &Self) -> bool {
+        if self.metadata.symbol.eq(&self.metadata.symbol) {
+            return self.address == other.address;
+        }
+        self.metadata.symbol.eq(&other.metadata.symbol)
+    }
+}
+
+impl PartialOrd<TokenAccount> for TokenAccount {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.metadata.symbol.partial_cmp(&other.metadata.symbol)
+    }
+}
+
+impl Eq for TokenAccount {}
+
+impl Ord for TokenAccount {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.metadata.symbol.eq(&self.metadata.symbol) {
+            return self.address.cmp(&other.address);
+        }
+        self.metadata.symbol.cmp(&other.metadata.symbol)
+    }
 }
 
 impl Display for TokenAccounts {

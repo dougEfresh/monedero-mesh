@@ -34,7 +34,7 @@ pub async fn invoke(context: &Context) -> anyhow::Result<()> {
     );
     let menu = TokenMenu::iter();
     let style = StyleBuilder::new()
-        .fgc(Color::Blue)
+        .fgc(Color::Black)
         .bgc(Color::White)
         .attrs(Attributes::none().with(Attribute::Framed))
         .build()

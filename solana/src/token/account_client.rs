@@ -1,4 +1,6 @@
 #![allow(clippy::arithmetic_side_effects)]
+
+use std::collections::BTreeSet;
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -60,13 +62,12 @@ impl TokenAccountsClient {
 }
 
 impl TokenAccountsClient {
-    #[tracing::instrument(level = "info", skip(keyed_accounts))]
     pub(crate) fn sort_and_parse_token_accounts(
         &self,
         keyed_accounts: Vec<RpcKeyedAccount>,
         explicit_token: bool,
     ) -> crate::Result<TokenAccounts> {
-        let mut accounts: Vec<TokenAccount> = vec![];
+        let mut accounts: BTreeSet<TokenAccount> = BTreeSet::new();
         let mut unsupported_accounts = vec![];
         let mut max_len_balance = 0;
         let mut aux_count = 0;
@@ -105,7 +106,7 @@ impl TokenAccountsClient {
                             has_permanent_delegate: false,
                             metadata,
                         };
-                        accounts.push(account);
+                        accounts.insert(account);
                     }
                     Ok(_) => unsupported_accounts.push(UnsupportedAccount {
                         address: address_str,

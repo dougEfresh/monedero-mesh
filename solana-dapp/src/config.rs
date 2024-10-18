@@ -8,7 +8,7 @@ use tracing::Instrument;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct AppConfig {
-    pub devnet: bool,
+    pub chain: ChainType,
     chains: Option<Chains>,
     pub solana_rpc: String,
     pub etherscan_api_key: Option<String>,

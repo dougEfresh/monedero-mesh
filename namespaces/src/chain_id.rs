@@ -13,17 +13,59 @@ const SOLANA_NEW: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 // const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
 const SOLANA: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
 /// This is actually Solana Dev
-const SOLANA_TEST_NEW: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
+const SOLANA_DEV_NEW: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 //const SOLANA_TEST_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
-const SOLANA_TEST: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
+const SOLANA_DEV: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
+
+const SOLANA_TEST: &str = "solana:testnet";
 
 #[derive(
-    Debug, Copy, Default, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Serialize, Deserialize,
+    Debug,
+    Copy,
+    Default,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Ord,
+    PartialOrd,
+    SerializeDisplay,
+    DeserializeFromStr,
 )]
+
 pub enum ChainType {
-    #[default]
     Main,
     Test,
+    #[default]
+    Dev,
+}
+
+impl FromStr for ChainType {
+    type Err = crate::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "main" => Ok(Self::Main),
+            "mainnet" => Ok(Self::Main),
+            "test" => Ok(Self::Test),
+            "testnet" => Ok(Self::Test),
+            _ => Ok(Self::Dev),
+        }
+    }
+}
+
+impl Display for ChainType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ChainType::Main => "main",
+                ChainType::Test => "testnet",
+                ChainType::Dev => "devnet",
+            }
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr)]
@@ -51,7 +93,7 @@ impl FromIterator<ChainId> for Chains {
 
 impl Default for Chains {
     fn default() -> Self {
-        Self(BTreeSet::from([ChainId::Solana(ChainType::Main)]))
+        Self(BTreeSet::from([ChainId::Solana(ChainType::Dev)]))
     }
 }
 
@@ -146,7 +188,8 @@ impl FromStr for ChainId {
         let chain_id = format!("{ns}:{id}");
         match chain_id.as_str() {
             SOLANA | SOLANA_NEW => Ok(Self::Solana(ChainType::Main)),
-            SOLANA_TEST | SOLANA_TEST_NEW => Ok(Self::Solana(ChainType::Test)),
+            SOLANA_DEV | SOLANA_DEV_NEW => Ok(Self::Solana(ChainType::Dev)),
+            SOLANA_TEST => Ok(Self::Solana(ChainType::Test)),
             _ => {
                 tracing::debug!("unknown chain {}", s);
                 Ok(Self::Other(s.to_string()))
@@ -160,6 +203,7 @@ impl Display for ChainId {
         match self {
             Self::EIP155(chain) => write!(f, "eip155:{}", chain.id()),
             Self::Solana(ChainType::Main) => write!(f, "{SOLANA}"),
+            Self::Solana(ChainType::Dev) => write!(f, "{SOLANA_DEV}"),
             Self::Solana(ChainType::Test) => write!(f, "{SOLANA_TEST}"),
             //ChainId::Near(ChainType::Main) => write!(f, "mainnet"),
             //ChainId::Near(ChainType::Test) => write!(f, "testnet"),
@@ -197,10 +241,10 @@ mod tests {
         let solana = ChainId::from_str(&with_account)?;
         assert!(matches!(solana, ChainId::Solana(_)));
 
-        let solana = ChainId::from_str(SOLANA_TEST)?;
-        assert!(matches!(solana, ChainId::Solana(ChainType::Test)));
-        assert_eq!(solana.to_string(), SOLANA_TEST);
-        assert_eq!(solana, SOLANA_TEST.parse()?);
+        let solana = ChainId::from_str(SOLANA_DEV)?;
+        assert!(matches!(solana, ChainId::Solana(ChainType::Dev)));
+        assert_eq!(solana.to_string(), SOLANA_DEV);
+        assert_eq!(solana, SOLANA_DEV.parse()?);
 
         /*
         let solana = ChainId::from_str(SOLANA_TEST_OLD)?;

@@ -3,6 +3,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
+use clap::Parser;
 use console::Term;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use monedero_solana::monedero_mesh::{
@@ -20,12 +21,13 @@ use crate::config::AppConfig;
 use crate::context::Context;
 use crate::log::initialize_logging;
 
+mod cli;
 mod cmd;
 mod config;
 mod context;
 mod log;
 
-async fn init_dapp(cfg: AppConfig) -> anyhow::Result<(Dapp, Pairing, ProposeFuture, bool)> {
+async fn init_dapp(cfg: AppConfig) -> anyhow::Result<(Pairing, ProposeFuture, bool)> {
     let project = ProjectId::from("5c9d8a326d3afb25ed1dff90f6d1807a");
     let auth = auth_token("https://github.com/dougEfresh");
     let storage_path = format!("{}", cfg.storage()?.display());
@@ -48,7 +50,7 @@ async fn init_dapp(cfg: AppConfig) -> anyhow::Result<(Dapp, Pairing, ProposeFutu
     .await?;
 
     let (p, fut, cached) = dapp.propose(NoopSessionHandler, &cfg.chains()).await?;
-    Ok((dapp, p, fut, cached))
+    Ok((p, fut, cached))
 }
 
 async fn show_pair(pairing: Pairing) {
@@ -89,15 +91,16 @@ async fn main_menu(mut ctx: Context) -> anyhow::Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let matches = cli::Cli::parse();
     initialize_logging()?;
-    dotenvy::dotenv()?;
     let mut ctx = ClipboardContext::new().expect("Failed to open clipboard");
-    let cfg = AppConfig::default();
-    let (dapp, pairing, fut, cached) = init_dapp(cfg.clone()).await?;
-    ctx.set_contents(pairing.to_string())
-        .expect("Failed to set clipboard");
+
+    let cfg = AppConfig::new(matches.config.clone(), matches.profile.clone())?;
+    let (pairing, fut, cached) = init_dapp(cfg.clone()).await?;
     let mut term = Term::stdout();
     if !cached {
+        ctx.set_contents(pairing.to_string())
+            .expect("Failed to set clipboard");
         writeln!(term, "Pairing: {}", pairing)?;
     }
 
@@ -108,7 +111,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let sol_session = SolanaSession::try_from(&cs)?;
-    let rpc_client = cfg.rpc_client();
+    let rpc_client = cfg.solana_rpc_client();
     tokio::spawn(async move { cs.pinger(Duration::from_secs(15)).await });
     term.clear_screen()?;
     //let signer = WalletConnectSigner::new(sol_session.clone());

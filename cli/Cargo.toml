@@ -18,7 +18,6 @@ ctrlc = { workspace = true }
 console-subscriber = { version = "0.4" }
 copypasta = { version = "0.10" }
 dirs = { workspace = true }
-dotenvy = { workspace = true }
 console = { version = "0.15" }
 enum-str-derive = { workspace = true }
 futures = { workspace = true }

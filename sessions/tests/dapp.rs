@@ -169,7 +169,7 @@ async fn pair_dapp_wallet() -> anyhow::Result<(TestStuff, ClientSession)> {
             &[
                 ChainId::EIP155(alloy_chains::Chain::holesky()),
                 ChainId::EIP155(alloy_chains::Chain::sepolia()),
-                ChainId::Solana(ChainType::Test),
+                ChainId::Solana(ChainType::Dev),
             ],
         )
         .await?;
