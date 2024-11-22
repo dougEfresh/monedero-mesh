@@ -129,18 +129,18 @@ async fn main() -> anyhow::Result<()> {
     let ctx = Context { wallet, term };
     match matches.subcommands {
         None => {
+            /*
             let helius = Pubkey::from_str("he1iusunGwqrNtafDtLdhsUQDFvo13z9sUa36PauBtk")?;
             let staker = ctx.wallet.stake_client();
             let (_, sig) = staker
                 .create_delegate(5 * LAMPORTS_PER_SOL, &helius)
                 .await?;
-            ctx.term.write_line("{sig}")?;
+            ctx.term.write_line(&format!("{sig}"))?;
             Ok(())
-            /*
+            */
             ctx.term.clear_screen()?;
             tokio::spawn(async move { cs.pinger(Duration::from_secs(15)).await });
             main_menu(ctx).await
-             */
         }
         Some(SubCommands::Fees) => {
             let fees = ctx.wallet.fees().await?;

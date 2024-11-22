@@ -9,13 +9,13 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 // old solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ
-const SOLANA_NEW: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+const SOLANA: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 // const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
-const SOLANA: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
+const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
 /// This is actually Solana Dev
-const SOLANA_DEV_NEW: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
+const SOLANA_DEV: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 //const SOLANA_TEST_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
-const SOLANA_DEV: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
+const SOLANA_DEV_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
 
 const SOLANA_TEST: &str = "solana:testnet";
 
@@ -184,8 +184,8 @@ impl FromStr for ChainId {
         }
         let chain_id = format!("{ns}:{id}");
         match chain_id.as_str() {
-            SOLANA | SOLANA_NEW => Ok(Self::Solana(ChainType::Main)),
-            SOLANA_DEV | SOLANA_DEV_NEW => Ok(Self::Solana(ChainType::Dev)),
+            SOLANA_OLD | SOLANA => Ok(Self::Solana(ChainType::Main)),
+            SOLANA_DEV_OLD | SOLANA_DEV => Ok(Self::Solana(ChainType::Dev)),
             SOLANA_TEST => Ok(Self::Solana(ChainType::Test)),
             _ => {
                 tracing::debug!("unknown chain {}", s);
@@ -229,19 +229,19 @@ mod tests {
         assert!(matches!(eip155, ChainId::EIP155(_)));
         assert_eq!(eip155.to_string(), "eip155:1");
 
-        let solana = ChainId::from_str(SOLANA)?;
+        let solana = ChainId::from_str(SOLANA_OLD)?;
         assert!(matches!(solana, ChainId::Solana(_)));
-        assert_eq!(solana.to_string(), SOLANA);
-        assert_eq!(solana, SOLANA.parse()?);
+        assert_eq!(solana.to_string(), SOLANA_OLD);
+        assert_eq!(solana, SOLANA_OLD.parse()?);
 
-        let with_account = format!("{SOLANA}:someaccount");
+        let with_account = format!("{SOLANA_OLD}:someaccount");
         let solana = ChainId::from_str(&with_account)?;
         assert!(matches!(solana, ChainId::Solana(_)));
 
-        let solana = ChainId::from_str(SOLANA_DEV)?;
+        let solana = ChainId::from_str(SOLANA_DEV_OLD)?;
         assert!(matches!(solana, ChainId::Solana(ChainType::Dev)));
-        assert_eq!(solana.to_string(), SOLANA_DEV);
-        assert_eq!(solana, SOLANA_DEV.parse()?);
+        assert_eq!(solana.to_string(), SOLANA_DEV_OLD);
+        assert_eq!(solana, SOLANA_DEV_OLD.parse()?);
 
         /*
         let solana = ChainId::from_str(SOLANA_TEST_OLD)?;
