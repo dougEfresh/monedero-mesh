@@ -1,8 +1,7 @@
 use console::Term;
-use monedero_solana::{SolanaSession, SolanaWallet};
+use monedero_solana::SolanaWallet;
 
 pub struct Context {
-    pub sol_session: SolanaSession,
     pub wallet: SolanaWallet,
     pub term: Term,
 }

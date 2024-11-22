@@ -1,13 +1,9 @@
-use std::sync::Arc;
-
-use tokio::sync::Mutex;
-use tracing::info;
 use xtra::prelude::*;
 
 use crate::rpc::{
     ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload, SessionRequestRequest,
 };
-use crate::{ClientSession, Result, SessionHandler, WalletRequestResponse};
+use crate::{ClientSession, SessionHandler, WalletRequestResponse};
 
 impl Handler<SessionRequestRequest> for ClientSession {
     type Return = RpcResponsePayload;

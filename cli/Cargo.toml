@@ -32,6 +32,7 @@ strum_macros = { workspace = true }
 solana-rpc-client = { workspace = true }
 solana-client = { workspace = true }
 solana-sdk = { workspace = true }
+stanza = { workspace = true }
 tokio = { version = "1", features = ["full", "tracing"] }
 tracing = { workspace = true }
 tracing-error = { workspace = true }

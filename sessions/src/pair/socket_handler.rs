@@ -37,7 +37,7 @@ pub(crate) async fn handle_socket(
                 })
                 .await
                 {
-                    Ok(_) => {
+                    Ok(()) => {
                         debug!("re-subsribing");
                         if let Err(e) = mgr.resubscribe().await {
                             warn!("failed to resubscribe! {e}");

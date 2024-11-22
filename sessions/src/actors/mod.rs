@@ -19,7 +19,7 @@ use crate::actors::proposal::ProposalActor;
 pub(crate) use crate::actors::session::SessionRequestHandlerActor;
 use crate::domain::Topic;
 use crate::rpc::RequestParams;
-use crate::{Cipher, Dapp, PairingManager, Result, Wallet};
+use crate::{Cipher, Result};
 
 #[derive(Clone)]
 pub struct Actors {

@@ -50,10 +50,16 @@ pub struct SessionProposeRequest {
 
 impl Display for SessionProposeRequest {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let opt = self
+            .optional_namespaces
+            .as_ref()
+            .map_or_else(String::new, |o| format!("{o}"));
+        /*
         let opt = match &self.optional_namespaces {
             Some(o) => format!("{}", o),
             None => String::new(),
         };
+             */
         write!(
             f,
             "required:[{}] optional:[{}]",

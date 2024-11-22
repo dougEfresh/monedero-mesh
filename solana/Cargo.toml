@@ -32,6 +32,7 @@ tracing = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+spl-memo = { workspace = true }
 spl-token = { workspace = true }
 spl-token-client ={ workspace = true }
 spl-token-2022 = { workspace = true }
@@ -44,11 +45,12 @@ solana-program = { workspace = true }
 solana-rpc-client = { workspace = true }
 solana-rpc-client-api = { workspace = true }
 solana-sdk = { workspace = true }
+stanza = { workspace = true }
 microxdg = { workspace = true }
 
 
 [dev-dependencies]
-alloy = { version = "0.3", features = ["full"] }
+alloy = { version = "0.6", features = ["full"] }
 assert_matches = { version = "1.5.0" }
 async-trait = "0.1.82"
 anyhow = "1"

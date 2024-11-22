@@ -31,13 +31,35 @@ pub struct Cli {
         help = "use mainnet (default is testnet/devnet)"
     )]
     pub mainnet: bool,
+
+    #[arg(
+        long,
+        env = "MONEDERO_MAX_FEE",
+        default_value_t = 50000,
+        global = true,
+        help = "max fee for compute budget program in micro-lamports"
+    )]
+    pub max_fee: u64,
+
+    #[arg(
+        long,
+        env = "MONEDERO_DEFAULT_MEMO",
+        global = true,
+        help = "memo to add for every transaction"
+    )]
+    pub default_memo: Option<String>,
 }
 
 #[derive(Debug, Subcommand)]
 pub enum SubCommands {
     #[command()]
+    Fees,
+    #[command()]
+    Balance,
+    #[command()]
     Init,
-
+    #[command()]
+    Pair,
     #[command()]
     Version {},
 }

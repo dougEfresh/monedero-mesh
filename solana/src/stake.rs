@@ -1,22 +1,34 @@
 mod account;
 mod client;
+mod delegate;
+mod withdrawal;
 
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use solana_program::clock::{Epoch, Slot, UnixTimestamp};
+use solana_program::native_token::LAMPORTS_PER_SOL;
 use solana_program::pubkey::Pubkey;
 use solana_program::stake::state::{Authorized, Lockup};
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::account_utils::StateMut;
 
+use crate::fee::FeeService;
 use crate::{ReownSigner, SolanaSession};
 
 pub struct StakeClient {
     session: SolanaSession,
     signer: ReownSigner,
     rpc: Arc<RpcClient>,
+    memo: String,
+    fee_service: FeeService,
+}
+
+impl Debug for StakeClient {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[StakeClient][{}]", self.session)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -27,6 +39,16 @@ pub enum StakeType {
     Initialized,
 }
 
+impl Display for StakeType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StakeType::Stake => write!(f, "{}", "Stake"),
+            StakeType::RewardsPool => write!(f, "{}", "RewardsPool"),
+            StakeType::Uninitialized => write!(f, "{}", "Uninitialized"),
+            StakeType::Initialized => write!(f, "{}", "Initialized"),
+        }
+    }
+}
 impl Default for StakeType {
     fn default() -> Self {
         Self::Uninitialized
@@ -85,10 +107,17 @@ pub struct StakeState {
 
 impl Display for StakeState {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let v = match &self.delegated_vote_account_address {
+            None => String::new(),
+            Some(address) => format!(" vote:{}", address),
+        };
         write!(
             f,
-            "delegated:{} balance:{} epoch:{}",
-            self.delegated_stake, self.account_balance, self.current_epoch
+            "delegated:{} balance:{} type:{} {}",
+            self.delegated_stake,
+            self.account_balance as f64 / LAMPORTS_PER_SOL as f64,
+            self.stake_type,
+            v,
         )
     }
 }
@@ -103,10 +132,6 @@ pub struct KeyedStakeState {
 
 impl Display for KeyedStakeState {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "account:{} state:{}",
-            self.stake_pubkey, self.stake_state
-        )
+        write!(f, "{} {}", self.stake_pubkey, self.stake_state)
     }
 }

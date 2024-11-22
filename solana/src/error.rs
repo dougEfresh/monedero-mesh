@@ -67,7 +67,7 @@ pub enum Error {
     #[error("spl-token program is not valid for this operation try spl-token-2022")]
     InvalidTokenProgram,
 
-    #[error("Account decoding rpc issue {0}")]
+    #[error("{0}")]
     RpcRequestError(String),
     #[error("Account exists! {0}")]
     AccountExists(String),
@@ -82,4 +82,7 @@ pub enum Error {
 
     #[error(transparent)]
     XdgError(#[from] microxdg::XdgError),
+
+    #[error("amount {amt} is not enough for minimum delegation {min_amt} ")]
+    MinimumDelegation { amt: u64, min_amt: u64 },
 }

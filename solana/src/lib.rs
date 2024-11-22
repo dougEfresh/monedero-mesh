@@ -1,17 +1,21 @@
+mod compute_budget;
 mod error;
+mod fee;
+mod memo;
 mod signer;
 mod stake;
 mod token;
+mod wallet;
 
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
-use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 pub use error::Error;
+pub use memo::*;
 use monedero_mesh::rpc::{RequestMethod, RequestParams, SessionRequestRequest};
 use monedero_mesh::ClientSession;
 pub use monedero_namespaces::ChainType;
@@ -20,7 +24,6 @@ use serde::{Deserialize, Serialize};
 pub use signer::ReownSigner;
 use solana_program::native_token::LAMPORTS_PER_SOL;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
 use solana_sdk::message::Message;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
@@ -28,9 +31,11 @@ use solana_sdk::transaction::Transaction;
 use spl_token_client::client::RpcClientResponse;
 pub use stake::*;
 pub use token::*;
+pub use wallet::*;
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub use monedero_mesh;
+pub(crate) const DEFAULT_MEMO: &str = "🛠️ by github.com/dougEfresh/monedero-mesh";
 
 async fn finish_tx(client: Arc<RpcClient>, rpc_response: &RpcClientResponse) -> Result<Signature> {
     match rpc_response {
@@ -46,6 +51,10 @@ async fn finish_tx(client: Arc<RpcClient>, rpc_response: &RpcClientResponse) -> 
 pub enum Network {
     Mainnet,
     Devnet,
+}
+
+pub(crate) fn bytes_to_str(b: &[u8]) -> String {
+    String::from(std::str::from_utf8(b).expect("this should not fail"))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -80,7 +89,8 @@ pub struct SolanaSession {
 fn fmt_common(s: &SolanaSession) -> String {
     let c = match s.chain {
         ChainId::Solana(ChainType::Main) => "main".to_string(),
-        ChainId::Solana(ChainType::Test) => "dev".to_string(),
+        ChainId::Solana(ChainType::Dev) => "dev".to_string(),
+        ChainId::Solana(ChainType::Test) => "test".to_string(),
         _ => "unknown".to_string(),
     };
     format!("pk={} chain={c}", s.pk)
@@ -136,56 +146,6 @@ pub(crate) fn serialize_message(message: Message) -> Result<String> {
     let transaction = Transaction::new_unsigned(message);
     let hash = bincode::serialize(&transaction)?;
     Ok(BASE64_STANDARD.encode(hash))
-}
-
-#[derive(Clone)]
-pub struct SolanaWallet {
-    signer: Arc<ReownSigner>,
-    rpc: Arc<RpcClient>,
-    token_accounts_client: Arc<TokenAccountsClient>,
-    pk: Pubkey,
-}
-
-impl SolanaWallet {
-    pub async fn init(
-        sol_session: SolanaSession,
-        rpc: Arc<RpcClient>,
-        storage_path: PathBuf,
-    ) -> Result<Self> {
-        let signer = Arc::new(ReownSigner::new(sol_session.clone()));
-        let metadata_client = TokenMetadataClient::init(storage_path).await?;
-        let tc = TokenAccountsClient::new(sol_session.pubkey(), rpc.clone(), metadata_client);
-        Ok(Self {
-            signer,
-            rpc,
-            token_accounts_client: Arc::new(tc),
-            pk: sol_session.pubkey(),
-        })
-    }
-
-    pub async fn transfer(&self, to: &Pubkey, lamports: u64) -> Result<Signature> {
-        let instruction = solana_sdk::system_instruction::transfer(&self.pk, &to, lamports);
-        let message = Message::new(&[instruction], Some(&self.pk));
-        let block = self.rpc.get_latest_blockhash().await?;
-        let tx = Transaction::new(&[&self.signer], message, block);
-        Ok(self
-            .rpc
-            .send_and_confirm_transaction_with_spinner_and_commitment(
-                &tx,
-                CommitmentConfig {
-                    commitment: CommitmentLevel::Finalized,
-                },
-            )
-            .await?)
-    }
-
-    pub fn token_accounts_client(&self) -> Arc<TokenAccountsClient> {
-        self.token_accounts_client.clone()
-    }
-
-    pub fn token_transfer_client(&self, token: &TokenAccount) -> TokenTransferClient {
-        TokenTransferClient::new(self.signer.clone(), self.rpc.clone(), token)
-    }
 }
 
 impl SolanaSession {

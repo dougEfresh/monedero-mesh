@@ -32,7 +32,6 @@ const SOLANA_TEST: &str = "solana:testnet";
     SerializeDisplay,
     DeserializeFromStr,
 )]
-
 pub enum ChainType {
     Main,
     Test,
@@ -45,10 +44,8 @@ impl FromStr for ChainType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "main" => Ok(Self::Main),
-            "mainnet" => Ok(Self::Main),
-            "test" => Ok(Self::Test),
-            "testnet" => Ok(Self::Test),
+            "main" | "mainnet" => Ok(Self::Main),
+            "test" | "testnet" => Ok(Self::Test),
             _ => Ok(Self::Dev),
         }
     }
@@ -60,9 +57,9 @@ impl Display for ChainType {
             f,
             "{}",
             match self {
-                ChainType::Main => "main",
-                ChainType::Test => "testnet",
-                ChainType::Dev => "devnet",
+                Self::Main => "main",
+                Self::Test => "testnet",
+                Self::Dev => "devnet",
             }
         )
     }

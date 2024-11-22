@@ -13,7 +13,8 @@ use solana_program::pubkey::Pubkey;
 
 use crate::TokenMetadata;
 
-const TOKEN_METADATA_KEY: &str = "token_last_updated_at";
+const TOKEN_METADATA_UPDATE_KEY: &str = "token_last_updated_at";
+const TOKEN_METADATA_KEY: &str = "tokens";
 const JUP_TOKEN_API: &str = "https://tokens.jup.ag/tokens?tags=verified";
 // Token: DEV USDC (USDC)
 const USDC_ADDRESS_DEV: Pubkey = Pubkey::new_from_array([
@@ -52,15 +53,20 @@ impl TokenMetadataClient {
     }
 
     async fn populate_db(&mut self) -> crate::Result<()> {
-        let last_update: DateTime<Utc> = self.storage.get(TOKEN_METADATA_KEY)?.unwrap_or_default();
+        let last_update: DateTime<Utc> = self
+            .storage
+            .get(TOKEN_METADATA_UPDATE_KEY)?
+            .unwrap_or_default();
         let now = Utc::now();
         let since = now.signed_duration_since(last_update);
-        let mut tokens: Vec<TokenMetadata> = self.storage.get("token")?.unwrap_or_default();
+        let mut tokens: Vec<TokenMetadata> =
+            self.storage.get(TOKEN_METADATA_KEY)?.unwrap_or_default();
         if since.num_days() >= 1 || tokens.is_empty() {
             tracing::info!(
-                "getting token metadata from {} ({})",
+                "getting token metadata from {} ({}) last_update={}",
                 JUP_TOKEN_API,
-                since.num_days()
+                since.num_days(),
+                last_update,
             );
             let response = self
                 .client
@@ -78,8 +84,8 @@ impl TokenMetadataClient {
                 decimals: 6,
                 mint_authority: None,
             });
-            self.storage.set("tokens", tokens.clone())?;
-            self.storage.set(TOKEN_METADATA_KEY, now)?;
+            self.storage.set(TOKEN_METADATA_KEY, tokens.clone())?;
+            self.storage.set(TOKEN_METADATA_UPDATE_KEY, now)?;
         }
         let tokens = DashMap::from_iter(tokens.into_iter().map(|t| (t.address, t)));
         self.tokens = Arc::new(tokens);

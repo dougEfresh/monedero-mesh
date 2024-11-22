@@ -33,7 +33,7 @@ pub struct Namespaces(pub BTreeMap<NamespaceName, Namespace>);
 impl Namespaces {
     pub fn namespaces(&self) -> String {
         self.keys()
-            .map(|key| key.to_string())
+            .map(std::string::ToString::to_string)
             .collect::<Vec<_>>()
             .join(", ")
     }

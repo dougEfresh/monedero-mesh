@@ -15,7 +15,10 @@ use monedero_solana::{
     TokenTransferClient,
 };
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use solana_sdk::native_token::LAMPORTS_PER_SOL;
+use solana_sdk::pubkey::Pubkey;
 
+use crate::cli::{Cli, SubCommands};
 use crate::cmd::MainMenu;
 use crate::config::AppConfig;
 use crate::context::Context;
@@ -73,6 +76,7 @@ async fn main_menu(mut ctx: Context) -> anyhow::Result<()> {
         let result = match item {
             MainMenu::Transfer => cmd::transfer::invoke(&mut ctx).await,
             MainMenu::Tokens => cmd::tokens::invoke(&mut ctx).await,
+            MainMenu::Stake => cmd::stake::invoke(&mut ctx).await,
             MainMenu::Quit => break,
             _ => Ok(()),
         };
@@ -112,18 +116,42 @@ async fn main() -> anyhow::Result<()> {
 
     let sol_session = SolanaSession::try_from(&cs)?;
     let rpc_client = cfg.solana_rpc_client();
-    tokio::spawn(async move { cs.pinger(Duration::from_secs(15)).await });
-    term.clear_screen()?;
-    //let signer = WalletConnectSigner::new(sol_session.clone());
-    //write!(term, "Chain: {} Account: {} Balance: {}\n", sol_session.chain_type(), pk, sol_session.balance(&rpc_client).await )?;
     let storage_path = cfg.storage()?;
-    let wallet = SolanaWallet::init(sol_session.clone(), rpc_client, storage_path).await?;
-    //let mut hist = dialoguer::BasicHistory::new().max_entries(8).no_duplicates(true);
-    let ctx = Context {
-        sol_session,
-        wallet,
-        term,
-    };
-    main_menu(ctx).await?;
-    Ok(())
+    let wallet = SolanaWallet::init(
+        sol_session.clone(),
+        rpc_client,
+        storage_path,
+        matches.max_fee,
+        None,
+    )
+    .await?;
+
+    let ctx = Context { wallet, term };
+    match matches.subcommands {
+        None => {
+            let helius = Pubkey::from_str("he1iusunGwqrNtafDtLdhsUQDFvo13z9sUa36PauBtk")?;
+            let staker = ctx.wallet.stake_client();
+            let (_, sig) = staker
+                .create_delegate(5 * LAMPORTS_PER_SOL, &helius)
+                .await?;
+            ctx.term.write_line("{sig}")?;
+            Ok(())
+            /*
+            ctx.term.clear_screen()?;
+            tokio::spawn(async move { cs.pinger(Duration::from_secs(15)).await });
+            main_menu(ctx).await
+             */
+        }
+        Some(SubCommands::Fees) => {
+            let fees = ctx.wallet.fees().await?;
+            ctx.term.write_line(&format!("{:?}", fees))?;
+            Ok(())
+        }
+        Some(SubCommands::Balance) => {
+            let balance = ctx.wallet.balance().await? as f64 / LAMPORTS_PER_SOL as f64;
+            ctx.term.write_line(&format!("{balance}"))?;
+            Ok(())
+        }
+        _ => Ok(()),
+    }
 }

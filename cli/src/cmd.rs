@@ -1,4 +1,5 @@
 mod cli;
+pub mod stake;
 pub mod tokens;
 pub mod transfer;
 

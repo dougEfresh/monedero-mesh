@@ -1,17 +1,14 @@
 use std::fmt::{Debug, Display, Formatter};
-use std::path::PathBuf;
-use std::str::FromStr;
 use std::sync::Arc;
 
-use monedero_mesh::KvStorage;
 use solana_program::pubkey::Pubkey;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::signature::Signature;
 use solana_sdk::signer::Signer;
 use spl_token_client::client::{ProgramClient, ProgramRpcClient, ProgramRpcClientSendTransaction};
-use spl_token_client::token::Token;
+use spl_token_client::token::{ComputeUnitLimit, Token};
 
-use crate::{ReownSigner, Result, TokenAccount};
+use crate::{bytes_to_str, ReownSigner, Result, TokenAccount};
 
 #[derive(Clone)]
 pub struct TokenTransferClient {
@@ -54,6 +51,7 @@ impl TokenTransferClient {
         signer: Arc<ReownSigner>,
         client: Arc<RpcClient>,
         token_account: &TokenAccount,
+        memo: &str,
     ) -> Self {
         let tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>> = Arc::new(
             ProgramRpcClient::new(client.clone(), ProgramRpcClientSendTransaction),
@@ -64,7 +62,10 @@ impl TokenTransferClient {
             &token_account.metadata.address,
             Some(token_account.account.token_amount.decimals),
             signer.clone(),
-        );
+        )
+        .with_compute_unit_limit(ComputeUnitLimit::Simulated);
+        token.with_memo(memo, vec![signer.pubkey()]);
+
         Self {
             token_address: token_account.address,
             signer,
@@ -80,6 +81,7 @@ impl TokenTransferClient {
         client: Arc<RpcClient>,
         token_address: impl Into<Pubkey>,
         program_id: Pubkey,
+        memo: &[u8],
     ) -> Result<Self> {
         let token_address = token_address.into();
         let tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>> = Arc::new(
@@ -87,6 +89,7 @@ impl TokenTransferClient {
         );
         let token = Token::new(tc, &program_id, &token_address, None, signer.clone());
         let account = token.get_associated_token_address(&signer.pubkey());
+        token.with_memo(bytes_to_str(memo), vec![signer.pubkey()]);
         Ok(Self {
             token_address,
             signer,
@@ -101,12 +104,14 @@ impl TokenTransferClient {
         signer: Arc<ReownSigner>,
         client: Arc<RpcClient>,
         program_id: Pubkey,
+        memo: &str,
     ) -> Self {
         let tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>> = Arc::new(
             ProgramRpcClient::new(client.clone(), ProgramRpcClientSendTransaction),
         );
         let token = Token::new_native(tc, &program_id, Arc::new(signer.clone()));
         let account = token.get_associated_token_address(&signer.pubkey());
+        token.with_memo(memo, vec![signer.pubkey()]);
         Self {
             token_address: Pubkey::default(),
             signer,

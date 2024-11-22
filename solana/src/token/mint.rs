@@ -10,13 +10,13 @@ use spl_token_client::token::{ExtensionInitializationParams, Token};
 use crate::{ReownSigner, Result};
 
 pub struct TokenMintClient {
-    signer: ReownSigner,
+    signer: Arc<ReownSigner>,
     tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>>,
     client: Arc<RpcClient>,
 }
 
 impl TokenMintClient {
-    pub fn new(client: Arc<RpcClient>, signer: ReownSigner) -> Self {
+    pub fn new(client: Arc<RpcClient>, signer: Arc<ReownSigner>) -> Self {
         let tc: Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>> = Arc::new(
             ProgramRpcClient::new(client.clone(), ProgramRpcClientSendTransaction),
         );

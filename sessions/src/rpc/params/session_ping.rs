@@ -30,8 +30,7 @@ mod tests {
 
     #[test]
     fn test_serde_session_ping_request() -> Result<()> {
-        let json = r#"{}"#;
-
+        let json = "{}";
         param_serde_test::<SessionPingRequest>(json)
     }
 }

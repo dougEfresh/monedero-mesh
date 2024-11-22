@@ -90,13 +90,13 @@ impl Handler<RpcRequest> for RequestHandlerActor {
         debug!("handing request {id}");
         match message.payload.params {
             RequestParams::PairDelete(args) => {
-                self.handle_pair_mgr_request(id, topic.clone(), args).await
+                self.handle_pair_mgr_request(id, topic.clone(), args).await;
             }
             RequestParams::PairExtend(args) => {
-                self.handle_pair_mgr_request(id, topic.clone(), args).await
+                self.handle_pair_mgr_request(id, topic.clone(), args).await;
             }
             RequestParams::PairPing(args) => {
-                self.handle_pair_mgr_request(id, topic.clone(), args).await
+                self.handle_pair_mgr_request(id, topic.clone(), args).await;
             }
 
             RequestParams::SessionPropose(args) => {

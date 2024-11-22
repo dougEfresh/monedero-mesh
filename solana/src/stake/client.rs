@@ -14,6 +14,7 @@ use solana_rpc_client_api::response::RpcVoteAccountInfo;
 use solana_sdk::account::{from_account, ReadableAccount};
 use solana_sdk::account_utils::StateMut;
 
+use crate::fee::FeeService;
 use crate::stake::{KeyedStakeState, StakeClient, StakeState};
 use crate::{ReownSigner, SolanaSession};
 
@@ -27,19 +28,37 @@ async fn get_feature_activation_slot(
 }
 
 impl StakeClient {
-    pub fn new(sol: SolanaSession, signer: ReownSigner, rpc: Arc<RpcClient>) -> Self {
+    pub fn new(
+        sol: SolanaSession,
+        signer: ReownSigner,
+        rpc: Arc<RpcClient>,
+        memo: String,
+        fee_service: FeeService,
+    ) -> Self {
         Self {
             session: sol,
             signer,
             rpc,
+            memo,
+            fee_service,
         }
     }
 
+    #[tracing::instrument(level = "info")]
     pub async fn validators(&self) -> crate::Result<Vec<RpcVoteAccountInfo>> {
         let delegators = self.rpc.get_vote_accounts().await?;
         Ok(delegators.current)
     }
 
+    pub async fn accounts_undelegated(&self) -> crate::Result<Vec<KeyedStakeState>> {
+        Ok(self
+            .accounts()
+            .await?
+            .into_iter()
+            .filter(|a| a.stake_state.delegated_vote_account_address.is_none())
+            .collect())
+    }
+    #[tracing::instrument(level = "info")]
     pub async fn accounts(&self) -> crate::Result<Vec<KeyedStakeState>> {
         let id = solana_sdk::stake::program::id();
         let program_accounts_config = RpcProgramAccountsConfig {

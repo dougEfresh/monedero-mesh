@@ -16,7 +16,7 @@ pub fn initialize_logging() -> anyhow::Result<()> {
         "RUST_LOG",
         std::env::var("RUST_LOG")
             //.or_else(|_| std::env::var(LOG_ENV.clone()))
-            .unwrap_or_else(|_| format!("{}=debug", env!("CARGO_BIN_NAME"))),
+            .unwrap_or_else(|_| format!("{}=debug", env!("CARGO_CRATE_NAME"))),
     );
 
     let file_subscriber = tracing_subscriber::fmt::layer()

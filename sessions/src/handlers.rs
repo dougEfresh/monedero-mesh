@@ -3,8 +3,8 @@ use monedero_namespaces::Namespaces;
 use serde_json::json;
 
 use crate::rpc::{
-    Event, ResponseParamsSuccess, RpcResponsePayload, SessionDeleteRequest, SessionProposeRequest,
-    SessionProposeResponse, SessionRequestRequest, SessionSettleRequest,
+    Event, RelayProtocol, ResponseParamsSuccess, RpcResponsePayload, SessionDeleteRequest,
+    SessionProposeRequest, SessionProposeResponse, SessionRequestRequest, SessionSettleRequest,
 };
 use crate::SocketEvent;
 
@@ -40,7 +40,7 @@ pub trait WalletSettlementHandler: Send + Sync + 'static {
     ) -> (bool, RpcResponsePayload) {
         let result = RpcResponsePayload::Success(ResponseParamsSuccess::SessionPropose(
             SessionProposeResponse {
-                relay: Default::default(),
+                relay: RelayProtocol::default(),
                 responder_public_key: pk,
             },
         ));

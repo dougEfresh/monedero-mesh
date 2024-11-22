@@ -29,13 +29,13 @@ pub struct ReownSigner {
 
 impl Debug for ReownSigner {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "signer {}", self.session.pubkey())
+        write!(f, "signer[{}]", self.session.pubkey())
     }
 }
 
 impl Display for ReownSigner {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "signer={}", self.session.pubkey())
+        write!(f, "signer[{}]", self.session.pubkey())
     }
 }
 
@@ -50,6 +50,7 @@ impl Signer for ReownSigner {
         Ok(self.session.pubkey())
     }
 
+    #[tracing::instrument(level = "info", skip(message))]
     fn try_sign_message(&self, message: &[u8]) -> std::result::Result<Signature, SignerError> {
         let (tx, mut rx) = tokio::sync::oneshot::channel::<Result<Signature>>();
         let channel_prop = ChannelProps {
@@ -70,10 +71,10 @@ impl Signer for ReownSigner {
                 Err(e) => match e {
                     TryRecvError::Empty => {
                         debug!("channel is empty retry: ({cnt})");
-                        if cnt > 4 {
+                        if cnt > 30 {
                             return Err(SignerError::Custom("signer timeout".to_string()));
                         }
-                        std::thread::sleep(std::time::Duration::from_secs(5));
+                        std::thread::sleep(Duration::from_secs(5));
                     }
                     TryRecvError::Closed => {
                         return Err(SignerError::Custom("signer timeout".to_string()))

@@ -179,19 +179,19 @@ pub enum RequestParams {
 impl Display for RequestParams {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let req: &str = match self {
-            RequestParams::PairDelete(_) => "pairDelete",
-            RequestParams::PairExtend(_) => "pairExtend",
-            RequestParams::PairPing(_) => "pairPing",
-            RequestParams::SessionPropose(args) => &format!("sessionPropose: {}", args),
-            RequestParams::SessionSettle(args) => &format!("sessionSettle: {}", args),
-            RequestParams::SessionUpdate(_) => "sessionUpdate",
-            RequestParams::SessionExtend(_) => "sessionExtend",
-            RequestParams::SessionRequest(args) => &format!("sessionRequest: {}", args),
-            RequestParams::SessionEvent(args) => &format!("sessionEvent: {}", args.event.name),
-            RequestParams::SessionDelete(_) => "sessionDelete",
-            RequestParams::SessionPing(_) => "sessionPing",
+            Self::PairDelete(_) => "pairDelete",
+            Self::PairExtend(_) => "pairExtend",
+            Self::PairPing(_) => "pairPing",
+            Self::SessionPropose(args) => &format!("sessionPropose: {args}"),
+            Self::SessionSettle(args) => &format!("sessionSettle: {args}"),
+            Self::SessionUpdate(_) => "sessionUpdate",
+            Self::SessionExtend(_) => "sessionExtend",
+            Self::SessionRequest(args) => &format!("sessionRequest: {}", args),
+            Self::SessionEvent(args) => &format!("sessionEvent: {}", args.event.name),
+            Self::SessionDelete(_) => "sessionDelete",
+            Self::SessionPing(()) => "sessionPing",
         };
-        write!(f, "{}", req)
+        write!(f, "{req}")
     }
 }
 

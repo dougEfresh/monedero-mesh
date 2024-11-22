@@ -36,8 +36,8 @@ pub(crate) enum Category {
 impl Category {
     fn fmt_common(&self) -> String {
         match self {
-            Category::Dapp => String::from("[dapp]"),
-            Category::Wallet => String::from("[wallet"),
+            Self::Dapp => String::from("[dapp]"),
+            Self::Wallet => String::from("[wallet"),
         }
     }
 }
@@ -151,7 +151,7 @@ impl ClientSession {
         let me = self.clone();
         loop {
             if let Err(e) = me.ping().await {
-                tracing::warn!("pair ping failed! {e}");
+                warn!("pair ping failed! {e}");
             }
             tokio::time::sleep(duration).await;
         }
