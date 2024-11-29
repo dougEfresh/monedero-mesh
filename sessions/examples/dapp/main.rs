@@ -1,14 +1,16 @@
 mod log;
+
 use {
     crate::log::initialize_logging,
     copypasta::{ClipboardContext, ClipboardProvider},
     monedero_domain::{
-        namespaces::{ChainId, ChainType, Chains},
+        namespaces::{ChainId, ChainType, Chains, NamespaceName, SolanaMethod},
         Pairing,
         ProjectId,
     },
     monedero_mesh::{
         self,
+        rpc::{RequestMethod, RequestParams, SessionRequestRequest},
         ClientSession,
         Dapp,
         Metadata,
@@ -16,9 +18,10 @@ use {
         WalletConnectBuilder,
     },
     monedero_store::KvStorage,
+    serde_json::json,
     std::time::Duration,
     tokio::{select, signal},
-    tracing::info,
+    tracing::{error, info},
 };
 
 async fn propose(dapp: &Dapp) -> anyhow::Result<(Pairing, ClientSession)> {
@@ -41,9 +44,9 @@ async fn propose(dapp: &Dapp) -> anyhow::Result<(Pairing, ClientSession)> {
 
 async fn pair_ping(dapp: Dapp) {
     loop {
-        println!("pair ping");
+        info!("sending pair ping");
         if let Err(e) = dapp.pair_ping().await {
-            eprintln!("pair ping failed! {e}");
+            error!("pair ping failed! {e}");
         }
         tokio::time::sleep(Duration::from_secs(30)).await;
     }
@@ -61,17 +64,50 @@ async fn do_dapp_stuff(dapp: Dapp) {
     info!("settled {:#?}", session.namespaces());
     let pinger = dapp.clone();
     tokio::spawn(pair_ping(pinger));
+    if session.namespaces().0.contains_key(&NamespaceName::Solana) {
+        let sol_namespace = session.namespaces().0.get(&NamespaceName::Solana).unwrap();
+        for a in sol_namespace.accounts.0.iter() {
+            let addr = &a.address;
+            info!("found solana address {addr} ");
+            let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
+                request: RequestMethod {
+                    method: monedero_domain::namespaces::Method::Solana(SolanaMethod::SignMessage),
+                    params: json!({
+                        "message": "37u9WtQpcm6ULa3VtWDFAWoQc1hUvybPrA3dtx99tgHvvcE7pKRZjuGmn7VX2tC3JmYDYGG7",
+                        "pubkey": addr,
+                    }),
+                    expiry: None,
+                },
+                chain_id: a.chain.clone(),
+            });
+            info!(
+                "signing a personal message\n{}",
+                serde_json::to_string_pretty(&params).unwrap()
+            );
+            match session.publish_request::<serde_json::Value>(params).await {
+                Err(e) => {
+                    error!("failed to publish message! {e}");
+                }
+                Ok(r) => {
+                    info!(
+                        "got back signature response\n{:?}",
+                        serde_json::to_string_pretty(&r).unwrap()
+                    );
+                }
+            };
+        }
+    }
+
     loop {
-        println!("session ping");
+        info!("sending session ping");
         if let Err(e) = session.ping().await {
-            eprintln!("session ping failed! {e}");
+            error!("session ping failed! {e}");
         }
         tokio::time::sleep(Duration::from_secs(15)).await;
     }
 }
 
 async fn dapp_test() -> anyhow::Result<()> {
-    info!("starting sanity test");
     let auth = monedero_relay::auth_token("https://github.com/dougEfresh");
     let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let store = KvStorage::file(None)?;
@@ -79,8 +115,8 @@ async fn dapp_test() -> anyhow::Result<()> {
     let builder = builder.store(store);
     let pairing_mgr = builder.build().await?;
     let dapp = Dapp::new(pairing_mgr.clone(), Metadata {
-        name: "wc-sessions-sdk".to_string(),
-        description: "walletconnect sessions for rust".to_string(),
+        name: "monedero-mesh".to_string(),
+        description: "reown but for rust".to_string(),
         url: "https://github.com/dougEfresh".to_string(),
         icons: vec![],
         verify_url: None,
