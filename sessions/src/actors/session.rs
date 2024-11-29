@@ -24,6 +24,8 @@ use {
     tracing::{error, warn},
     xtra::prelude::*,
 };
+use crate::actors::actor_spawn;
+use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct SessionRequestHandlerActor {
@@ -71,7 +73,7 @@ impl Handler<ClientSession> for SessionRequestHandlerActor {
     #[tracing::instrument(skip(_ctx), level = "debug")]
     async fn handle(&mut self, message: ClientSession, _ctx: &mut Context<Self>) -> Self::Return {
         let topic = message.topic();
-        let addr = xtra::spawn_tokio(message.clone(), Mailbox::unbounded());
+        let addr = actor_spawn(message.clone());
         self.sessions.insert(topic.clone(), addr);
         if let Err(e) = self
             .cipher
@@ -153,7 +155,7 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                     warn!("failed to send response back for delete request {e}");
                 }
                 let me = self.clone();
-                tokio::spawn(async move {
+                spawn_task(async move {
                     // give some time for the response above, before I unsubscribe.
                     tokio::time::sleep(Duration::from_millis(300)).await;
                     me.handle_session_delete(message.topic).await;

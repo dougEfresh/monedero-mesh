@@ -15,6 +15,8 @@ use {
     tracing::{debug, warn},
     xtra::prelude::*,
 };
+use crate::actors::actor_spawn;
+use crate::spawn_task;
 
 #[derive(Clone, Actor)]
 pub struct RequestHandlerActor {
@@ -49,7 +51,7 @@ impl Handler<PairingManager> for RequestHandlerActor {
     type Return = ();
 
     async fn handle(&mut self, message: PairingManager, _ctx: &mut Context<Self>) -> Self::Return {
-        let addr = xtra::spawn_tokio(message, Mailbox::unbounded());
+        let addr = actor_spawn(message);
         self.pair_managers = Some(addr)
     }
 }
@@ -110,7 +112,7 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                     },
                 };
                 let proposal_handler = self.proposal_handler.clone();
-                tokio::spawn(async move {
+                spawn_task(async move {
                     if let Err(e) = proposal_handler.send(rpc).await {
                         warn!("failed to send proposal {e}");
                     }
@@ -126,7 +128,7 @@ impl Handler<RpcRequest> for RequestHandlerActor {
                     },
                 };
                 let proposal_handler = self.proposal_handler.clone();
-                tokio::spawn(async move {
+                spawn_task(async move {
                     if let Err(e) = proposal_handler.send(rpc).await {
                         warn!("failed to send proposal {e}");
                     }
@@ -134,7 +136,7 @@ impl Handler<RpcRequest> for RequestHandlerActor {
             }
             _ => {
                 let session_handlers = self.session_handler.clone();
-                tokio::spawn(async move {
+                spawn_task(async move {
                     if let Err(e) = session_handlers.send(message).await {
                         warn!("failed to send to session handler actor {e}");
                     }

@@ -11,6 +11,7 @@ use {
     tracing::{error, info, trace, warn},
     xtra::prelude::*,
 };
+use crate::spawn_task;
 
 pub struct RelayHandler {
     cipher: Cipher,
@@ -28,10 +29,10 @@ impl RelayHandler {
     ) -> Self {
         let (req_tx, req_rx) = mpsc::unbounded_channel::<RpcRequest>();
         let (res_tx, res_rx) = mpsc::unbounded_channel::<Response>();
-        tokio::spawn(async move {
+        spawn_task(async move {
             event_loop_request(req_rx, request_actor).await;
         });
-        tokio::spawn(async move {
+        spawn_task(async move {
             event_loop_response(res_rx, response_actor).await;
         });
         Self {

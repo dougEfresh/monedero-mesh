@@ -16,6 +16,7 @@ use {
     tracing::{error, info, warn},
     xtra::{prelude::*, Address},
 };
+use crate::actors::actor_spawn;
 
 #[derive(Clone, Actor)]
 pub struct ProposalActor {
@@ -28,7 +29,7 @@ impl Handler<Dapp> for ProposalActor {
     type Return = ();
 
     async fn handle(&mut self, message: Dapp, _ctx: &mut Context<Self>) -> Self::Return {
-        let addr = xtra::spawn_tokio(message, Mailbox::unbounded());
+        let addr = actor_spawn(message);
         self.dapp = Some(addr)
     }
 }
@@ -37,7 +38,7 @@ impl Handler<Wallet> for ProposalActor {
     type Return = ();
 
     async fn handle(&mut self, message: Wallet, _ctx: &mut Context<Self>) -> Self::Return {
-        let addr = xtra::spawn_tokio(message, Mailbox::unbounded());
+        let addr = actor_spawn(message);
         self.wallet = Some(addr)
     }
 }

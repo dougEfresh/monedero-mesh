@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Wasm Reown Rust Client</title>
+    <script type="module">
+        import init from './pkg/web_demo.js';
+        init()
+            .then(() => {
+                console.log('WASM module loaded successfully');
+            })
+            .catch(err => {
+                console.error('Failed to load WASM module:', err);
+                document.getElementById('errorlog').innerHTML = `<p style="color: red;">Failed to load WASM module: ${err}</p>`;
+            });
+    </script>
+
+</head>
+<body>
+<div id="errorlog">
+
+</div>
+
+</body>
+</html>

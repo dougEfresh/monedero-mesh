@@ -28,6 +28,7 @@ use {
     tokio::sync::mpsc,
     tracing::{info, warn},
 };
+use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct PairingManager {
@@ -80,7 +81,7 @@ impl PairingManager {
         };
         actors.request().send(mgr.clone()).await?;
         let socket_handler = mgr.clone();
-        tokio::spawn(socket_handler::handle_socket(socket_handler, socket_rx));
+        spawn_task(socket_handler::handle_socket(socket_handler, socket_rx));
         mgr.open_socket().await?;
         mgr.restore_saved_pairing().await?;
         Ok(mgr)

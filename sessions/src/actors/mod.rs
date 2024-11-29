@@ -6,6 +6,7 @@ mod session;
 mod session_handlers;
 mod transport;
 
+use xtra::Actor;
 pub(crate) use {
     crate::actors::session::SessionRequestHandlerActor,
     inbound::InboundResponseActor,
@@ -58,29 +59,36 @@ impl Actors {
     }
 }
 
+pub fn actor_spawn<A>(
+    actor: A,
+) -> Address<A>
+where
+    A: Actor<Stop = ()>,
+{
+    #[cfg(not(target_arch = "wasm32"))]
+    return xtra::spawn_tokio(actor, Mailbox::unbounded());
+    #[cfg(target_arch = "wasm32")]
+    return xtra::spawn_wasm_bindgen(actor, Mailbox::unbounded());
+}
+
 impl Actors {
     pub(crate) fn init(cipher: Cipher) -> Self {
-        let inbound_response_actor =
-            xtra::spawn_tokio(InboundResponseActor::default(), Mailbox::unbounded());
-        let transport_actor = xtra::spawn_tokio(
+        let inbound_response_actor = actor_spawn(InboundResponseActor::default());
+        let transport_actor = actor_spawn(
             TransportActor::new(cipher.clone(), inbound_response_actor.clone()),
-            Mailbox::unbounded(),
         );
-        let session_actor = xtra::spawn_tokio(
+        let session_actor = actor_spawn(
             SessionRequestHandlerActor::new(transport_actor.clone(), cipher.clone()),
-            Mailbox::unbounded(),
         );
-        let proposal_actor = xtra::spawn_tokio(
+        let proposal_actor = actor_spawn(
             ProposalActor::new(transport_actor.clone()),
-            Mailbox::unbounded(),
         );
-        let request_actor = xtra::spawn_tokio(
+        let request_actor = actor_spawn(
             RequestHandlerActor::new(
                 transport_actor.clone(),
                 session_actor.clone(),
                 proposal_actor.clone(),
             ),
-            Mailbox::unbounded(),
         );
 
         Self {

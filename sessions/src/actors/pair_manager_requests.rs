@@ -9,13 +9,14 @@ use {
     monedero_domain::MessageId,
     tracing::warn,
 };
+use crate::spawn_task;
 
 impl RequestHandlerActor {
     pub(super) fn send_response(&self, resp: RpcResponse) {
         let me = self.clone();
         let id = resp.id.clone();
         let topic = resp.topic.clone();
-        tokio::spawn(async move {
+        spawn_task(async move {
             if let Err(err) = me.responder.send(resp).await {
                 warn!(
                     "Failed to send response for id {} on topic {} {}",

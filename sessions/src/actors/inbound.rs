@@ -73,6 +73,7 @@ mod test {
         std::time::Duration,
         xtra::prelude::*,
     };
+    use crate::spawn_task;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
     async fn test_payload_response() -> anyhow::Result<()> {
@@ -86,9 +87,11 @@ mod test {
             relay: Default::default(),
         });
         let v = serde_json::to_value(params.clone())?;
-        tokio::spawn(async move {
+        spawn_task(async move {
             let resp = Response::new(id, ResponseParams::Success(v));
-            addr_resp.send(resp).await
+            if let Err(e) = addr_resp.send(resp).await{
+                error!("failed to send response: {}", e);
+            }
         });
         let result = tokio::time::timeout(Duration::from_millis(300), rx).await??;
         match result.params {

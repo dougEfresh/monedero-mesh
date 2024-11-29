@@ -14,6 +14,7 @@ use {
     tracing::info,
     xtra::prelude::*,
 };
+use crate::spawn_task;
 
 impl Handler<PairExtendRequest> for PairingManager {
     type Return = RpcResponsePayload;
@@ -50,7 +51,7 @@ impl Handler<PairDeleteRequest> for PairingManager {
     ) -> Self::Return {
         if let Some(pairing) = self.ciphers.pairing() {
             let mgr = self.clone();
-            tokio::spawn(async move {
+            spawn_task(async move {
                 // Give time some time to respond to delete request
                 tokio::time::sleep(Duration::from_secs(1)).await;
                 mgr.cleanup(pairing.topic).await;

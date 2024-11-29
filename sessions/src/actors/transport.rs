@@ -23,6 +23,7 @@ use {
     tracing::{debug, error, warn},
     xtra::{Address, Context, Handler},
 };
+use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct TransportActor {
@@ -135,7 +136,7 @@ impl Handler<RpcResponse> for TransportActor {
     async fn handle(&mut self, message: RpcResponse, _ctx: &mut Context<Self>) -> Self::Return {
         let relay = self.relay.clone().ok_or(crate::Error::NoClient)?;
         let cipher = self.cipher.clone();
-        tokio::spawn(async move {
+        spawn_task(async move {
             send_response(message, cipher, relay).await;
         });
         Ok(())
@@ -168,54 +169,3 @@ impl Handler<SendRequest> for TransportActor {
         Ok((id, ttl, rx))
     }
 }
-
-// #[cfg(feature = "mock")]
-// #[cfg(test)]
-// mod test {
-// use super::*;
-// use crate::actors::InboundResponseActor;
-// use crate::crypto::CipherError;
-// use crate::relay::mock::test::DummyHandler;
-// use crate::rpc::{PairPingRequest, RequestParams};
-// use crate::{KvStorage, Pairing};
-// use xtra::Mailbox;
-//
-// #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
-// async fn test_send() -> anyhow::Result<()> {
-// crate::test::init_tracing();
-// let inbound = xtra::spawn_tokio(InboundResponseActor::default(),
-// Mailbox::unbounded()); let cipher: Cipher =
-// Cipher::new(Arc::new(KvStorage::default()), None)?; let transport =
-// TransportActor::new(cipher.clone(), inbound); let actor =
-// xtra::spawn_tokio(transport.clone(), Mailbox::unbounded()); let pairing =
-// Pairing::default(); let topic = pairing.topic.clone();
-// let params = RequestParams::PairPing(PairPingRequest {});
-// let result = actor
-// .send(SendRequest(topic.clone(), params.clone()))
-// .await?;
-// assert!(matches!(result, Err(crate::Error::NoClient)));
-// let handler = DummyHandler::new();
-// let client = Client::mock(handler.clone());
-// actor.send(client.clone()).await?;
-// let result = actor
-// .send(SendRequest(topic.clone(), params.clone()))
-// .await?;
-// assert!(matches!(
-// result,
-// Err(crate::Error::CipherError(CipherError::UnknownTopic(_)))
-// ));
-// cipher.set_pairing(Some(pairing))?;
-// let result = actor
-// .send(SendRequest(topic.clone(), params.clone()))
-// .await?;
-//
-// assert!(matches!(
-// result,
-// Err(crate::Error::ConnectError(
-// crate::relay::ClientError::Disconnected
-// ))
-// ));
-// Ok(())
-// }
-// }
-//

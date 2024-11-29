@@ -18,6 +18,7 @@ use {
     tracing::{error, info},
     x25519_dalek::PublicKey,
 };
+use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct Dapp {
@@ -101,7 +102,7 @@ impl Dapp {
         let pairing = self.manager.pairing().ok_or(NoPairingTopic)?;
         let rx = self.pending.add(pairing.topic.clone(), handlers);
         let dapp = self.clone();
-        tokio::spawn(async move {
+        spawn_task(async move {
             if let Err(e) = finalize_restore(dapp, settlement).await {
                 error!("failed to finalize session restore! {e}");
             }
@@ -145,7 +146,7 @@ impl Dapp {
         ));
         let dapp = self.clone();
         let topic = pairing.topic.clone();
-        tokio::spawn(async move { begin_settlement_flow(dapp, topic, params).await });
+        spawn_task(async move { begin_settlement_flow(dapp, topic, params).await });
         Ok((pairing, ProposeFuture::new(rx), false))
     }
 

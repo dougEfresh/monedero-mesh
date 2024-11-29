@@ -6,6 +6,7 @@ use {
 pub use {
     monedero_namespaces as namespaces,
     monedero_relay::{
+        auth_token,
         DecodedTopic,
         Message,
         MessageId,

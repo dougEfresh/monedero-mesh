@@ -22,12 +22,11 @@ use {
         fmt::{Display, Formatter},
         future::Future,
         pin::Pin,
-        sync::{Arc, Mutex, Once},
+        sync::Once,
         task::{Context, Poll},
     },
     tokio::sync::oneshot,
 };
-pub type Atomic<T> = Arc<Mutex<T>>;
 use {
     crate::rpc::SessionRequestRequest,
     monedero_domain::{namespaces::Event, Topic},
@@ -37,6 +36,8 @@ pub use {
     monedero_relay::{auth_token, ClientError},
     rpc::{Metadata, SdkErrors},
 };
+
+pub use monedero_domain as domain;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {
@@ -201,4 +202,20 @@ pub(crate) mod test {
     // eprintln!("size {}", act.handlers.lock().await.len());
     // Ok(())
     // }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn spawn_task<F>(future: F)
+where
+    F: std::future::Future<Output = ()> + 'static + Send,
+{
+    tokio::spawn(future);
+}
+
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn spawn_task<F>(future: F)
+where
+    F: std::future::Future<Output = ()> + 'static,
+{
+    wasm_bindgen_futures::spawn_local(future);
 }

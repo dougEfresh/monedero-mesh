@@ -29,6 +29,7 @@ use {
     tracing::{error, warn},
     xtra::prelude::*,
 };
+use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct Wallet {
@@ -122,7 +123,7 @@ impl Handler<SessionProposeRequest> for Wallet {
         {
             if accepted {
                 let wallet = self.clone();
-                tokio::spawn(async move { send_settlement(wallet, message, pk).await });
+                spawn_task(async move { send_settlement(wallet, message, pk).await });
             }
             return response;
         }

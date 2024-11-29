@@ -56,7 +56,7 @@ async fn do_dapp_stuff(dapp: Dapp) {
     info!("Running dapp - hit control-c to terminate");
     let session = match propose(&dapp).await {
         Err(e) => {
-            tracing::error!("failed to get session! {e}");
+            error!("failed to get session! {e}");
             return;
         }
         Ok((_, s)) => s,
@@ -68,7 +68,7 @@ async fn do_dapp_stuff(dapp: Dapp) {
         let sol_namespace = session.namespaces().0.get(&NamespaceName::Solana).unwrap();
         for a in sol_namespace.accounts.0.iter() {
             let addr = &a.address;
-            info!("found solana address {addr} ");
+            info!("found solana address {addr}");
             let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
                 request: RequestMethod {
                     method: monedero_domain::namespaces::Method::Solana(SolanaMethod::SignMessage),
