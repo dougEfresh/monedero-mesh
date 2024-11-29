@@ -22,8 +22,8 @@ members = [
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
-unused_variables = "allow"
-unused_imports = "allow"
+unused_variables = "warn"
+unused_imports = "warn"
 dead_code = "warn"
 missing_docs = "allow"
 

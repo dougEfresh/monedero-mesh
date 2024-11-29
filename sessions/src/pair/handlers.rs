@@ -12,7 +12,6 @@ use {
         SocketEvent,
         Topic,
     },
-    backoff::{future::retry, ExponentialBackoffBuilder},
     std::time::Duration,
     tracing::{info, warn},
     xtra::prelude::*,

@@ -40,7 +40,7 @@ impl KvStorage {
         LocalStorage::clear();
     }
 
-    pub const fn length(&self) -> u32 {
+    pub fn length(&self) -> u32 {
         LocalStorage::length()
     }
 }

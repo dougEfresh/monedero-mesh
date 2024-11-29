@@ -6,43 +6,35 @@ authors.workspace = true
 repository.workspace = true
 license.workspace = true
 
-[lib]
-crate-type = ["cdylib", "rlib"]
+#[lib]
+#crate-type = ["cdylib", "rlib"]
 
 [lints]
 workspace = true
 
-
 [features]
-default = ["kv", "relay"]
+default = ["relay"]
 relay = ["monedero-relay"] # with default features
-kv = ["dep:kvx"]
 mock = [
     "monedero-relay/mock"
-]
-wasm = [
-    "wasm-bindgen",
-    "web-sys",
-    "getrandom",
 ]
 
 [dependencies]
 aead = { workspace = true }
 alloy-chains = {workspace = true}
 async-trait = { version = "0.1.81"}
-backoff = {version = "0.4.0", features = ["tokio"]} ## wasm support
 base64 = { workspace = true }
-#base64-url = { workspace = true }
 chacha20poly1305 = { workspace = true }
 chrono = { version = "0.4", default-features = false, features = [
     "std",
     "clock",
-    "serde"
+    "serde",
+    "wasmbind",
+    "wasm-bindgen"
 ] }
 data-encoding = { workspace = true }
 derive_more = { workspace = true }
 hkdf = { workspace = true }
-kvx = { version = "0.9", optional = true }
 lazy_static = { workspace = true }
 microxdg = { workspace = true }
 monedero-domain = { path = "../domain" }
@@ -60,18 +52,22 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = {workspace = true}
 tracing = { workspace = true}
-trait-variant = {workspace = true}
+#trait-variant = {workspace = true}
 url = { workspace = true }
 dashmap = {  workspace = true }
 x25519-dalek = { version = "2", features = ["static_secrets", "serde"] }
 xtra = {workspace = true, features = ["macros", "tokio", "instrumentation"]}
 
-## wasm
-wasm-bindgen = { version = "0.2", optional = true}
-web-sys = { version = "0.3", optional = true}
-getrandom = { version = "0.2", features = ["js"], optional = true}
-gloo-storage = { version = "0.3", optional = true}
-#
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+backoff = {version = "0.4", features = ["tokio"]}
+kvx = { version = "0.9" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+backoff = {version = "0.4", features = ["tokio", "wasm-bindgen"]}
+wasm-bindgen = { version = "0.2" }
+wasm-bindgen-futures = {  version = "0.4" }
+web-sys = { version = "0.3" }
+getrandom = { version = "0.2" , features = ["js"]}
 
 [[test]]
 name = "manager"

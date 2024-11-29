@@ -52,13 +52,14 @@ impl WalletConnectBuilder {
             .clone()
             .ok_or(crate::Error::InvalidateConnectionOpts)?;
 
-        #[cfg(not(feature = "mock"))]
+        #[cfg(not(target_arch = "wasm32"))]
         let store = match self.store.as_ref() {
             Some(s) => s.clone(),
             None => KvStorage::file(None)?,
         };
-        #[cfg(feature = "mock")]
-        let store = KvStorage::mem();
+
+        #[cfg(any(target_arch = "wasm32", feature = "mock"))]
+        let store = KvStorage::new();
 
         let store = Arc::new(store);
         let cipher = Cipher::new(store, None)?;
