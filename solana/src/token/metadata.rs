@@ -1,17 +1,19 @@
-use std::fmt::{Debug, Formatter};
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::time::Duration;
-
-use chrono::{DateTime, Utc};
-use dashmap::DashMap;
-use monedero_mesh::KvStorage;
-use serde::{Deserialize, Serialize};
-use solana_account_decoder::parse_token::UiTokenAccount;
-use solana_program::pubkey::Pubkey;
-
-use crate::TokenMetadata;
+use {
+    crate::TokenMetadata,
+    chrono::{DateTime, Utc},
+    dashmap::DashMap,
+    monedero_mesh::KvStorage,
+    serde::{Deserialize, Serialize},
+    solana_account_decoder::parse_token::UiTokenAccount,
+    solana_program::pubkey::Pubkey,
+    std::{
+        fmt::{Debug, Formatter},
+        path::PathBuf,
+        str::FromStr,
+        sync::Arc,
+        time::Duration,
+    },
+};
 
 const TOKEN_METADATA_UPDATE_KEY: &str = "token_last_updated_at";
 const TOKEN_METADATA_KEY: &str = "tokens";
@@ -102,7 +104,8 @@ impl TokenMetadataClient {
     }
 }
 
-/// Note, the Pubkey::from_str should not fail, as this data came from the blockchain
+/// Note, the Pubkey::from_str should not fail, as this data came from the
+/// blockchain
 fn default_token_metadata(token: &UiTokenAccount) -> TokenMetadata {
     TokenMetadata {
         address: Pubkey::from_str(&token.mint).expect("this should not happen!"),
@@ -115,9 +118,7 @@ fn default_token_metadata(token: &UiTokenAccount) -> TokenMetadata {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use super::*;
+    use {super::*, std::str::FromStr};
 
     #[test]
     fn blah() {}

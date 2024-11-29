@@ -1,21 +1,23 @@
 #![allow(clippy::arithmetic_side_effects)]
 
-use std::collections::BTreeSet;
-use std::fmt::{Debug, Formatter};
-use std::str::FromStr;
-use std::sync::Arc;
-
-use solana_account_decoder::parse_token::TokenAccountType;
-use solana_account_decoder::UiAccountData;
-use solana_program::pubkey::Pubkey;
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_rpc_client_api::request::TokenAccountsFilter;
-use solana_rpc_client_api::response::RpcKeyedAccount;
-use spl_associated_token_account_client::address::get_associated_token_address_with_program_id;
-
-use crate::token::metadata::TokenMetadataClient;
-use crate::token::UnsupportedAccount;
-use crate::{TokenAccount, TokenAccounts};
+use {
+    crate::{
+        token::{metadata::TokenMetadataClient, UnsupportedAccount},
+        TokenAccount,
+        TokenAccounts,
+    },
+    solana_account_decoder::{parse_token::TokenAccountType, UiAccountData},
+    solana_program::pubkey::Pubkey,
+    solana_rpc_client::nonblocking::rpc_client::RpcClient,
+    solana_rpc_client_api::{request::TokenAccountsFilter, response::RpcKeyedAccount},
+    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
+    std::{
+        collections::BTreeSet,
+        fmt::{Debug, Formatter},
+        str::FromStr,
+        sync::Arc,
+    },
+};
 
 pub struct TokenAccountsClient {
     client: Arc<RpcClient>,

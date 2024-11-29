@@ -1,11 +1,10 @@
-use std::time::Duration;
-
-use backoff::future::retry;
-use backoff::ExponentialBackoffBuilder;
-use tokio::sync::mpsc;
-use tracing::{debug, info, warn};
-
-use crate::{PairingManager, SocketEvent};
+use {
+    crate::{PairingManager, SocketEvent},
+    backoff::{future::retry, ExponentialBackoffBuilder},
+    std::time::Duration,
+    tokio::sync::mpsc,
+    tracing::{debug, info, warn},
+};
 
 pub(crate) async fn handle_socket(
     mgr: PairingManager,

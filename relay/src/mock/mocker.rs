@@ -1,18 +1,30 @@
-use std::collections::VecDeque;
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
-
-use dashmap::DashMap;
-use once_cell::sync::Lazy;
-use tokio::select;
-use tokio::sync::{broadcast, mpsc, RwLock};
-use tracing::{debug, info, warn};
-
-use crate::mock::{ConnectionPair, MockEvent};
-use crate::{
-    ClientError, ConnectionHandler, Message, MessageIdGenerator, Result, SubscriptionId, Topic,
+use {
+    crate::{
+        mock::{ConnectionPair, MockEvent},
+        ClientError,
+        ConnectionHandler,
+        Message,
+        MessageIdGenerator,
+        Result,
+        SubscriptionId,
+        Topic,
+    },
+    dashmap::DashMap,
+    once_cell::sync::Lazy,
+    std::{
+        collections::VecDeque,
+        fmt::{Debug, Display, Formatter},
+        sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        },
+        time::Duration,
+    },
+    tokio::{
+        select,
+        sync::{broadcast, mpsc, RwLock},
+    },
+    tracing::{debug, info, warn},
 };
 
 pub static DISCONNECT_TOPIC: Lazy<Topic> =

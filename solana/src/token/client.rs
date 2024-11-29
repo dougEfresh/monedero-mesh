@@ -1,14 +1,17 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
-
-use solana_program::pubkey::Pubkey;
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_sdk::signature::Signature;
-use solana_sdk::signer::Signer;
-use spl_token_client::client::{ProgramClient, ProgramRpcClient, ProgramRpcClientSendTransaction};
-use spl_token_client::token::{ComputeUnitLimit, Token};
-
-use crate::{bytes_to_str, ReownSigner, Result, TokenAccount};
+use {
+    crate::{bytes_to_str, ReownSigner, Result, TokenAccount},
+    solana_program::pubkey::Pubkey,
+    solana_rpc_client::nonblocking::rpc_client::RpcClient,
+    solana_sdk::{signature::Signature, signer::Signer},
+    spl_token_client::{
+        client::{ProgramClient, ProgramRpcClient, ProgramRpcClientSendTransaction},
+        token::{ComputeUnitLimit, Token},
+    },
+    std::{
+        fmt::{Debug, Display, Formatter},
+        sync::Arc,
+    },
+};
 
 #[derive(Clone)]
 pub struct TokenTransferClient {
@@ -182,12 +185,9 @@ impl TokenTransferClient {
         }
         let result = self
             .token
-            .wrap_with_mutable_ownership(
-                &self.account,
-                &self.signer.pubkey(),
-                amount,
-                &[&self.signer],
-            )
+            .wrap_with_mutable_ownership(&self.account, &self.signer.pubkey(), amount, &[
+                &self.signer
+            ])
             .await?;
         crate::finish_tx(self.client.clone(), &result).await
     }

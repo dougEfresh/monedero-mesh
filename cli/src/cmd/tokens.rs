@@ -1,11 +1,15 @@
-use std::str::FromStr;
-
-use promkit::crossterm::style::{Attribute, Attributes, Color, Stylize};
-use promkit::style::StyleBuilder;
-use strum::IntoEnumIterator;
-
-use crate::cmd::{prompts, TokenMenu};
-use crate::context::Context;
+use {
+    crate::{
+        cmd::{prompts, TokenMenu},
+        context::Context,
+    },
+    promkit::{
+        crossterm::style::{Attribute, Attributes, Color, Stylize},
+        style::StyleBuilder,
+    },
+    std::str::FromStr,
+    strum::IntoEnumIterator,
+};
 
 pub async fn invoke(context: &Context) -> anyhow::Result<()> {
     let tc = context.wallet.token_accounts_client();

@@ -1,9 +1,12 @@
-use solana_program::message::Message;
-use solana_sdk::signature::Signature;
-use solana_sdk::stake::instruction::{self as stake_instruction};
-use solana_sdk::transaction::Transaction;
-
-use crate::{KeyedStakeState, Result, StakeClient};
+use {
+    crate::{KeyedStakeState, Result, StakeClient},
+    solana_program::message::Message,
+    solana_sdk::{
+        signature::Signature,
+        stake::instruction::{self as stake_instruction},
+        transaction::Transaction,
+    },
+};
 
 impl StakeClient {
     pub async fn withdraw(&self, account: &KeyedStakeState) -> Result<Signature> {

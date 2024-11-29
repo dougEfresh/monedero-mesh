@@ -1,8 +1,11 @@
-use ratatui::prelude::*;
-use ratatui::widgets::{List, ListItem, Paragraph};
-use ratatui::Frame;
-
-use crate::app;
+use {
+    crate::app,
+    ratatui::{
+        prelude::*,
+        widgets::{List, ListItem, Paragraph},
+        Frame,
+    },
+};
 mod layout;
 pub use layout::*;
 
@@ -18,6 +21,7 @@ impl UI {
             scrolltop: 0,
         }
     }
+
     fn draw_table(&mut self, f: &mut Frame, layout_size: Rect, app: &app::App) {
         let table = Paragraph::new("Hello Ratatui! (press 'q' to quit)")
             .white()
@@ -52,8 +56,8 @@ impl UI {
             AppLayout::HelpMenu => self.draw_help_menu(f, layout_size, app),
             AppLayout::Selection => self.draw_selection(f, layout_size, app),
             AppLayout::InputAndLogs => {
-                //if app.input.buffer.is_some() {
-                //self.draw_input_buffer(f, layout_size, app);
+                // if app.input.buffer.is_some() {
+                // self.draw_input_buffer(f, layout_size, app);
                 //} else {
                 self.draw_logs(f, layout_size, app);
                 //};

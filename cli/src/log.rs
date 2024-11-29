@@ -1,8 +1,12 @@
-use tracing_error::ErrorLayer;
-use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::Layer;
+use {
+    tracing_error::ErrorLayer,
+    tracing_subscriber::{
+        fmt::format::FmtSpan,
+        layer::SubscriberExt,
+        util::SubscriberInitExt,
+        Layer,
+    },
+};
 
 pub fn initialize_logging() -> anyhow::Result<()> {
     let app_name = env!("CARGO_BIN_NAME");

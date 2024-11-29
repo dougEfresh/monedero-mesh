@@ -1,20 +1,23 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::time::Duration;
-
-use base64::prelude::BASE64_STANDARD;
-use base64::Engine;
-use monedero_mesh::ClientSession;
-use monedero_namespaces::ChainId;
-use solana_sdk::message::Message;
-use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{Signature, SignerError};
-use solana_sdk::signer::Signer;
-use solana_sdk::signers::Signers;
-use solana_sdk::transaction::Transaction;
-use tokio::sync::oneshot::error::TryRecvError;
-use tracing::{debug, warn};
-
-use crate::{serialize_raw_message, Result, SolanaSession, WalletConnectTransaction};
+use {
+    crate::{serialize_raw_message, Result, SolanaSession, WalletConnectTransaction},
+    base64::{prelude::BASE64_STANDARD, Engine},
+    monedero_mesh::ClientSession,
+    monedero_namespaces::ChainId,
+    solana_sdk::{
+        message::Message,
+        pubkey::Pubkey,
+        signature::{Signature, SignerError},
+        signer::Signer,
+        signers::Signers,
+        transaction::Transaction,
+    },
+    std::{
+        fmt::{Debug, Display, Formatter},
+        time::Duration,
+    },
+    tokio::sync::oneshot::error::TryRecvError,
+    tracing::{debug, warn},
+};
 
 struct ChannelProps {
     tx: tokio::sync::oneshot::Sender<Result<Signature>>,

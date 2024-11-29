@@ -1,20 +1,21 @@
-use std::cmp::Ordering;
-use std::collections::BTreeSet;
-use std::fmt;
-use std::fmt::Display;
-use std::str::FromStr;
-
-use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
-
-use crate::chain_id::{ChainId, Chains};
+use {
+    crate::chain_id::{ChainId, Chains},
+    serde::{Deserialize, Serialize},
+    serde_with::{DeserializeFromStr, SerializeDisplay},
+    std::{
+        cmp::Ordering,
+        collections::BTreeSet,
+        fmt::{self, Display},
+        str::FromStr,
+    },
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr)]
 pub enum NamespaceName {
     EIP155,
     Solana,
-    //Tezos,
-    //Near,
+    // Tezos,
+    // Near,
     Other(String),
 }
 
@@ -45,8 +46,8 @@ impl Display for NamespaceName {
         match self {
             Self::EIP155 => write!(f, "eip155"),
             Self::Solana => write!(f, "solana"),
-            //NamespaceName::Tezos => write!(f, "tezos"),
-            //NamespaceName::Near => write!(f, "near"),
+            // NamespaceName::Tezos => write!(f, "tezos"),
+            // NamespaceName::Near => write!(f, "near"),
             Self::Other(s) => write!(f, "{s}"),
         }
     }

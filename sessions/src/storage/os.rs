@@ -1,14 +1,14 @@
-use std::path::PathBuf;
-use std::sync::Arc;
-
-use kvx::{Key, KeyValueStore, Namespace, ReadStore, Segment, WriteStore};
-use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
-use url::Url;
-
-use crate::domain::SubscriptionId;
-use crate::storage::Error::SegmentErr;
-use crate::storage::Result;
+use {
+    crate::{
+        domain::SubscriptionId,
+        storage::{Error::SegmentErr, Result},
+    },
+    kvx::{Key, KeyValueStore, Namespace, ReadStore, Segment, WriteStore},
+    serde::{Deserialize, Serialize},
+    std::{path::PathBuf, sync::Arc},
+    tracing::{debug, info},
+    url::Url,
+};
 
 #[derive(Clone)]
 pub struct KvStorage {
@@ -34,6 +34,7 @@ impl KvStorage {
             store: Arc::new(store),
         })
     }
+
     pub fn file(location: Option<String>) -> Result<Self> {
         let location: PathBuf = if let Some(l) = location {
             std::path::PathBuf::from(l)
@@ -115,8 +116,7 @@ impl KvStorage {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::domain::Topic;
+    use {super::*, crate::domain::Topic};
 
     pub fn test_storage_kv(store: KvStorage) -> anyhow::Result<()> {
         let result = store.get::<String>("mine")?;

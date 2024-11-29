@@ -1,5 +1,4 @@
-use console::Term;
-use monedero_solana::SolanaWallet;
+use {console::Term, monedero_solana::SolanaWallet};
 
 pub struct Context {
     pub wallet: SolanaWallet,

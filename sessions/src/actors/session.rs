@@ -1,22 +1,38 @@
-use std::fmt::{Debug, Formatter};
-use std::future::Future;
-use std::sync::Arc;
-use std::time::Duration;
-
-use dashmap::DashMap;
-use serde_json::json;
-use tracing::{error, info, warn};
-use xtra::prelude::*;
-
-use crate::actors::{
-    ClearPairing, ClearSession, RequestHandlerActor, SessionPing, TransportActor, Unsubscribe,
+use {
+    crate::{
+        actors::{
+            ClearPairing,
+            ClearSession,
+            RequestHandlerActor,
+            SessionPing,
+            TransportActor,
+            Unsubscribe,
+        },
+        rpc::{
+            ErrorParams,
+            RequestParams,
+            ResponseParamsError,
+            ResponseParamsSuccess,
+            RpcRequest,
+            RpcResponse,
+            RpcResponsePayload,
+        },
+        session::ClientSession,
+        Cipher,
+        RegisteredComponents,
+        Topic,
+    },
+    dashmap::DashMap,
+    serde_json::json,
+    std::{
+        fmt::{Debug, Formatter},
+        future::Future,
+        sync::Arc,
+        time::Duration,
+    },
+    tracing::{error, info, warn},
+    xtra::prelude::*,
 };
-use crate::rpc::{
-    ErrorParams, RequestParams, ResponseParamsError, ResponseParamsSuccess, RpcRequest,
-    RpcResponse, RpcResponsePayload,
-};
-use crate::session::ClientSession;
-use crate::{Cipher, RegisteredComponents, Topic};
 
 #[derive(Clone, xtra::Actor)]
 pub struct SessionRequestHandlerActor {
@@ -74,6 +90,7 @@ impl Handler<ClientSession> for SessionRequestHandlerActor {
 
 impl Handler<RegisteredComponents> for SessionRequestHandlerActor {
     type Return = usize;
+
     async fn handle(
         &mut self,
         _message: RegisteredComponents,

@@ -1,19 +1,33 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
-use std::time::Duration;
-
-use dashmap::DashMap;
-use serde::de::DeserializeOwned;
-use tokio::sync::oneshot::Sender;
-use tokio::sync::{mpsc, oneshot, Mutex};
-use tracing::{error, warn};
-use xtra::prelude::*;
-
-use crate::rpc::{RequestParams, SessionDeleteRequest};
-use crate::transport::SessionTransport;
-use crate::{
-    Cipher, Dapp, Error, PairingManager, PairingTopic, Result, SessionDeleteHandler,
-    SessionEventRequest, SessionHandler, SessionSettled, Topic,
+use {
+    crate::{
+        rpc::{RequestParams, SessionDeleteRequest},
+        transport::SessionTransport,
+        Cipher,
+        Dapp,
+        Error,
+        PairingManager,
+        PairingTopic,
+        Result,
+        SessionDeleteHandler,
+        SessionEventRequest,
+        SessionHandler,
+        SessionSettled,
+        Topic,
+    },
+    dashmap::DashMap,
+    serde::de::DeserializeOwned,
+    std::{
+        fmt::{Debug, Display, Formatter},
+        sync::Arc,
+        time::Duration,
+    },
+    tokio::sync::{
+        mpsc,
+        oneshot::{self, Sender},
+        Mutex,
+    },
+    tracing::{error, warn},
+    xtra::prelude::*,
 };
 
 mod pending;
@@ -21,11 +35,14 @@ mod session_delete;
 mod session_ping;
 mod session_request;
 
-use monedero_namespaces::Namespaces;
 pub(crate) use pending::PendingSession;
-
-use crate::actors::{ClearSession, SessionRequestHandlerActor};
-use crate::crypto::CipherError;
+use {
+    crate::{
+        actors::{ClearSession, SessionRequestHandlerActor},
+        crypto::CipherError,
+    },
+    monedero_namespaces::Namespaces,
+};
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub(crate) enum Category {

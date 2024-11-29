@@ -1,12 +1,15 @@
-use std::sync::Arc;
-
-use monedero_namespaces::Namespaces;
-use tokio::sync::Mutex;
-use xtra::prelude::*;
-
-use crate::rpc::{RpcResponsePayload, SessionProposeRequest};
-use crate::wallet::SessionProposePublicKey;
-use crate::{Result, WalletSettlementHandler};
+use {
+    crate::{
+        rpc::{RpcResponsePayload, SessionProposeRequest},
+        wallet::SessionProposePublicKey,
+        Result,
+        WalletSettlementHandler,
+    },
+    monedero_namespaces::Namespaces,
+    std::sync::Arc,
+    tokio::sync::Mutex,
+    xtra::prelude::*,
+};
 
 impl Handler<SessionProposePublicKey> for WalletSettlementActor {
     type Return = (bool, RpcResponsePayload);
@@ -36,6 +39,7 @@ impl WalletSettlementActor {
 
 impl Handler<SessionProposeRequest> for WalletSettlementActor {
     type Return = Result<Namespaces>;
+
     async fn handle(
         &mut self,
         message: SessionProposeRequest,

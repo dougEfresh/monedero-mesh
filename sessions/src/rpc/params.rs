@@ -11,27 +11,30 @@ pub(super) mod session_settle;
 pub(super) mod session_update;
 pub(super) mod shared_types;
 
-use std::fmt::{Debug, Display, Formatter};
-use std::result::Result;
-
-pub use pair_delete::*;
-pub use pair_extend::*;
-pub use pair_ping::*;
-use paste::paste;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-pub use session_delete::*;
-pub use session_event::*;
-pub use session_extend::*;
-pub use session_ping::*;
-pub use session_propose::*;
-pub use session_request::*;
-pub use session_settle::*;
-pub use session_update::*;
-pub use shared_types::*;
-
-use crate::rpc::sdkerrors::SdkError;
-use crate::rpc::SdkErrors;
+use {
+    crate::rpc::{sdkerrors::SdkError, SdkErrors},
+    paste::paste,
+    serde::{Deserialize, Serialize},
+    serde_json::Value,
+    std::{
+        fmt::{Debug, Display, Formatter},
+        result::Result,
+    },
+};
+pub use {
+    pair_delete::*,
+    pair_extend::*,
+    pair_ping::*,
+    session_delete::*,
+    session_event::*,
+    session_extend::*,
+    session_ping::*,
+    session_propose::*,
+    session_request::*,
+    session_settle::*,
+    session_update::*,
+    shared_types::*,
+};
 
 pub const RELAY_PROTOCOL: &str = "irn";
 
@@ -81,7 +84,8 @@ pub struct IrnMetadata {
     pub prompt: bool,
 }
 
-// Convenience macro to de-duplicate implementation for different parameter sets.
+// Convenience macro to de-duplicate implementation for different parameter
+// sets.
 macro_rules! impl_relay_protocol_metadata {
     ($param_type:ty,$meta:ident) => {
         paste! {
@@ -106,7 +110,8 @@ macro_rules! impl_relay_protocol_metadata {
     }
 }
 
-// Convenience macro to de-duplicate implementation for different parameter sets.
+// Convenience macro to de-duplicate implementation for different parameter
+// sets.
 macro_rules! impl_relay_protocol_helpers {
     ($param_type:ty) => {
         paste! {
@@ -255,7 +260,7 @@ pub struct ErrorParams {
     pub code: Option<u64>,
     //#[serde(skip_serializing_if = "Option::is_none")]
     //#[serde(default)]
-    //pub message: Option<String>,
+    // pub message: Option<String>,
     pub message: String,
 }
 
@@ -320,11 +325,7 @@ pub struct Controller {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use anyhow::Result;
-    use serde::de::DeserializeOwned;
-    use serde_json;
-
-    use super::*;
+    use {super::*, anyhow::Result, serde::de::DeserializeOwned, serde_json};
 
     /// Trims json of the whitespaces and newlines.
     ///

@@ -1,12 +1,14 @@
-use std::collections::VecDeque;
+use {
+    crate::{config::Mode, input::Key},
+    anyhow::Result,
+    serde::{Deserialize, Serialize},
+    std::collections::VecDeque,
+};
 
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-
-use crate::config::Mode;
-use crate::input::Key;
-pub use crate::msg::in_::{ExternalMsg, InternalMsg, MsgIn};
-pub use crate::msg::out::MsgOut;
+pub use crate::msg::{
+    in_::{ExternalMsg, InternalMsg, MsgIn},
+    out::MsgOut,
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Task {
@@ -25,7 +27,7 @@ pub struct App {
     pub mode: Mode,
     pub layout: crate::ui::AppLayout,
     pub msg_out: VecDeque<MsgOut>,
-    //pub input: InputBuffer,
+    // pub input: InputBuffer,
 }
 
 impl App {
@@ -53,12 +55,12 @@ impl App {
     fn handle_internal(self, msg: InternalMsg) -> Result<Self> {
         match msg {
             InternalMsg::AddLastFocus(parent, focus_path) => {
-                //self.add_last_focus(parent, focus_path)
+                // self.add_last_focus(parent, focus_path)
                 Ok(self)
             }
             InternalMsg::HandleKey(key) => self.handle_key(key),
             InternalMsg::RefreshSelection => {
-                //self.refresh_selection(),
+                // self.refresh_selection(),
                 Ok(self)
             }
         }

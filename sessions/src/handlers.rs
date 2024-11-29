@@ -1,12 +1,22 @@
-use async_trait::async_trait;
-use monedero_namespaces::Namespaces;
-use serde_json::json;
-
-use crate::rpc::{
-    Event, RelayProtocol, ResponseParamsSuccess, RpcResponsePayload, SessionDeleteRequest,
-    SessionProposeRequest, SessionProposeResponse, SessionRequestRequest, SessionSettleRequest,
+use {
+    crate::{
+        rpc::{
+            Event,
+            RelayProtocol,
+            ResponseParamsSuccess,
+            RpcResponsePayload,
+            SessionDeleteRequest,
+            SessionProposeRequest,
+            SessionProposeResponse,
+            SessionRequestRequest,
+            SessionSettleRequest,
+        },
+        SocketEvent,
+    },
+    async_trait::async_trait,
+    monedero_namespaces::Namespaces,
+    serde_json::json,
 };
-use crate::SocketEvent;
 
 #[async_trait]
 pub trait SocketListener: Sync + Send + 'static {

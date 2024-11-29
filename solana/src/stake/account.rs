@@ -1,15 +1,26 @@
-use solana_program::instruction::Instruction;
-use solana_program::message::Message;
-use solana_program::pubkey::Pubkey;
-use solana_program::stake::state::{Authorized, StakeStateV2};
-use solana_sdk::signature::Signature;
-use solana_sdk::signer::Signer;
-use solana_sdk::stake::instruction::{self as stake_instruction};
-use solana_sdk::stake::{self};
-use solana_sdk::transaction::Transaction;
-
-use crate::Error::{AccountExists, BadParameter, MinimumDelegation};
-use crate::{Result, StakeClient, WithMemo};
+use {
+    crate::{
+        Error::{AccountExists, BadParameter, MinimumDelegation},
+        Result,
+        StakeClient,
+        WithMemo,
+    },
+    solana_program::{
+        instruction::Instruction,
+        message::Message,
+        pubkey::Pubkey,
+        stake::state::{Authorized, StakeStateV2},
+    },
+    solana_sdk::{
+        signature::Signature,
+        signer::Signer,
+        stake::{
+            instruction::{self as stake_instruction},
+            {self},
+        },
+        transaction::Transaction,
+    },
+};
 
 impl StakeClient {
     pub(crate) async fn create_instructions(
@@ -37,7 +48,8 @@ impl StakeClient {
             .await?;
         if lamports < minimum_balance {
             return Err(BadParameter(format!(
-                "need at least {minimum_balance} lamports for stake account to be rent exempt, provided lamports: {lamports}"
+                "need at least {minimum_balance} lamports for stake account to be rent exempt, \
+                 provided lamports: {lamports}"
             )));
         }
 

@@ -1,9 +1,17 @@
-use xtra::prelude::*;
-
-use crate::rpc::{
-    ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload, SessionRequestRequest,
+use {
+    crate::{
+        rpc::{
+            ResponseParamsError,
+            ResponseParamsSuccess,
+            RpcResponsePayload,
+            SessionRequestRequest,
+        },
+        ClientSession,
+        SessionHandler,
+        WalletRequestResponse,
+    },
+    xtra::prelude::*,
 };
-use crate::{ClientSession, SessionHandler, WalletRequestResponse};
 
 impl Handler<SessionRequestRequest> for ClientSession {
     type Return = RpcResponsePayload;

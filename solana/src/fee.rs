@@ -1,17 +1,17 @@
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
-
-use solana_program::instruction::Instruction;
-use solana_program::message::Message;
-use solana_program::pubkey::Pubkey;
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_rpc_client_api::config::{
-    RpcSimulateTransactionAccountsConfig, RpcSimulateTransactionConfig,
+use {
+    crate::Result,
+    solana_program::{instruction::Instruction, message::Message, pubkey::Pubkey},
+    solana_rpc_client::nonblocking::rpc_client::RpcClient,
+    solana_rpc_client_api::config::{
+        RpcSimulateTransactionAccountsConfig,
+        RpcSimulateTransactionConfig,
+    },
+    solana_sdk::{compute_budget::ComputeBudgetInstruction, transaction::Transaction},
+    std::{
+        fmt::{Debug, Formatter},
+        sync::Arc,
+    },
 };
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
-use solana_sdk::transaction::Transaction;
-
-use crate::Result;
 
 #[derive(Clone)]
 pub struct FeeService {
@@ -78,18 +78,15 @@ impl FeeService {
         });
         let result = self
             .rpc
-            .simulate_transaction_with_config(
-                &tx,
-                RpcSimulateTransactionConfig {
-                    sig_verify: false,
-                    replace_recent_blockhash: true,
-                    commitment: None,
-                    encoding: None,
-                    accounts,
-                    min_context_slot: None,
-                    inner_instructions: true,
-                },
-            )
+            .simulate_transaction_with_config(&tx, RpcSimulateTransactionConfig {
+                sig_verify: false,
+                replace_recent_blockhash: true,
+                commitment: None,
+                encoding: None,
+                accounts,
+                min_context_slot: None,
+                inner_instructions: true,
+            })
             .await?;
         let units: Option<u32> = result.value.units_consumed.map(|u| u as u32);
         tracing::debug!("simulate tx = {:?}", units);

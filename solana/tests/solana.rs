@@ -1,47 +1,89 @@
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::sync::{Arc, Once};
-use std::time::Duration;
-
-use anyhow::format_err;
-use assert_matches::assert_matches;
-use async_trait::async_trait;
-use base64::prelude::BASE64_STANDARD;
-use base64::Engine;
-use monedero_mesh::crypto::CipherError;
-use monedero_mesh::rpc::{
-    Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
-    SessionProposeRequest, SessionProposeResponse, SessionRequestRequest,
+use {
+    anyhow::format_err,
+    assert_matches::assert_matches,
+    async_trait::async_trait,
+    base64::{prelude::BASE64_STANDARD, Engine},
+    monedero_mesh::{
+        crypto::CipherError,
+        rpc::{
+            Metadata,
+            ResponseParamsError,
+            ResponseParamsSuccess,
+            RpcResponsePayload,
+            SessionProposeRequest,
+            SessionProposeResponse,
+            SessionRequestRequest,
+        },
+        Actors,
+        ClientSession,
+        Dapp,
+        NoopSessionHandler,
+        ProjectId,
+        ProposeFuture,
+        RegisteredComponents,
+        SdkErrors,
+        Topic,
+        Wallet,
+        WalletConnectBuilder,
+        WalletRequestResponse,
+        WalletSettlementHandler,
+    },
+    monedero_namespaces::{
+        Account,
+        Accounts,
+        AlloyChain,
+        ChainId,
+        ChainType,
+        Chains,
+        EipMethod,
+        Events,
+        Method,
+        Methods,
+        Namespace,
+        NamespaceName,
+        Namespaces,
+        SolanaMethod,
+    },
+    monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair},
+    monedero_solana::{
+        Error,
+        KeyedStakeState,
+        ReownSigner,
+        Result,
+        SolanaSession,
+        SolanaSignatureResponse,
+        SolanaWallet,
+        StakeClient,
+        StakeType,
+        TokenMintClient,
+        TokenSymbolDev,
+        TokenTransferClient,
+        WalletConnectTransaction,
+    },
+    serde::Deserialize,
+    solana_program::native_token::LAMPORTS_PER_SOL,
+    solana_rpc_client::{
+        nonblocking::rpc_client::RpcClient,
+        rpc_client::{RpcClientConfig, SerializableTransaction},
+    },
+    solana_sdk::{
+        message::Message,
+        pubkey::Pubkey,
+        signature::{Keypair, Signature},
+        signer::Signer,
+        transaction::{Transaction, VersionedTransaction},
+    },
+    std::{
+        collections::{BTreeMap, BTreeSet},
+        path::{Path, PathBuf},
+        str::FromStr,
+        sync::{Arc, Once},
+        time::Duration,
+    },
+    tokio::time::timeout,
+    tracing::{error, info},
+    tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
 };
-use monedero_mesh::{
-    Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
-    RegisteredComponents, SdkErrors, Topic, Wallet, WalletConnectBuilder, WalletRequestResponse,
-    WalletSettlementHandler,
-};
-use monedero_namespaces::{
-    Account, Accounts, AlloyChain, ChainId, ChainType, Chains, EipMethod, Events, Method, Methods,
-    Namespace, NamespaceName, Namespaces, SolanaMethod,
-};
-use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use monedero_solana::{
-    Error, KeyedStakeState, ReownSigner, Result, SolanaSession, SolanaSignatureResponse,
-    SolanaWallet, StakeClient, StakeType, TokenMintClient, TokenSymbolDev, TokenTransferClient,
-    WalletConnectTransaction,
-};
-use serde::Deserialize;
-use solana_program::native_token::LAMPORTS_PER_SOL;
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_rpc_client::rpc_client::{RpcClientConfig, SerializableTransaction};
-use solana_sdk::message::Message;
-use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{Keypair, Signature};
-use solana_sdk::signer::Signer;
-use solana_sdk::transaction::{Transaction, VersionedTransaction};
-use tokio::time::timeout;
-use tracing::{error, info};
-use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::EnvFilter;
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();
@@ -83,15 +125,12 @@ impl WalletSettlementHandler for MockWallet {
                 NamespaceName::Solana => SolanaMethod::defaults(),
                 NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
             };
-            settled.insert(
-                name.clone(),
-                Namespace {
-                    accounts: Accounts(accounts),
-                    chains: Chains(namespace.chains.iter().cloned().collect()),
-                    methods: Methods(methods),
-                    events: Events::default(),
-                },
-            );
+            settled.insert(name.clone(), Namespace {
+                accounts: Accounts(accounts),
+                chains: Chains(namespace.chains.iter().cloned().collect()),
+                methods: Methods(methods),
+                events: Events::default(),
+            });
         }
         Ok(settled)
     }
@@ -118,7 +157,7 @@ impl MockWallet {
             return Err(Error::NothingToSign);
         }
         tx.try_partial_sign(&[&kp], tx.get_recent_blockhash().clone())?;
-        //tx.try_sign(&[&kp], tx.get_recent_blockhash().clone())?;
+        // tx.try_sign(&[&kp], tx.get_recent_blockhash().clone())?;
         let sig = tx.get_signature();
         let signature = solana_sdk::bs58::encode(sig).into_string();
         info!("returning sig: {signature}");
@@ -167,7 +206,7 @@ pub(crate) async fn init_test_components() -> anyhow::Result<(Dapp, Wallet, Mock
     };
     let dapp = Dapp::new(dapp_manager, md).await?;
     dotenvy::dotenv()?;
-    //let url = std::env::var(ChainId::Solana(ChainType::Test).to_string())
+    // let url = std::env::var(ChainId::Solana(ChainType::Test).to_string())
     //.ok()
     //.unwrap_or(String::from("https://api.devnet.solana.com"));
     let url = std::env::var(ChainId::Solana(ChainType::Dev).to_string())

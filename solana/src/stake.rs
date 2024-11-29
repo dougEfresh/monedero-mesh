@@ -3,19 +3,22 @@ mod client;
 mod delegate;
 mod withdrawal;
 
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
-
-use serde::{Deserialize, Serialize};
-use solana_program::clock::{Epoch, Slot, UnixTimestamp};
-use solana_program::native_token::LAMPORTS_PER_SOL;
-use solana_program::pubkey::Pubkey;
-use solana_program::stake::state::{Authorized, Lockup};
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_sdk::account_utils::StateMut;
-
-use crate::fee::FeeService;
-use crate::{ReownSigner, SolanaSession};
+use {
+    crate::{fee::FeeService, ReownSigner, SolanaSession},
+    serde::{Deserialize, Serialize},
+    solana_program::{
+        clock::{Epoch, Slot, UnixTimestamp},
+        native_token::LAMPORTS_PER_SOL,
+        pubkey::Pubkey,
+        stake::state::{Authorized, Lockup},
+    },
+    solana_rpc_client::nonblocking::rpc_client::RpcClient,
+    solana_sdk::account_utils::StateMut,
+    std::{
+        fmt::{Debug, Display, Formatter},
+        sync::Arc,
+    },
+};
 
 pub struct StakeClient {
     session: SolanaSession,

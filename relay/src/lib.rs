@@ -1,18 +1,31 @@
-use std::borrow::Cow;
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
-use std::time::Duration;
-
-use serde::{Deserialize, Serialize};
-use walletconnect_sdk::client::websocket::PublishedMessage;
-use walletconnect_sdk::client::Authorization;
-pub use walletconnect_sdk::client::MessageIdGenerator;
-use walletconnect_sdk::rpc::auth::ed25519_dalek::SigningKey;
-pub use walletconnect_sdk::rpc::auth::*;
-pub use walletconnect_sdk::rpc::domain::{
-    ClientIdDecodingError, DecodedTopic, MessageId, ProjectId, SubscriptionId, Topic,
+pub use walletconnect_sdk::{
+    client::MessageIdGenerator,
+    rpc::{
+        auth::*,
+        domain::{
+            ClientIdDecodingError,
+            DecodedTopic,
+            MessageId,
+            ProjectId,
+            SubscriptionId,
+            Topic,
+        },
+        user_agent::*,
+    },
 };
-pub use walletconnect_sdk::rpc::user_agent::*;
+use {
+    serde::{Deserialize, Serialize},
+    std::{
+        borrow::Cow,
+        fmt::{Debug, Display, Formatter},
+        sync::Arc,
+        time::Duration,
+    },
+    walletconnect_sdk::{
+        client::{websocket::PublishedMessage, Authorization},
+        rpc::auth::ed25519_dalek::SigningKey,
+    },
+};
 
 pub const RELAY_ADDRESS: &str = "wss://relay.walletconnect.com";
 mod error;
@@ -74,7 +87,7 @@ impl Default for Message {
 impl Message {
     #[must_use]
     pub fn tag_name(&self) -> String {
-        //TODO
+        // TODO
         format!("{}", self.tag)
     }
 }

@@ -1,5 +1,7 @@
-use ratatui::layout::{Constraint as TuiConstraint, Rect as TuiRect};
-use serde::{Deserialize, Serialize};
+use {
+    ratatui::layout::{Constraint as TuiConstraint, Rect as TuiRect},
+    serde::{Deserialize, Serialize},
+};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]

@@ -1,14 +1,13 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionsettle
 
-use std::fmt::{Display, Formatter};
-
-use monedero_namespaces::Namespaces;
-use serde::{Deserialize, Serialize};
-
-use super::{IrnMetadata, RelayProtocol};
-use crate::rpc::params::Controller;
-use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
+use {
+    super::{IrnMetadata, RelayProtocol},
+    crate::rpc::{params::Controller, ErrorParams, IntoUnknownError, ResponseParamsError},
+    monedero_namespaces::Namespaces,
+    serde::{Deserialize, Serialize},
+    std::fmt::{Display, Formatter},
+};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1102,
@@ -48,10 +47,10 @@ impl IntoUnknownError for SessionSettleRequest {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
-    use super::super::tests::param_serde_test;
-    use super::*;
+    use {
+        super::{super::tests::param_serde_test, *},
+        anyhow::Result,
+    };
 
     #[test]
     fn test_serde_session_settle_request() -> Result<()> {

@@ -1,17 +1,25 @@
-use solana_program::instruction::Instruction;
-use solana_program::message::Message;
-use solana_program::pubkey::Pubkey;
-use solana_rpc_client_api::config::RpcGetVoteAccountsConfig;
-use solana_rpc_client_api::request::DELINQUENT_VALIDATOR_SLOT_DISTANCE;
-use solana_rpc_client_api::response::RpcVoteAccountStatus;
-use solana_sdk::signature::Signature;
-use solana_sdk::signer::Signer;
-use solana_sdk::stake::instruction::{self as stake_instruction};
-use solana_sdk::transaction::Transaction;
-
-use crate::compute_budget::WithComputeUnit;
-use crate::Error::RpcRequestError;
-use crate::{KeyedStakeState, Result, StakeClient, WithMemo};
+use {
+    crate::{
+        compute_budget::WithComputeUnit,
+        Error::RpcRequestError,
+        KeyedStakeState,
+        Result,
+        StakeClient,
+        WithMemo,
+    },
+    solana_program::{instruction::Instruction, message::Message, pubkey::Pubkey},
+    solana_rpc_client_api::{
+        config::RpcGetVoteAccountsConfig,
+        request::DELINQUENT_VALIDATOR_SLOT_DISTANCE,
+        response::RpcVoteAccountStatus,
+    },
+    solana_sdk::{
+        signature::Signature,
+        signer::Signer,
+        stake::instruction::{self as stake_instruction},
+        transaction::Transaction,
+    },
+};
 
 impl StakeClient {
     pub async fn minimum_delegation(&self) -> Result<u64> {
@@ -33,8 +41,8 @@ impl StakeClient {
         let mut create_inxs = self.delegate_acct(&stake_account, vote).await?;
         inxs.append(&mut create_inxs);
         let _budget = self.fee_service.simulate(&inxs).await?;
-        //TODO fix compute budget
-        //let inxs= inxs.with_compute_unit(budget);
+        // TODO fix compute budget
+        // let inxs= inxs.with_compute_unit(budget);
         let msg = Message::new(&inxs, Some(&self.session.pk));
         let hash = self.rpc.get_latest_blockhash().await?;
         let mut tx = Transaction::new_unsigned(msg);

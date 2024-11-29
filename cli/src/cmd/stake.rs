@@ -1,9 +1,8 @@
-use std::str::FromStr;
-
-use solana_sdk::pubkey::Pubkey;
-
-use crate::cmd::prompts;
-use crate::context::Context;
+use {
+    crate::{cmd::prompts, context::Context},
+    solana_sdk::pubkey::Pubkey,
+    std::str::FromStr,
+};
 
 pub async fn invoke(context: &Context) -> anyhow::Result<()> {
     let sc = context.wallet.stake_client();
@@ -23,7 +22,7 @@ pub async fn invoke(context: &Context) -> anyhow::Result<()> {
         .iter()
         .find(|a| a.stake_pubkey == chosen)
         .expect("no stake account");
-    //let sig = sc.withdraw(stake_acct).await?;
+    // let sig = sc.withdraw(stake_acct).await?;
     let v = Pubkey::from_str("he1iusunGwqrNtafDtLdhsUQDFvo13z9sUa36PauBtk")?;
     let sig = sc.delegate(stake_acct, &v).await?;
     prompts::signature(sig, context)?;

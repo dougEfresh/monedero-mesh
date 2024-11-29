@@ -1,20 +1,33 @@
 mod session_settle;
 
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
-
-use monedero_namespaces::Namespaces;
-use tracing::{error, info, warn};
-use x25519_dalek::PublicKey;
-
-use crate::rpc::{
-    Metadata, RequestParams, SessionProposeRequest, SessionProposeResponse, SessionSettleRequest,
-};
-use crate::session::{Category, ClientSession, PendingSession};
-use crate::Error::NoPairingTopic;
-use crate::{
-    Pairing, PairingManager, PairingTopic, ProposeFuture, Result, SessionHandler, SessionSettled,
-    SessionTopic, SocketListener,
+use {
+    crate::{
+        rpc::{
+            Metadata,
+            RequestParams,
+            SessionProposeRequest,
+            SessionProposeResponse,
+            SessionSettleRequest,
+        },
+        session::{Category, ClientSession, PendingSession},
+        Error::NoPairingTopic,
+        Pairing,
+        PairingManager,
+        PairingTopic,
+        ProposeFuture,
+        Result,
+        SessionHandler,
+        SessionSettled,
+        SessionTopic,
+        SocketListener,
+    },
+    monedero_namespaces::Namespaces,
+    std::{
+        fmt::{Debug, Display, Formatter},
+        sync::Arc,
+    },
+    tracing::{error, info, warn},
+    x25519_dalek::PublicKey,
 };
 
 #[derive(Clone, xtra::Actor)]
@@ -110,8 +123,8 @@ impl Dapp {
     /// Propose
     ///
     /// Reference spec: [https://specs.walletconnect.com/2.0/specs/clients/core/pairing]
-    /// This function will restore sessions if there is a matching namespace session
-    /// Otherwise new pairing session will be established
+    /// This function will restore sessions if there is a matching namespace
+    /// session Otherwise new pairing session will be established
     #[tracing::instrument(level = "debug", skip(handlers, chains))]
     pub async fn propose<T>(
         &self,
@@ -129,7 +142,8 @@ impl Dapp {
         }
 
         // reset pairing topic to something new
-        // normally I would preserve the topic, but buggy walletconnect servers don't handle same pairing session
+        // normally I would preserve the topic, but buggy walletconnect servers don't
+        // handle same pairing session
         let pairing = Pairing::default();
         self.manager.set_pairing(pairing.clone()).await?;
         let rx = self.pending.add(pairing.topic.clone(), handlers);

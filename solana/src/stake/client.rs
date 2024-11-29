@@ -1,22 +1,30 @@
-use std::str::FromStr;
-use std::sync::Arc;
-
-use solana_program::clock::{Clock, Epoch, Slot};
-use solana_program::feature::Feature;
-use solana_program::pubkey::Pubkey;
-use solana_program::stake::state::{Meta, StakeActivationStatus, StakeStateV2};
-use solana_program::stake_history::StakeHistory;
-use solana_program::sysvar::{self, stake_history};
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_rpc_client_api::config::{RpcAccountInfoConfig, RpcProgramAccountsConfig};
-use solana_rpc_client_api::filter::{Memcmp, RpcFilterType};
-use solana_rpc_client_api::response::RpcVoteAccountInfo;
-use solana_sdk::account::{from_account, ReadableAccount};
-use solana_sdk::account_utils::StateMut;
-
-use crate::fee::FeeService;
-use crate::stake::{KeyedStakeState, StakeClient, StakeState};
-use crate::{ReownSigner, SolanaSession};
+use {
+    crate::{
+        fee::FeeService,
+        stake::{KeyedStakeState, StakeClient, StakeState},
+        ReownSigner,
+        SolanaSession,
+    },
+    solana_program::{
+        clock::{Clock, Epoch, Slot},
+        feature::Feature,
+        pubkey::Pubkey,
+        stake::state::{Meta, StakeActivationStatus, StakeStateV2},
+        stake_history::StakeHistory,
+        sysvar::{self, stake_history},
+    },
+    solana_rpc_client::nonblocking::rpc_client::RpcClient,
+    solana_rpc_client_api::{
+        config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
+        filter::{Memcmp, RpcFilterType},
+        response::RpcVoteAccountInfo,
+    },
+    solana_sdk::{
+        account::{from_account, ReadableAccount},
+        account_utils::StateMut,
+    },
+    std::{str::FromStr, sync::Arc},
+};
 
 async fn get_feature_activation_slot(
     rpc: &RpcClient,
@@ -58,6 +66,7 @@ impl StakeClient {
             .filter(|a| a.stake_state.delegated_vote_account_address.is_none())
             .collect())
     }
+
     #[tracing::instrument(level = "info")]
     pub async fn accounts(&self) -> crate::Result<Vec<KeyedStakeState>> {
         let id = solana_sdk::stake::program::id();

@@ -1,16 +1,20 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/core/pairing/pairing-uri
 
-use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
-
-use regex::Regex;
-use serde::{Deserialize, Serialize};
-use url::Url;
-use x25519_dalek::StaticSecret;
-
-use crate::crypto::cipher::DecodedSymKey;
-use crate::domain::{DecodedTopic, Topic};
-use crate::rpc::RELAY_PROTOCOL;
+use {
+    crate::{
+        crypto::cipher::DecodedSymKey,
+        domain::{DecodedTopic, Topic},
+        rpc::RELAY_PROTOCOL,
+    },
+    regex::Regex,
+    serde::{Deserialize, Serialize},
+    std::{
+        fmt::{Debug, Display, Formatter},
+        str::FromStr,
+    },
+    url::Url,
+    x25519_dalek::StaticSecret,
+};
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq)]
 pub enum ParseError {
@@ -180,13 +184,13 @@ impl FromStr for Pairing {
 
 #[cfg(test)]
 mod tests {
-    use hex_literal::hex;
-
-    use super::*;
+    use {super::*, hex_literal::hex};
 
     #[test]
     fn parse_uri() {
-        let uri = "wc:c9e6d30fb34afe70a15c14e9337ba8e4d5a35dd695c39b94884b0ee60c69d168@2?relay-protocol=waku&symKey=7ff3e362f825ab868e20e767fe580d0311181632707e7c878cbeca0238d45b8b";
+        let uri = "wc:c9e6d30fb34afe70a15c14e9337ba8e4d5a35dd695c39b94884b0ee60c69d168@2?\
+                   relay-protocol=waku&\
+                   symKey=7ff3e362f825ab868e20e767fe580d0311181632707e7c878cbeca0238d45b8b";
 
         let actual = Pairing {
             topic: Topic::from("c9e6d30fb34afe70a15c14e9337ba8e4d5a35dd695c39b94884b0ee60c69d168")

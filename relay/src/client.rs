@@ -1,13 +1,15 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
-use std::time::Duration;
-
-use walletconnect_sdk::client::websocket::{
-    Client as WcClient, ConnectionHandler as WcHandler, PublishedMessage,
+use {
+    crate::{ConnectionHandler, ConnectionOptions, Result, SubscriptionId, Topic},
+    std::{
+        fmt::{Debug, Display, Formatter},
+        sync::Arc,
+        time::Duration,
+    },
+    walletconnect_sdk::client::{
+        websocket::{Client as WcClient, ConnectionHandler as WcHandler, PublishedMessage},
+        ConnectionOptions as WcOptions,
+    },
 };
-use walletconnect_sdk::client::ConnectionOptions as WcOptions;
-
-use crate::{ConnectionHandler, ConnectionOptions, Result, SubscriptionId, Topic};
 
 impl From<&ConnectionOptions> for WcOptions {
     fn from(opts: &ConnectionOptions) -> Self {

@@ -1,6 +1,7 @@
-use walletconnect_sdk::rpc::rpc::{PublishError, SubscriptionError};
-
-use crate::Topic;
+use {
+    crate::Topic,
+    walletconnect_sdk::rpc::rpc::{PublishError, SubscriptionError},
+};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, thiserror::Error)]

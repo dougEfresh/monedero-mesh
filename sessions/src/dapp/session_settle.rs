@@ -1,10 +1,18 @@
-use tokio::sync::mpsc;
-use xtra::{Context, Handler};
-
-use crate::rpc::{ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload};
-use crate::session::Category;
-use crate::transport::SessionTransport;
-use crate::{Actors, ClientSession, Dapp, Result, SessionEventRequest, SessionSettled};
+use {
+    crate::{
+        rpc::{ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload},
+        session::Category,
+        transport::SessionTransport,
+        Actors,
+        ClientSession,
+        Dapp,
+        Result,
+        SessionEventRequest,
+        SessionSettled,
+    },
+    tokio::sync::mpsc,
+    xtra::{Context, Handler},
+};
 
 impl Dapp {
     async fn process_settlement(&self, settled: SessionSettled) -> Result<()> {

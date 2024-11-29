@@ -1,18 +1,29 @@
-use std::sync::Arc;
-use std::time::Duration;
-
-use dashmap::DashMap;
-use tokio::sync::oneshot::Sender;
-use tokio::sync::{mpsc, oneshot, Mutex};
-use tokio::time::timeout;
-use tracing::warn;
-
-use crate::rpc::{RequestParams, SessionSettleRequest};
-use crate::session::Category;
-use crate::transport::SessionTransport;
-use crate::{
-    ClientSession, Error, PairingManager, PairingTopic, Result, SessionEventRequest,
-    SessionHandler, SessionSettled, SessionTopic,
+use {
+    crate::{
+        rpc::{RequestParams, SessionSettleRequest},
+        session::Category,
+        transport::SessionTransport,
+        ClientSession,
+        Error,
+        PairingManager,
+        PairingTopic,
+        Result,
+        SessionEventRequest,
+        SessionHandler,
+        SessionSettled,
+        SessionTopic,
+    },
+    dashmap::DashMap,
+    std::{sync::Arc, time::Duration},
+    tokio::{
+        sync::{
+            mpsc,
+            oneshot::{self, Sender},
+            Mutex,
+        },
+        time::timeout,
+    },
+    tracing::warn,
 };
 
 pub struct HandlerContainer {

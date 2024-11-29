@@ -1,18 +1,25 @@
-use std::path::PathBuf;
-use std::sync::Arc;
-
-use solana_program::instruction::Instruction;
-use solana_program::message::Message;
-use solana_program::pubkey::Pubkey;
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
-use solana_sdk::signature::Signature;
-use solana_sdk::transaction::Transaction;
-
-use crate::fee::FeeService;
-use crate::{
-    ReownSigner, SolanaSession, StakeClient, TokenAccount, TokenAccountsClient,
-    TokenMetadataClient, TokenMintClient, TokenTransferClient, WithMemo, DEFAULT_MEMO,
+use {
+    crate::{
+        fee::FeeService,
+        ReownSigner,
+        SolanaSession,
+        StakeClient,
+        TokenAccount,
+        TokenAccountsClient,
+        TokenMetadataClient,
+        TokenMintClient,
+        TokenTransferClient,
+        WithMemo,
+        DEFAULT_MEMO,
+    },
+    solana_program::{instruction::Instruction, message::Message, pubkey::Pubkey},
+    solana_rpc_client::nonblocking::rpc_client::RpcClient,
+    solana_sdk::{
+        commitment_config::{CommitmentConfig, CommitmentLevel},
+        signature::Signature,
+        transaction::Transaction,
+    },
+    std::{path::PathBuf, sync::Arc},
 };
 
 #[derive(Clone)]
@@ -31,13 +38,11 @@ pub enum FeeType {
     Priority(u64),
 }
 
-/*
-impl From<FeeType> for stanza::table::Cell {
-    fn from(value: FeeType) -> Self {
-        stanza::table::Cell::new()
-    }
-}
- */
+// impl From<FeeType> for stanza::table::Cell {
+// fn from(value: FeeType) -> Self {
+// stanza::table::Cell::new()
+// }
+// }
 
 impl SolanaWallet {
     pub async fn init(
@@ -73,18 +78,15 @@ impl SolanaWallet {
         let tx = Transaction::new(&[&self.signer], message, block);
         Ok(self
             .rpc
-            .send_and_confirm_transaction_with_spinner_and_commitment(
-                &tx,
-                CommitmentConfig {
-                    commitment: CommitmentLevel::Finalized,
-                },
-            )
+            .send_and_confirm_transaction_with_spinner_and_commitment(&tx, CommitmentConfig {
+                commitment: CommitmentLevel::Finalized,
+            })
             .await?)
     }
 
     fn transfer_instructions(&self, to: &Pubkey, lamports: u64) -> Vec<Instruction> {
         vec![
-            //spl_memo::build_memo(&self.memo, &[&self.sol_session.pk]),
+            // spl_memo::build_memo(&self.memo, &[&self.sol_session.pk]),
             solana_sdk::system_instruction::transfer(&self.sol_session.pk, &to, lamports),
         ]
         .with_memo(Some(&self.memo))
@@ -116,6 +118,7 @@ impl SolanaWallet {
             &self.memo,
         )
     }
+
     pub fn token_transfer_client(&self, token: &TokenAccount) -> TokenTransferClient {
         TokenTransferClient::new(self.signer.clone(), self.rpc.clone(), token, &self.memo)
     }

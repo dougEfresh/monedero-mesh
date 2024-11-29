@@ -20,8 +20,8 @@
 //     SimulationNotConfigured,
 // }
 //
-// fn get_compute_unit_limit_instruction_index(message: &Message) -> Option<usize> {
-//     message
+// fn get_compute_unit_limit_instruction_index(message: &Message) ->
+// Option<usize> {     message
 //         .instructions
 //         .iter()
 //         .enumerate()
@@ -39,8 +39,8 @@
 //         })
 // }
 //
-// /// Like `simulate_for_compute_unit_limit`, but does not check that the message
-// /// contains a compute unit limit instruction.
+// /// Like `simulate_for_compute_unit_limit`, but does not check that the
+// message /// contains a compute unit limit instruction.
 // fn simulate_for_compute_unit_limit_unchecked(
 //     rpc_client: &RpcClient,
 //     message: &Message,
@@ -94,19 +94,21 @@
 //     rpc_client: &RpcClient,
 //     message: &mut Message,
 // ) -> Result<UpdateComputeUnitLimitResult, Box<dyn std::error::Error>> {
-//     let Some(compute_unit_limit_ix_index) = get_compute_unit_limit_instruction_index(message)
-//     else {
+//     let Some(compute_unit_limit_ix_index) =
+// get_compute_unit_limit_instruction_index(message)     else {
 //         return Ok(UpdateComputeUnitLimitResult::NoInstructionFound);
 //     };
 //
 //     match compute_unit_limit {
 //         ComputeUnitLimit::Simulated => {
 //             let compute_unit_limit =
-//                 simulate_for_compute_unit_limit_unchecked(rpc_client, message)?;
+//                 simulate_for_compute_unit_limit_unchecked(rpc_client,
+// message)?;
 //
-//             // Overwrite the compute unit limit instruction with the actual units consumed
-//             message.instructions[compute_unit_limit_ix_index].data =
-//                 ComputeBudgetInstruction::set_compute_unit_limit(compute_unit_limit).data;
+//             // Overwrite the compute unit limit instruction with the actual
+// units consumed             
+// message.instructions[compute_unit_limit_ix_index].data =                 
+// ComputeBudgetInstruction::set_compute_unit_limit(compute_unit_limit).data;
 //
 //             Ok(UpdateComputeUnitLimitResult::UpdatedInstructionIndex(
 //                 compute_unit_limit_ix_index,
@@ -123,8 +125,10 @@
 //     pub(crate) compute_unit_limit: ComputeUnitLimit,
 // }
 
-use solana_program::instruction::Instruction;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use {
+    solana_program::instruction::Instruction,
+    solana_sdk::compute_budget::ComputeBudgetInstruction,
+};
 
 pub(crate) trait WithComputeUnit {
     fn with_compute_unit(self, unit: Option<u32>) -> Self;

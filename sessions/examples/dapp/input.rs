@@ -1,8 +1,9 @@
-use std::cmp::Ordering;
-
-use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use serde::{Deserialize, Serialize};
-use tui_input::InputRequest;
+use {
+    ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
+    serde::{Deserialize, Serialize},
+    std::cmp::Ordering,
+    tui_input::InputRequest,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -222,8 +223,7 @@ impl std::fmt::Display for Key {
 
 impl Key {
     pub fn to_input_operation(&self) -> Option<InputOperation> {
-        use InputOperation::*;
-        use Key::*;
+        use {InputOperation::*, Key::*};
 
         match self {
             Backspace | CtrlH => Some(DeletePreviousCharacter),

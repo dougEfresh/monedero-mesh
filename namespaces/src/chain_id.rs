@@ -1,12 +1,14 @@
-use std::cmp::Ordering;
-use std::collections::BTreeSet;
-use std::fmt;
-use std::fmt::{Display, Formatter};
-use std::ops::Deref;
-use std::str::FromStr;
-
-use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
+use {
+    serde::{Deserialize, Serialize},
+    serde_with::{DeserializeFromStr, SerializeDisplay},
+    std::{
+        cmp::Ordering,
+        collections::BTreeSet,
+        fmt::{self, Display, Formatter},
+        ops::Deref,
+        str::FromStr,
+    },
+};
 
 // old solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ
 const SOLANA: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
@@ -14,7 +16,7 @@ const SOLANA: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
 /// This is actually Solana Dev
 const SOLANA_DEV: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
-//const SOLANA_TEST_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
+// const SOLANA_TEST_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
 const SOLANA_DEV_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
 
 const SOLANA_TEST: &str = "solana:testnet";
@@ -53,15 +55,11 @@ impl FromStr for ChainType {
 
 impl Display for ChainType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Main => "main",
-                Self::Test => "testnet",
-                Self::Dev => "devnet",
-            }
-        )
+        write!(f, "{}", match self {
+            Self::Main => "main",
+            Self::Test => "testnet",
+            Self::Dev => "devnet",
+        })
     }
 }
 
@@ -108,8 +106,8 @@ impl Display for Chains {
 }
 
 impl IntoIterator for Chains {
-    type Item = ChainId;
     type IntoIter = std::collections::btree_set::IntoIter<ChainId>;
+    type Item = ChainId;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
@@ -118,8 +116,8 @@ impl IntoIterator for Chains {
 
 // Implement IntoIterator for &Chains
 impl<'a> IntoIterator for &'a Chains {
-    type Item = &'a ChainId;
     type IntoIter = std::collections::btree_set::Iter<'a, ChainId>;
+    type Item = &'a ChainId;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -129,8 +127,8 @@ impl<'a> IntoIterator for &'a Chains {
 // Implement IntoIterator for &mut Chains
 #[allow(clippy::into_iter_without_iter)]
 impl<'a> IntoIterator for &'a mut Chains {
-    type Item = &'a ChainId;
     type IntoIter = std::collections::btree_set::Iter<'a, ChainId>;
+    type Item = &'a ChainId;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -202,12 +200,12 @@ impl Display for ChainId {
             Self::Solana(ChainType::Main) => write!(f, "{SOLANA}"),
             Self::Solana(ChainType::Dev) => write!(f, "{SOLANA_DEV}"),
             Self::Solana(ChainType::Test) => write!(f, "{SOLANA_TEST}"),
-            //ChainId::Near(ChainType::Main) => write!(f, "mainnet"),
-            //ChainId::Near(ChainType::Test) => write!(f, "testnet"),
-            //ChainId::Tezos(ChainType::Main) => write!(f, "mainnet"),
-            //ChainId::Tezos(ChainType::Test) => write!(f, "testnet"),
-            //ChainId::Cosmos(ChainType::Main) => write!(f, "mainnet"),
-            //ChainId::Cosmos(ChainType::Test) => write!(f, "testnet"),
+            // ChainId::Near(ChainType::Main) => write!(f, "mainnet"),
+            // ChainId::Near(ChainType::Test) => write!(f, "testnet"),
+            // ChainId::Tezos(ChainType::Main) => write!(f, "mainnet"),
+            // ChainId::Tezos(ChainType::Test) => write!(f, "testnet"),
+            // ChainId::Cosmos(ChainType::Main) => write!(f, "mainnet"),
+            // ChainId::Cosmos(ChainType::Test) => write!(f, "testnet"),
             Self::Other(s) => write!(f, "{s}"),
         }
     }
@@ -243,12 +241,10 @@ mod tests {
         assert_eq!(solana.to_string(), SOLANA_DEV_OLD);
         assert_eq!(solana, SOLANA_DEV_OLD.parse()?);
 
-        /*
-        let solana = ChainId::from_str(SOLANA_TEST_OLD)?;
-        assert!(matches!(solana, ChainId::Solana(ChainType::Test)));
-        assert_eq!(solana.to_string(), SOLANA_TEST_OLD);
-        assert_eq!(solana, SOLANA_TEST_OLD.parse()?);
-         */
+        // let solana = ChainId::from_str(SOLANA_TEST_OLD)?;
+        // assert!(matches!(solana, ChainId::Solana(ChainType::Test)));
+        // assert_eq!(solana.to_string(), SOLANA_TEST_OLD);
+        // assert_eq!(solana, SOLANA_TEST_OLD.parse()?);
         Ok(())
     }
 }

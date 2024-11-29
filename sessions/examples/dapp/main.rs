@@ -7,20 +7,28 @@ mod msg;
 mod runner;
 mod ui;
 
-use std::collections::BTreeMap;
-use std::panic::{set_hook, take_hook};
-use std::time::Duration;
-
-use monedero_mesh;
-use monedero_mesh::{
-    ClientSession, Dapp, KvStorage, Metadata, NoopSessionHandler, Pairing, ProjectId,
-    WalletConnectBuilder,
+use {
+    crate::log::initialize_logging,
+    monedero_mesh::{
+        self,
+        ClientSession,
+        Dapp,
+        KvStorage,
+        Metadata,
+        NoopSessionHandler,
+        Pairing,
+        ProjectId,
+        WalletConnectBuilder,
+    },
+    monedero_namespaces::{ChainId, ChainType, Chains},
+    std::{
+        collections::BTreeMap,
+        panic::{set_hook, take_hook},
+        time::Duration,
+    },
+    tokio::{select, signal},
+    tracing::info,
 };
-use monedero_namespaces::{ChainId, ChainType, Chains};
-use tokio::{select, signal};
-use tracing::info;
-
-use crate::log::initialize_logging;
 
 async fn propose(dapp: &Dapp) -> anyhow::Result<(Pairing, ClientSession)> {
     let chains = Chains::from([
@@ -74,17 +82,14 @@ async fn dapp_test() -> anyhow::Result<()> {
     let builder = WalletConnectBuilder::new(p, auth);
     let builder = builder.store(store);
     let pairing_mgr = builder.build().await?;
-    let dapp = Dapp::new(
-        pairing_mgr.clone(),
-        Metadata {
-            name: "wc-sessions-sdk".to_string(),
-            description: "walletconnect sessions for rust".to_string(),
-            url: "https://github.com/dougEfresh".to_string(),
-            icons: vec![],
-            verify_url: None,
-            redirect: None,
-        },
-    )
+    let dapp = Dapp::new(pairing_mgr.clone(), Metadata {
+        name: "wc-sessions-sdk".to_string(),
+        description: "walletconnect sessions for rust".to_string(),
+        url: "https://github.com/dougEfresh".to_string(),
+        icons: vec![],
+        verify_url: None,
+        redirect: None,
+    })
     .await?;
     tokio::spawn(do_dapp_stuff(dapp));
 
@@ -108,5 +113,5 @@ async fn main() -> anyhow::Result<()> {
     initialize_logging()?;
     let runner = runner::Runner {};
     runner.run()
-    //dapp_test().await
+    // dapp_test().await
 }

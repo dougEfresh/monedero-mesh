@@ -4,26 +4,40 @@ mod pairing;
 mod registration;
 mod socket_handler;
 
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
-use std::time::Duration;
-
 pub use builder::WalletConnectBuilder;
-use monedero_namespaces::Namespaces;
-use monedero_relay::{Client, ConnectionOptions};
-use serde::de::DeserializeOwned;
-use tokio::sync::mpsc;
-use tracing::{info, warn};
-
-use crate::actors::Actors;
-use crate::domain::{SubscriptionId, Topic};
-use crate::relay::RelayHandler;
-use crate::rpc::{
-    ErrorParams, PairDeleteRequest, PairExtendRequest, PairPingRequest, RequestParams,
-    SessionSettleRequest,
+use {
+    crate::{
+        actors::Actors,
+        domain::{SubscriptionId, Topic},
+        relay::RelayHandler,
+        rpc::{
+            ErrorParams,
+            PairDeleteRequest,
+            PairExtendRequest,
+            PairPingRequest,
+            RequestParams,
+            SessionSettleRequest,
+        },
+        transport::TopicTransport,
+        Cipher,
+        Error,
+        Pairing,
+        Result,
+        SessionSettled,
+        SocketEvent,
+        SocketListener,
+    },
+    monedero_namespaces::Namespaces,
+    monedero_relay::{Client, ConnectionOptions},
+    serde::de::DeserializeOwned,
+    std::{
+        fmt::{Debug, Formatter},
+        sync::Arc,
+        time::Duration,
+    },
+    tokio::sync::mpsc,
+    tracing::{info, warn},
 };
-use crate::transport::TopicTransport;
-use crate::{Cipher, Error, Pairing, Result, SessionSettled, SocketEvent, SocketListener};
 
 #[derive(Clone, xtra::Actor)]
 pub struct PairingManager {

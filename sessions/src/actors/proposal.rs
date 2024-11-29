@@ -1,13 +1,22 @@
-use tracing::{error, info, warn};
-use xtra::prelude::*;
-use xtra::Address;
-
-use crate::actors::TransportActor;
-use crate::rpc::{
-    ErrorParams, IntoUnknownError, RequestParams, ResponseParamsError, RpcRequest, RpcResponse,
-    SessionProposeRequest,
+use {
+    crate::{
+        actors::TransportActor,
+        rpc::{
+            ErrorParams,
+            IntoUnknownError,
+            RequestParams,
+            ResponseParamsError,
+            RpcRequest,
+            RpcResponse,
+            SessionProposeRequest,
+        },
+        Dapp,
+        SessionSettled,
+        Wallet,
+    },
+    tracing::{error, info, warn},
+    xtra::{prelude::*, Address},
 };
-use crate::{Dapp, SessionSettled, Wallet};
 
 #[derive(Clone, Actor)]
 pub struct ProposalActor {
@@ -18,6 +27,7 @@ pub struct ProposalActor {
 
 impl Handler<Dapp> for ProposalActor {
     type Return = ();
+
     async fn handle(&mut self, message: Dapp, _ctx: &mut Context<Self>) -> Self::Return {
         let addr = xtra::spawn_tokio(message, Mailbox::unbounded());
         self.dapp = Some(addr)
@@ -26,6 +36,7 @@ impl Handler<Dapp> for ProposalActor {
 
 impl Handler<Wallet> for ProposalActor {
     type Return = ();
+
     async fn handle(&mut self, message: Wallet, _ctx: &mut Context<Self>) -> Self::Return {
         let addr = xtra::spawn_tokio(message, Mailbox::unbounded());
         self.wallet = Some(addr)

@@ -1,10 +1,9 @@
-use std::collections::HashSet;
-use std::fs::File;
-use std::io::BufReader;
-
-use anyhow::Result;
-use serde::{Deserialize, Deserializer};
-use solana_sdk::bs58;
+use {
+    anyhow::Result,
+    serde::{Deserialize, Deserializer},
+    solana_sdk::bs58,
+    std::{collections::HashSet, fs::File, io::BufReader},
+};
 
 #[derive(Clone, Deserialize)]
 #[allow(dead_code)]

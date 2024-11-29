@@ -1,7 +1,7 @@
-use solana_sdk::pubkey::Pubkey;
-
-use crate::cmd::prompts;
-use crate::context::Context;
+use {
+    crate::{cmd::prompts, context::Context},
+    solana_sdk::pubkey::Pubkey,
+};
 
 pub async fn invoke(context: &Context) -> anyhow::Result<()> {
     let to: Pubkey = prompts::pubkey()?;

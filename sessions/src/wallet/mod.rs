@@ -1,30 +1,54 @@
 mod settlement;
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
-use std::sync::Arc;
-use std::time::Duration;
-
-use monedero_namespaces::{
-    Account, Accounts, ChainId, Chains, EipMethod, Events, Method, Methods, Namespace,
-    NamespaceName, Namespaces, SolanaMethod,
-};
-use tokio::sync::{mpsc, Mutex};
-use tracing::{error, warn};
-use xtra::prelude::*;
-use xtra::Error;
-
-use crate::rpc::{
-    Controller, Metadata, RelayProtocol, ResponseParamsError, ResponseParamsSuccess,
-    RpcResponsePayload, SdkErrors, SessionProposeRequest, SessionProposeResponse,
-    SessionSettleRequest,
-};
-use crate::session::{Category, PendingSession};
-use crate::wallet::settlement::WalletSettlementActor;
-use crate::{
-    ClientSession, Pairing, PairingManager, ProposeFuture, Result, SessionHandler, SessionSettled,
-    WalletSettlementHandler,
+use {
+    crate::{
+        rpc::{
+            Controller,
+            Metadata,
+            RelayProtocol,
+            ResponseParamsError,
+            ResponseParamsSuccess,
+            RpcResponsePayload,
+            SdkErrors,
+            SessionProposeRequest,
+            SessionProposeResponse,
+            SessionSettleRequest,
+        },
+        session::{Category, PendingSession},
+        wallet::settlement::WalletSettlementActor,
+        ClientSession,
+        Pairing,
+        PairingManager,
+        ProposeFuture,
+        Result,
+        SessionHandler,
+        SessionSettled,
+        WalletSettlementHandler,
+    },
+    monedero_namespaces::{
+        Account,
+        Accounts,
+        ChainId,
+        Chains,
+        EipMethod,
+        Events,
+        Method,
+        Methods,
+        Namespace,
+        NamespaceName,
+        Namespaces,
+        SolanaMethod,
+    },
+    std::{
+        collections::{BTreeMap, BTreeSet},
+        fmt::{Debug, Display, Formatter},
+        str::FromStr,
+        sync::Arc,
+        time::Duration,
+    },
+    tokio::sync::{mpsc, Mutex},
+    tracing::{error, warn},
+    xtra::{prelude::*, Error},
 };
 
 #[derive(Clone, xtra::Actor)]

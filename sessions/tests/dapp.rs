@@ -1,29 +1,57 @@
-use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Once;
-use std::time::Duration;
-
-use anyhow::format_err;
-use assert_matches::assert_matches;
-use async_trait::async_trait;
-use monedero_mesh::crypto::CipherError;
-use monedero_mesh::rpc::{
-    Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
-    SessionProposeRequest, SessionProposeResponse,
+use {
+    anyhow::format_err,
+    assert_matches::assert_matches,
+    async_trait::async_trait,
+    monedero_mesh::{
+        crypto::CipherError,
+        rpc::{
+            Metadata,
+            ResponseParamsError,
+            ResponseParamsSuccess,
+            RpcResponsePayload,
+            SessionProposeRequest,
+            SessionProposeResponse,
+        },
+        Actors,
+        ClientSession,
+        Dapp,
+        NoopSessionHandler,
+        ProjectId,
+        ProposeFuture,
+        RegisteredComponents,
+        Result,
+        SdkErrors,
+        Topic,
+        Wallet,
+        WalletConnectBuilder,
+        WalletSettlementHandler,
+    },
+    monedero_namespaces::{
+        Account,
+        Accounts,
+        AlloyChain,
+        ChainId,
+        ChainType,
+        Chains,
+        EipMethod,
+        Events,
+        Method,
+        Methods,
+        Namespace,
+        NamespaceName,
+        Namespaces,
+        SolanaMethod,
+    },
+    monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair},
+    std::{
+        collections::{BTreeMap, BTreeSet},
+        sync::Once,
+        time::Duration,
+    },
+    tokio::time::timeout,
+    tracing::{error, info},
+    tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
 };
-use monedero_mesh::{
-    Actors, ClientSession, Dapp, NoopSessionHandler, ProjectId, ProposeFuture,
-    RegisteredComponents, Result, SdkErrors, Topic, Wallet, WalletConnectBuilder,
-    WalletSettlementHandler,
-};
-use monedero_namespaces::{
-    Account, Accounts, AlloyChain, ChainId, ChainType, Chains, EipMethod, Events, Method, Methods,
-    Namespace, NamespaceName, Namespaces, SolanaMethod,
-};
-use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use tokio::time::timeout;
-use tracing::{error, info};
-use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::EnvFilter;
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();
@@ -62,15 +90,12 @@ impl WalletSettlementHandler for WalletProposal {
                 NamespaceName::Solana => SolanaMethod::defaults(),
                 NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
             };
-            settled.insert(
-                name.clone(),
-                Namespace {
-                    accounts: Accounts(accounts),
-                    chains: Chains(namespace.chains.iter().cloned().collect()),
-                    methods: Methods(methods),
-                    events: Events::default(),
-                },
-            );
+            settled.insert(name.clone(), Namespace {
+                accounts: Accounts(accounts),
+                chains: Chains(namespace.chains.iter().cloned().collect()),
+                methods: Methods(methods),
+                events: Events::default(),
+            });
         }
         Ok(settled)
     }
@@ -164,14 +189,11 @@ async fn pair_dapp_wallet() -> anyhow::Result<(TestStuff, ClientSession)> {
     let dapp = t.dapp.clone();
     let wallet = t.wallet.clone();
     let (pairing, rx, _) = dapp
-        .propose(
-            NoopSessionHandler,
-            &[
-                ChainId::EIP155(alloy_chains::Chain::holesky()),
-                ChainId::EIP155(alloy_chains::Chain::sepolia()),
-                ChainId::Solana(ChainType::Dev),
-            ],
-        )
+        .propose(NoopSessionHandler, &[
+            ChainId::EIP155(alloy_chains::Chain::holesky()),
+            ChainId::EIP155(alloy_chains::Chain::sepolia()),
+            ChainId::Solana(ChainType::Dev),
+        ])
         .await?;
     info!("got pairing topic {pairing}");
     let (_, wallet_rx) = wallet.pair(pairing.to_string(), NoopSessionHandler).await?;
@@ -204,10 +226,9 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
     let original_pairing = test.dapp.pairing().ok_or(format_err!("no pairing!"))?;
     let (new_pairing, rx, restored) = test
         .dapp
-        .propose(
-            NoopSessionHandler,
-            &[ChainId::EIP155(AlloyChain::sepolia())],
-        )
+        .propose(NoopSessionHandler, &[
+            ChainId::EIP155(AlloyChain::sepolia()),
+        ])
         .await?;
     assert!(!restored);
     assert_ne!(original_pairing.topic, new_pairing.topic);

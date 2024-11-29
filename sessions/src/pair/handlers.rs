@@ -1,16 +1,22 @@
-use std::time::Duration;
-
-use backoff::future::retry;
-use backoff::ExponentialBackoffBuilder;
-use tracing::{info, warn};
-use xtra::prelude::*;
-
-use crate::actors::ClearPairing;
-use crate::rpc::{
-    PairDeleteRequest, PairExtendRequest, PairPingRequest, ResponseParamsSuccess,
-    RpcResponsePayload,
+use {
+    crate::{
+        actors::ClearPairing,
+        rpc::{
+            PairDeleteRequest,
+            PairExtendRequest,
+            PairPingRequest,
+            ResponseParamsSuccess,
+            RpcResponsePayload,
+        },
+        PairingManager,
+        SocketEvent,
+        Topic,
+    },
+    backoff::{future::retry, ExponentialBackoffBuilder},
+    std::time::Duration,
+    tracing::{info, warn},
+    xtra::prelude::*,
 };
-use crate::{PairingManager, SocketEvent, Topic};
 
 impl Handler<PairExtendRequest> for PairingManager {
     type Return = RpcResponsePayload;
@@ -20,7 +26,7 @@ impl Handler<PairExtendRequest> for PairingManager {
         _message: PairExtendRequest,
         _ctx: &mut Context<Self>,
     ) -> Self::Return {
-        //TODO complete
+        // TODO complete
         RpcResponsePayload::Success(ResponseParamsSuccess::PairExtend(true))
     }
 }

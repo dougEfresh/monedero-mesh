@@ -1,6 +1,7 @@
-use serde::{Deserialize, Serialize};
-
-use crate::input::InputOperation;
+use {
+    crate::input::InputOperation,
+    serde::{Deserialize, Serialize},
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ExternalMsg {
@@ -104,7 +105,6 @@ pub enum ExternalMsg {
     ///
     /// - Lua: `"FocusFirst"`
     /// - YAML: `FocusFirst`
-    ///
     FocusFirst,
 
     /// Focus on the last node.
@@ -142,7 +142,8 @@ pub enum ExternalMsg {
     /// - YAML: `FocusByIndex: 2`
     FocusByIndex(usize),
 
-    /// Focus on the absolute `n`th node where `n` is read from the input buffer.
+    /// Focus on the absolute `n`th node where `n` is read from the input
+    /// buffer.
     ///
     /// Example:
     ///
@@ -485,7 +486,8 @@ pub enum ExternalMsg {
     /// - Lua: `{ SwitchLayout = "default" }`
     /// - YAML: `SwitchLayout: default`
     ///
-    /// > **NOTE:** To be specific about which layout to switch to, use `SwitchLayoutBuiltin` or
+    /// > **NOTE:** To be specific about which layout to switch to, use
+    /// > `SwitchLayoutBuiltin` or
     /// > `SwitchLayoutCustom` instead.
     SwitchLayout(String),
 
@@ -522,11 +524,13 @@ pub enum ExternalMsg {
     /// can be used.
     /// You may need to pass `ExplorePwd` depending on the expectation.
     ///
-    /// Type: { Call0 = { command = "string", args = { "list", "of", "string" } }
+    /// Type: { Call0 = { command = "string", args = { "list", "of", "string" }
+    /// }
     ///
     /// Example:
     ///
-    /// - Lua: `{ Call0 = { command = "bash", args = { "-c", "read -p test" } } }`
+    /// - Lua: `{ Call0 = { command = "bash", args = { "-c", "read -p test" } }
+    ///   }`
     /// - YAML: `Call0: { command: bash, args: ["-c", "read -p test"] }`
     Call0(Command),
 
@@ -538,7 +542,8 @@ pub enum ExternalMsg {
     /// Like `Call0` but without the flicker. The stdin, stdout
     /// stderr will be piped to null. So it's non-interactive.
     ///
-    /// Type: { CallSilently0 = { command = "string", args = {"list", "of", "string"} } }
+    /// Type: { CallSilently0 = { command = "string", args = {"list", "of",
+    /// "string"} } }
     ///
     /// Example:
     ///
@@ -551,8 +556,8 @@ pub enum ExternalMsg {
     /// You may want to use `BashExec0` instead.
     BashExec(String),
 
-    /// An alias to `Call: {command: bash, args: ["-c", "{string}"], silent: false}`
-    /// where `{string}` is the given value.
+    /// An alias to `Call: {command: bash, args: ["-c", "{string}"], silent:
+    /// false}` where `{string}` is the given value.
     ///
     /// Type: { BashExec0 = "string" }
     ///
@@ -617,7 +622,8 @@ pub enum ExternalMsg {
     /// Example:
     ///
     /// - Lua: `{ LuaEval = [[return { { LogInfo = io.read() } }]] }`
-    /// - Lua: `{ LuaEval = [[function(app) return { { LogInfo = app.pwd } } end]] }`
+    /// - Lua: `{ LuaEval = [[function(app) return { { LogInfo = app.pwd } }
+    ///   end]] }`
     /// - YAML: `LuaEval: "return { { LogInfo = io.read() } }"`
     /// - YAML: `LuaEval: "function(app) return { { LogInfo = app.pwd } } end"`
     LuaEval(String),

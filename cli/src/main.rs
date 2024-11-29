@@ -1,28 +1,37 @@
-use std::io::Write;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::time::Duration;
-
-use clap::Parser;
-use console::Term;
-use copypasta::{ClipboardContext, ClipboardProvider};
-use monedero_solana::monedero_mesh::{
-    auth_token, Dapp, KvStorage, Metadata, NoopSessionHandler, Pairing, ProjectId, ProposeFuture,
-    WalletConnectBuilder,
+use {
+    crate::{
+        cli::{Cli, SubCommands},
+        cmd::MainMenu,
+        config::AppConfig,
+        context::Context,
+        log::initialize_logging,
+    },
+    clap::Parser,
+    console::Term,
+    copypasta::{ClipboardContext, ClipboardProvider},
+    monedero_solana::{
+        monedero_mesh::{
+            auth_token,
+            Dapp,
+            KvStorage,
+            Metadata,
+            NoopSessionHandler,
+            Pairing,
+            ProjectId,
+            ProposeFuture,
+            WalletConnectBuilder,
+        },
+        ReownSigner,
+        SolanaSession,
+        SolanaWallet,
+        TokenAccountsClient,
+        TokenMetadataClient,
+        TokenTransferClient,
+    },
+    solana_rpc_client::nonblocking::rpc_client::RpcClient,
+    solana_sdk::{native_token::LAMPORTS_PER_SOL, pubkey::Pubkey},
+    std::{io::Write, str::FromStr, sync::Arc, time::Duration},
 };
-use monedero_solana::{
-    ReownSigner, SolanaSession, SolanaWallet, TokenAccountsClient, TokenMetadataClient,
-    TokenTransferClient,
-};
-use solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use solana_sdk::native_token::LAMPORTS_PER_SOL;
-use solana_sdk::pubkey::Pubkey;
-
-use crate::cli::{Cli, SubCommands};
-use crate::cmd::MainMenu;
-use crate::config::AppConfig;
-use crate::context::Context;
-use crate::log::initialize_logging;
 
 mod cli;
 mod cmd;
@@ -39,17 +48,14 @@ async fn init_dapp(cfg: AppConfig) -> anyhow::Result<(Pairing, ProposeFuture, bo
         .store(storage)
         .build()
         .await?;
-    let dapp = Dapp::new(
-        mgr,
-        Metadata {
-            name: env!("CARGO_BIN_NAME").to_string(),
-            description: "monedero mesh cli dapp".to_string(),
-            url: "https://github.com/dougeEfresh/monedero-mesh".to_string(),
-            icons: vec![],
-            verify_url: None,
-            redirect: None,
-        },
-    )
+    let dapp = Dapp::new(mgr, Metadata {
+        name: env!("CARGO_BIN_NAME").to_string(),
+        description: "monedero mesh cli dapp".to_string(),
+        url: "https://github.com/dougeEfresh/monedero-mesh".to_string(),
+        icons: vec![],
+        verify_url: None,
+        redirect: None,
+    })
     .await?;
 
     let (p, fut, cached) = dapp.propose(NoopSessionHandler, &cfg.chains()).await?;

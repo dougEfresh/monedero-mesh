@@ -1,5 +1,4 @@
-use solana_program::pubkey::Pubkey;
-use solana_sdk::signature::Signature;
+use {solana_program::pubkey::Pubkey, solana_sdk::signature::Signature};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

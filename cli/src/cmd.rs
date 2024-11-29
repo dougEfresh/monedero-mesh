@@ -6,13 +6,11 @@ pub mod transfer;
 use enum_str_derive::EnumStr;
 
 pub mod prompts {
-    use std::str::FromStr;
-
-    use solana_sdk::native_token::LAMPORTS_PER_SOL;
-    use solana_sdk::pubkey::Pubkey;
-    use solana_sdk::signature::Signature;
-
-    use crate::context::Context;
+    use {
+        crate::context::Context,
+        solana_sdk::{native_token::LAMPORTS_PER_SOL, pubkey::Pubkey, signature::Signature},
+        std::str::FromStr,
+    };
 
     pub fn signature(sig: Signature, context: &Context) -> anyhow::Result<()> {
         let msg = format!("Signature: {sig} Open on solscan.io?");

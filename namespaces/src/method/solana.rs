@@ -1,13 +1,15 @@
 //! See [solana](https://docs.walletconnect.com/advanced/multichain/rpc-reference/solana-rpc) methods
 
-use std::cmp::Ordering;
-use std::collections::BTreeSet;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
-
-use serde_with::{DeserializeFromStr, SerializeDisplay};
-
-use crate::method::Method;
+use {
+    crate::method::Method,
+    serde_with::{DeserializeFromStr, SerializeDisplay},
+    std::{
+        cmp::Ordering,
+        collections::BTreeSet,
+        fmt::{Display, Formatter},
+        str::FromStr,
+    },
+};
 
 const SIGN_MESSAGE: &str = "solana_signMessage";
 const SIGN_TRANSACTION: &str = "solana_signTransaction";

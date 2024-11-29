@@ -1,13 +1,15 @@
-use std::fmt::{Debug, Display, Formatter};
-
-use serde::de::DeserializeOwned;
-use tokio::time::timeout;
-use xtra::Address;
-
-use crate::actors::{SendRequest, TransportActor, Unsubscribe};
-use crate::domain::Topic;
-use crate::rpc::{RequestParams, ResponseParams};
-use crate::Result;
+use {
+    crate::{
+        actors::{SendRequest, TransportActor, Unsubscribe},
+        domain::Topic,
+        rpc::{RequestParams, ResponseParams},
+        Result,
+    },
+    serde::de::DeserializeOwned,
+    std::fmt::{Debug, Display, Formatter},
+    tokio::time::timeout,
+    xtra::Address,
+};
 
 #[derive(Clone)]
 pub struct TopicTransport {

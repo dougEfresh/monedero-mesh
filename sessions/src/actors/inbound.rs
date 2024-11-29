@@ -1,14 +1,16 @@
-use std::sync::Arc;
-
-use dashmap::DashMap;
-use monedero_relay::MessageIdGenerator;
-use tokio::sync::oneshot;
-use tracing::{debug, error, warn};
-use xtra::{Context, Handler};
-
-use crate::actors::{AddRequest, ClearPairing};
-use crate::domain::MessageId;
-use crate::rpc::Response;
+use {
+    crate::{
+        actors::{AddRequest, ClearPairing},
+        domain::MessageId,
+        rpc::Response,
+    },
+    dashmap::DashMap,
+    monedero_relay::MessageIdGenerator,
+    std::sync::Arc,
+    tokio::sync::oneshot,
+    tracing::{debug, error, warn},
+    xtra::{Context, Handler},
+};
 
 #[derive(Default, xtra::Actor)]
 pub struct InboundResponseActor {
@@ -56,15 +58,20 @@ impl Handler<Response> for InboundResponseActor {
 
 #[cfg(test)]
 mod test {
-    use std::time::Duration;
-
-    use anyhow::format_err;
-    use xtra::prelude::*;
-
-    use super::*;
-    use crate::actors::inbound::{AddRequest, InboundResponseActor};
-    use crate::rpc::{
-        RelayProtocolHelpers, ResponseParams, ResponseParamsSuccess, SessionProposeResponse,
+    use {
+        super::*,
+        crate::{
+            actors::inbound::{AddRequest, InboundResponseActor},
+            rpc::{
+                RelayProtocolHelpers,
+                ResponseParams,
+                ResponseParamsSuccess,
+                SessionProposeResponse,
+            },
+        },
+        anyhow::format_err,
+        std::time::Duration,
+        xtra::prelude::*,
     };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 5)]

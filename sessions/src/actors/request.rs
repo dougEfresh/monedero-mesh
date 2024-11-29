@@ -1,20 +1,41 @@
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
-
-use dashmap::DashMap;
-use monedero_relay::Client;
-use tracing::{debug, info, warn};
-use xtra::prelude::*;
-
-use crate::actors::proposal::ProposalActor;
-use crate::actors::session::SessionRequestHandlerActor;
-use crate::actors::{ClearPairing, RegisteredComponents, TransportActor};
-use crate::domain::Topic;
-use crate::rpc::{
-    ErrorParams, IntoUnknownError, PairPingRequest, Request, RequestParams, ResponseParamsError,
-    ResponseParamsSuccess, RpcRequest, RpcResponse, RpcResponsePayload, SessionProposeRequest,
+use {
+    crate::{
+        actors::{
+            proposal::ProposalActor,
+            session::SessionRequestHandlerActor,
+            ClearPairing,
+            RegisteredComponents,
+            TransportActor,
+        },
+        domain::Topic,
+        rpc::{
+            ErrorParams,
+            IntoUnknownError,
+            PairPingRequest,
+            Request,
+            RequestParams,
+            ResponseParamsError,
+            ResponseParamsSuccess,
+            RpcRequest,
+            RpcResponse,
+            RpcResponsePayload,
+            SessionProposeRequest,
+        },
+        Dapp,
+        MessageId,
+        PairingManager,
+        Result,
+        Wallet,
+    },
+    dashmap::DashMap,
+    monedero_relay::Client,
+    std::{
+        fmt::{Debug, Formatter},
+        sync::Arc,
+    },
+    tracing::{debug, info, warn},
+    xtra::prelude::*,
 };
-use crate::{Dapp, MessageId, PairingManager, Result, Wallet};
 
 #[derive(Clone, Actor)]
 pub struct RequestHandlerActor {
@@ -35,6 +56,7 @@ impl Debug for RequestHandlerActor {
 
 impl Handler<RegisteredComponents> for RequestHandlerActor {
     type Return = bool;
+
     async fn handle(
         &mut self,
         _message: RegisteredComponents,

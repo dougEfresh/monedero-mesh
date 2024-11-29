@@ -1,8 +1,11 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
-use std::time::Duration;
-
-use crate::{ConnectionHandler, ConnectionOptions, Message, Result, SubscriptionId, Topic};
+use {
+    crate::{ConnectionHandler, ConnectionOptions, Message, Result, SubscriptionId, Topic},
+    std::{
+        fmt::{Debug, Display, Formatter},
+        sync::Arc,
+        time::Duration,
+    },
+};
 
 mod factory;
 mod mocker;

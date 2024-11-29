@@ -1,18 +1,28 @@
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
-use std::time::Duration;
-
-use monedero_relay::Client;
-use tokio::sync::oneshot;
-use tracing::{debug, error, warn};
-use xtra::{Address, Context, Handler};
-
-use crate::actors::{AddRequest, ClearPairing, InboundResponseActor, SendRequest, Unsubscribe};
-use crate::domain::{MessageId, SubscriptionId};
-use crate::rpc::{
-    IrnMetadata, RelayProtocolMetadata, Request, Response, RpcResponse, RpcResponsePayload,
+use {
+    crate::{
+        actors::{AddRequest, ClearPairing, InboundResponseActor, SendRequest, Unsubscribe},
+        domain::{MessageId, SubscriptionId},
+        rpc::{
+            IrnMetadata,
+            RelayProtocolMetadata,
+            Request,
+            Response,
+            RpcResponse,
+            RpcResponsePayload,
+        },
+        Cipher,
+        Result,
+    },
+    monedero_relay::Client,
+    std::{
+        fmt::{Debug, Formatter},
+        sync::Arc,
+        time::Duration,
+    },
+    tokio::sync::oneshot,
+    tracing::{debug, error, warn},
+    xtra::{Address, Context, Handler},
 };
-use crate::{Cipher, Result};
 
 #[derive(Clone, xtra::Actor)]
 pub struct TransportActor {
@@ -159,55 +169,53 @@ impl Handler<SendRequest> for TransportActor {
     }
 }
 
-/*
-#[cfg(feature = "mock")]
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::actors::InboundResponseActor;
-    use crate::crypto::CipherError;
-    use crate::relay::mock::test::DummyHandler;
-    use crate::rpc::{PairPingRequest, RequestParams};
-    use crate::{KvStorage, Pairing};
-    use xtra::Mailbox;
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
-    async fn test_send() -> anyhow::Result<()> {
-        crate::test::init_tracing();
-        let inbound = xtra::spawn_tokio(InboundResponseActor::default(), Mailbox::unbounded());
-        let cipher: Cipher = Cipher::new(Arc::new(KvStorage::default()), None)?;
-        let transport = TransportActor::new(cipher.clone(), inbound);
-        let actor = xtra::spawn_tokio(transport.clone(), Mailbox::unbounded());
-        let pairing = Pairing::default();
-        let topic = pairing.topic.clone();
-        let params = RequestParams::PairPing(PairPingRequest {});
-        let result = actor
-            .send(SendRequest(topic.clone(), params.clone()))
-            .await?;
-        assert!(matches!(result, Err(crate::Error::NoClient)));
-        let handler = DummyHandler::new();
-        let client = Client::mock(handler.clone());
-        actor.send(client.clone()).await?;
-        let result = actor
-            .send(SendRequest(topic.clone(), params.clone()))
-            .await?;
-        assert!(matches!(
-            result,
-            Err(crate::Error::CipherError(CipherError::UnknownTopic(_)))
-        ));
-        cipher.set_pairing(Some(pairing))?;
-        let result = actor
-            .send(SendRequest(topic.clone(), params.clone()))
-            .await?;
-
-        assert!(matches!(
-            result,
-            Err(crate::Error::ConnectError(
-                crate::relay::ClientError::Disconnected
-            ))
-        ));
-        Ok(())
-    }
-}
-
- */
+// #[cfg(feature = "mock")]
+// #[cfg(test)]
+// mod test {
+// use super::*;
+// use crate::actors::InboundResponseActor;
+// use crate::crypto::CipherError;
+// use crate::relay::mock::test::DummyHandler;
+// use crate::rpc::{PairPingRequest, RequestParams};
+// use crate::{KvStorage, Pairing};
+// use xtra::Mailbox;
+//
+// #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
+// async fn test_send() -> anyhow::Result<()> {
+// crate::test::init_tracing();
+// let inbound = xtra::spawn_tokio(InboundResponseActor::default(),
+// Mailbox::unbounded()); let cipher: Cipher =
+// Cipher::new(Arc::new(KvStorage::default()), None)?; let transport =
+// TransportActor::new(cipher.clone(), inbound); let actor =
+// xtra::spawn_tokio(transport.clone(), Mailbox::unbounded()); let pairing =
+// Pairing::default(); let topic = pairing.topic.clone();
+// let params = RequestParams::PairPing(PairPingRequest {});
+// let result = actor
+// .send(SendRequest(topic.clone(), params.clone()))
+// .await?;
+// assert!(matches!(result, Err(crate::Error::NoClient)));
+// let handler = DummyHandler::new();
+// let client = Client::mock(handler.clone());
+// actor.send(client.clone()).await?;
+// let result = actor
+// .send(SendRequest(topic.clone(), params.clone()))
+// .await?;
+// assert!(matches!(
+// result,
+// Err(crate::Error::CipherError(CipherError::UnknownTopic(_)))
+// ));
+// cipher.set_pairing(Some(pairing))?;
+// let result = actor
+// .send(SendRequest(topic.clone(), params.clone()))
+// .await?;
+//
+// assert!(matches!(
+// result,
+// Err(crate::Error::ConnectError(
+// crate::relay::ClientError::Disconnected
+// ))
+// ));
+// Ok(())
+// }
+// }
+//

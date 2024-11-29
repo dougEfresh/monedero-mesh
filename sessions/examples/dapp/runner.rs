@@ -1,16 +1,25 @@
-use std::io::stdout;
-use std::panic::{set_hook, take_hook};
-use std::sync::mpsc;
-
-use ratatui::crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+use {
+    crate::{app, event_reader::EventReader, ui::UI},
+    ratatui::{
+        crossterm::{
+            event,
+            execute,
+            terminal::{
+                disable_raw_mode,
+                enable_raw_mode,
+                EnterAlternateScreen,
+                LeaveAlternateScreen,
+            },
+            ExecutableCommand,
+        },
+        prelude::*,
+    },
+    std::{
+        io::stdout,
+        panic::{set_hook, take_hook},
+        sync::mpsc,
+    },
 };
-use ratatui::crossterm::{event, execute, ExecutableCommand};
-use ratatui::prelude::*;
-
-use crate::app;
-use crate::event_reader::EventReader;
-use crate::ui::UI;
 
 pub struct Runner {}
 

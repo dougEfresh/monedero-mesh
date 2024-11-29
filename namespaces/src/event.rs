@@ -1,12 +1,14 @@
-use std::collections::BTreeSet;
-use std::fmt::{Display, Formatter};
-use std::ops::Deref;
-use std::str::FromStr;
-
-use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
-
-use crate::NamespaceName;
+use {
+    crate::NamespaceName,
+    serde::{Deserialize, Serialize},
+    serde_with::{DeserializeFromStr, SerializeDisplay},
+    std::{
+        collections::BTreeSet,
+        fmt::{Display, Formatter},
+        ops::Deref,
+        str::FromStr,
+    },
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]

@@ -1,10 +1,11 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessiondelete
 
-use serde::{Deserialize, Serialize};
-
-use super::IrnMetadata;
-use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
+use {
+    super::IrnMetadata,
+    crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError},
+    serde::{Deserialize, Serialize},
+};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1112,
@@ -42,10 +43,10 @@ impl IntoUnknownError for SessionDeleteRequest {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
-    use super::super::tests::param_serde_test;
-    use super::*;
+    use {
+        super::{super::tests::param_serde_test, *},
+        anyhow::Result,
+    };
 
     #[test]
     fn test_serde_session_delete_request() -> Result<()> {

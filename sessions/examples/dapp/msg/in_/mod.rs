@@ -1,9 +1,8 @@
 pub mod external;
 pub mod internal;
 
-pub use external::ExternalMsg;
-pub use internal::InternalMsg;
 use serde::{Deserialize, Serialize};
+pub use {external::ExternalMsg, internal::InternalMsg};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum MsgIn {

@@ -1,14 +1,13 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/session-proposal
 
-use std::fmt::{Debug, Formatter};
-
-use hkdf::Hkdf;
-use rand::rngs::OsRng;
-use rand::{CryptoRng, RngCore};
-use sha2::{Digest, Sha256};
-use x25519_dalek::{EphemeralSecret, PublicKey};
-
-use crate::domain::Topic;
+use {
+    crate::domain::Topic,
+    hkdf::Hkdf,
+    rand::{rngs::OsRng, CryptoRng, RngCore},
+    sha2::{Digest, Sha256},
+    std::fmt::{Debug, Formatter},
+    x25519_dalek::{EphemeralSecret, PublicKey},
+};
 
 /// Session key and topic derivation errors.
 #[derive(Debug, thiserror::Error)]

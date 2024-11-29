@@ -1,17 +1,27 @@
-use std::str::FromStr;
-use std::sync::{Arc, Mutex, Once};
-use std::time::Duration;
-
-use assert_matches::assert_matches;
-use async_trait::async_trait;
-use monedero_mesh::{
-    Actors, Cipher, Pairing, PairingManager, ProjectId, RegisteredComponents, SocketEvent,
-    SocketListener, Topic, WalletConnectBuilder,
+use {
+    assert_matches::assert_matches,
+    async_trait::async_trait,
+    monedero_mesh::{
+        Actors,
+        Cipher,
+        Pairing,
+        PairingManager,
+        ProjectId,
+        RegisteredComponents,
+        SocketEvent,
+        SocketListener,
+        Topic,
+        WalletConnectBuilder,
+    },
+    monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair},
+    std::{
+        str::FromStr,
+        sync::{Arc, Mutex, Once},
+        time::Duration,
+    },
+    tracing::info,
+    tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
 };
-use monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair};
-use tracing::info;
-use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::EnvFilter;
 
 #[allow(dead_code)]
 static INIT: Once = Once::new();

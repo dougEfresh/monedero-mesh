@@ -1,12 +1,16 @@
-use monedero_relay::{ClientError, CloseFrame, ConnectionHandler};
-use tokio::sync::mpsc;
-use tracing::{error, info, trace, warn};
-use xtra::prelude::*;
-
-use crate::actors::{InboundResponseActor, RequestHandlerActor};
-use crate::domain::Message;
-use crate::rpc::{Payload, Response, RpcRequest};
-use crate::{Cipher, SocketEvent};
+use {
+    crate::{
+        actors::{InboundResponseActor, RequestHandlerActor},
+        domain::Message,
+        rpc::{Payload, Response, RpcRequest},
+        Cipher,
+        SocketEvent,
+    },
+    monedero_relay::{ClientError, CloseFrame, ConnectionHandler},
+    tokio::sync::mpsc,
+    tracing::{error, info, trace, warn},
+    xtra::prelude::*,
+};
 
 pub struct RelayHandler {
     cipher: Cipher,

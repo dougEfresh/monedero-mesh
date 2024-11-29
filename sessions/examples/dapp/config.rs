@@ -1,8 +1,8 @@
-use std::collections::{BTreeMap, HashSet};
-
-use serde::{Deserialize, Serialize};
-
-use crate::app::ExternalMsg;
+use {
+    crate::app::ExternalMsg,
+    serde::{Deserialize, Serialize},
+    std::collections::{BTreeMap, HashSet},
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum HelpMenuLine {
@@ -59,13 +59,10 @@ pub struct KeyBindings {
 impl Default for KeyBindings {
     fn default() -> Self {
         let mut on_keys: BTreeMap<String, Action> = BTreeMap::new();
-        on_keys.insert(
-            "q".to_string(),
-            Action {
-                help: Some("quit".to_string()),
-                messages: vec![ExternalMsg::Quit],
-            },
-        );
+        on_keys.insert("q".to_string(), Action {
+            help: Some("quit".to_string()),
+            messages: vec![ExternalMsg::Quit],
+        });
         Self {
             on_key: on_keys,
             on_alphabet: None,

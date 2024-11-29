@@ -1,18 +1,17 @@
-use serde::{Deserialize, Serialize};
-
-use crate::app::Task;
+use {
+    crate::app::Task,
+    serde::{Deserialize, Serialize},
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum MsgOut {
     Refresh,
     ClearScreen,
     Debug(String),
-    /*
-    Call(Command),
-    Call0(Command),
-    CallSilently(Command),
-    CallSilently0(Command),
-     */
+    // Call(Command),
+    // Call0(Command),
+    // CallSilently(Command),
+    // CallSilently0(Command),
     EnableMouse,
     DisableMouse,
     ToggleMouse,

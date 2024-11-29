@@ -1,13 +1,13 @@
 //! https://specs.walletconnect.com/2.0/specs/clients/sign/rpc-methods
 //! #wc_sessionpropose
 
-use std::fmt::{Debug, Display, Formatter};
-
-use monedero_namespaces::Namespaces;
-use serde::{Deserialize, Serialize};
-
-use super::{IrnMetadata, Metadata, RelayProtocol};
-use crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError};
+use {
+    super::{IrnMetadata, Metadata, RelayProtocol},
+    crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError},
+    monedero_namespaces::Namespaces,
+    serde::{Deserialize, Serialize},
+    std::fmt::{Debug, Display, Formatter},
+};
 
 pub(super) const IRN_REQUEST_METADATA: IrnMetadata = IrnMetadata {
     tag: 1100,
@@ -54,12 +54,10 @@ impl Display for SessionProposeRequest {
             .optional_namespaces
             .as_ref()
             .map_or_else(String::new, |o| format!("{o}"));
-        /*
-        let opt = match &self.optional_namespaces {
-            Some(o) => format!("{}", o),
-            None => String::new(),
-        };
-             */
+        // let opt = match &self.optional_namespaces {
+        // Some(o) => format!("{}", o),
+        // None => String::new(),
+        // };
         write!(
             f,
             "required:[{}] optional:[{}]",
@@ -102,10 +100,10 @@ impl IntoUnknownError for SessionProposeRequest {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
-    use super::super::tests::param_serde_test;
-    use super::*;
+    use {
+        super::{super::tests::param_serde_test, *},
+        anyhow::Result,
+    };
 
     #[test]
     fn test_serde_session_propose_request() -> Result<()> {

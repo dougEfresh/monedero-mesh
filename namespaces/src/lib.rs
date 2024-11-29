@@ -4,11 +4,14 @@
 // - validates namespaces match at least all requiredNamespaces
 // ========================================================================================================
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::{Debug, Display, Formatter};
-use std::ops::{Deref, DerefMut};
-
-use serde::{Deserialize, Serialize};
+use {
+    serde::{Deserialize, Serialize},
+    std::{
+        collections::{BTreeMap, BTreeSet},
+        fmt::{Debug, Display, Formatter},
+        ops::{Deref, DerefMut},
+    },
+};
 
 mod account;
 mod chain_id;
@@ -17,14 +20,11 @@ mod event;
 mod method;
 mod name;
 
-pub use alloy_chains::Chain as AlloyChain;
-pub use error::Error;
-
-pub use crate::account::*;
-pub use crate::chain_id::*;
-pub use crate::event::*;
-pub use crate::method::*;
-pub use crate::name::NamespaceName;
+pub use {
+    crate::{account::*, chain_id::*, event::*, method::*, name::NamespaceName},
+    alloy_chains::Chain as AlloyChain,
+    error::Error,
+};
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -80,7 +80,7 @@ pub struct Namespace {
     pub events: Events,
     //#[serde(skip_serializing_if = "Option::is_none")]
     //#[serde(default)]
-    //pub extensions: Option<Vec<Self>>,
+    // pub extensions: Option<Vec<Self>>,
 }
 
 impl Namespaces {
@@ -118,15 +118,12 @@ where
                 let methods = Methods::from(&namespace_name);
                 let events = Events::from(&namespace_name);
                 let accounts = Accounts(BTreeSet::new());
-                (
-                    namespace_name,
-                    Namespace {
-                        accounts,
-                        chains: Chains(chains),
-                        methods,
-                        events,
-                    },
-                )
+                (namespace_name, Namespace {
+                    accounts,
+                    chains: Chains(chains),
+                    methods,
+                    events,
+                })
             })
             .collect::<BTreeMap<_, _>>();
 
@@ -148,9 +145,7 @@ impl Namespaces {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-
-    use super::*;
+    use {super::*, serde_json::json};
 
     #[test]
     #[allow(clippy::unwrap_used)]
@@ -213,7 +208,7 @@ mod tests {
           }
           }
         );
-        //eprintln!("{}", serde_json::to_string_pretty(&namespaces)?);
+        // eprintln!("{}", serde_json::to_string_pretty(&namespaces)?);
         assert_eq!(expected_json, serde_json::to_value(&namespaces)?);
         Ok(())
     }

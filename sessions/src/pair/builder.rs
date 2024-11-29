@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
-use monedero_relay::{ConnectionOptions, SerializedAuthToken};
-
-use crate::actors::Actors;
-use crate::domain::ProjectId;
-use crate::{Cipher, KvStorage, PairingManager};
+use {
+    crate::{actors::Actors, domain::ProjectId, Cipher, KvStorage, PairingManager},
+    monedero_relay::{ConnectionOptions, SerializedAuthToken},
+    std::sync::Arc,
+};
 
 pub struct WalletConnectBuilder {
     connect_opts: Option<ConnectionOptions>,
@@ -16,7 +14,6 @@ pub struct WalletConnectBuilder {
 }
 
 impl WalletConnectBuilder {
-    ///
     ///
     pub fn new(project_id: ProjectId, auth: SerializedAuthToken) -> Self {
         Self {

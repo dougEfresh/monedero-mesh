@@ -1,23 +1,30 @@
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
-
-use chacha20poly1305::aead::Aead;
-use chacha20poly1305::{AeadCore, ChaCha20Poly1305, KeyInit, Nonce};
-use dashmap::DashMap;
-use derive_more::{AsMut, AsRef};
-use hkdf::Hkdf;
-use monedero_relay::ed25519_dalek::{SecretKey, VerifyingKey};
-use monedero_relay::{DecodedTopic, Topic};
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use tracing::debug;
-use x25519_dalek::{PublicKey, StaticSecret};
-
-use crate::crypto::error::CipherError;
-use crate::pairing_uri::Pairing;
-use crate::rpc::SessionSettleRequest;
-use crate::{KvStorage, SessionSettled, SessionTopic};
+use {
+    crate::{
+        crypto::error::CipherError,
+        pairing_uri::Pairing,
+        rpc::SessionSettleRequest,
+        KvStorage,
+        SessionSettled,
+        SessionTopic,
+    },
+    chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, KeyInit, Nonce},
+    dashmap::DashMap,
+    derive_more::{AsMut, AsRef},
+    hkdf::Hkdf,
+    monedero_relay::{
+        ed25519_dalek::{SecretKey, VerifyingKey},
+        DecodedTopic,
+        Topic,
+    },
+    serde::{de::DeserializeOwned, Deserialize, Serialize},
+    sha2::{Digest, Sha256},
+    std::{
+        fmt::{Debug, Formatter},
+        sync::Arc,
+    },
+    tracing::debug,
+    x25519_dalek::{PublicKey, StaticSecret},
+};
 
 pub const MULTICODEC_ED25519_LENGTH: usize = 32;
 const CRYPTO_STORAGE_PREFIX_KEY: &str = "crypto";
@@ -305,7 +312,7 @@ impl Cipher {
         static_key: StaticSecret,
         controller_pk: String,
     ) -> Result<(Topic, StaticSecret), CipherError> {
-        //let key = DecodedClientId(
+        // let key = DecodedClientId(
         //(&data_encoding::HEXLOWER_PERMISSIVE.decode(controller_pk.as_bytes()).unwrap())[..].try_into().unwrap(),
         //);
         let decoded = data_encoding::HEXLOWER_PERMISSIVE.decode(controller_pk.as_bytes())?;
@@ -415,17 +422,24 @@ impl Cipher {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use anyhow::format_err;
-    use monedero_relay::MessageIdGenerator;
-
-    use super::*;
-    use crate::crypto::session::SessionKey;
-    use crate::rpc::{
-        Controller, Metadata, PairPingRequest, Request, RequestParams, SessionExtendRequest,
+    use {
+        super::*,
+        crate::{
+            crypto::session::SessionKey,
+            rpc::{
+                Controller,
+                Metadata,
+                PairPingRequest,
+                Request,
+                RequestParams,
+                SessionExtendRequest,
+            },
+            storage::KvStorage,
+        },
+        anyhow::format_err,
+        monedero_relay::MessageIdGenerator,
+        std::str::FromStr,
     };
-    use crate::storage::KvStorage;
 
     fn temp_location() -> Option<String> {
         let topic = Topic::generate();
@@ -454,7 +468,7 @@ mod tests {
         let (session_topic, _) = wallet.create_common_topic(dapp.public_key_hex().unwrap())?;
 
         assert_eq!(dapp_topic, session_topic);
-        //assert_eq!(wallet.public_key().unwrap(), wallet_pk);
+        // assert_eq!(wallet.public_key().unwrap(), wallet_pk);
 
         let dapp_req_ext = RequestParams::SessionExtend(SessionExtendRequest { expiry: 1 });
         let dapp_req_ext = Request::new(generator.next(), dapp_req_ext.clone().try_into()?);

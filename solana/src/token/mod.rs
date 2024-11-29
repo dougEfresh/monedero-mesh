@@ -5,21 +5,19 @@ mod mint;
 mod sort;
 mod symbol;
 
-use std::cmp::Ordering;
-use std::collections::BTreeSet;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
-
-pub use account_client::*;
-pub use client::*;
-pub use metadata::*;
-pub use mint::*;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use solana_account_decoder::parse_token::UiTokenAccount;
-use solana_program::pubkey::Pubkey;
-pub use symbol::*;
-
-use crate::Result;
+use {
+    crate::Result,
+    serde::{Deserialize, Deserializer, Serialize, Serializer},
+    solana_account_decoder::parse_token::UiTokenAccount,
+    solana_program::pubkey::Pubkey,
+    std::{
+        cmp::Ordering,
+        collections::BTreeSet,
+        fmt::{Display, Formatter},
+        str::FromStr,
+    },
+};
+pub use {account_client::*, client::*, metadata::*, mint::*, symbol::*};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TokenMetadata {

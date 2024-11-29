@@ -1,9 +1,13 @@
-use std::string::FromUtf8Error;
-
-use base64::prelude::BASE64_STANDARD;
-use base64::{DecodeError, Engine};
-use chacha20poly1305::aead::{Aead, KeyInit, OsRng, Payload};
-use chacha20poly1305::{AeadCore, ChaCha20Poly1305, Nonce};
+use {
+    base64::{prelude::BASE64_STANDARD, DecodeError, Engine},
+    chacha20poly1305::{
+        aead::{Aead, KeyInit, OsRng, Payload},
+        AeadCore,
+        ChaCha20Poly1305,
+        Nonce,
+    },
+    std::string::FromUtf8Error,
+};
 
 // https://specs.walletconnect.com/2.0/specs/clients/core/crypto/
 // crypto-envelopes
@@ -202,10 +206,7 @@ fn decrypt(nonce: &Nonce, payload: Payload<'_, '_>, key: &SymKey) -> Result<Vec<
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-    use hex_literal::hex;
-
-    use super::*;
+    use {super::*, anyhow::Result, hex_literal::hex};
 
     // https://www.rfc-editor.org/rfc/rfc7539#section-2.8.2
     // Below constans are taken from this section of the RFC.
@@ -238,7 +239,9 @@ mod tests {
         let encoded = encode(EnvelopeType::Type0, &sealed, init_vec);
         assert_eq!(
             encoded,
-            "AAcAAABAQUJDREVGR9MajTRkjmDbe4avvFPvfsKkre1RKW4I/qnitac27mLWPb6kXoypZxKC+vtp2pJyixpx3gqeBgspBdaltn7NOzaS3b1/LXeLjJgDruMoCRtY+rMk5PrWdZRVhYCLSDHXvD/03vCOS3qd5XbSZYbOxkthFhrhC1lPCeJqfpAuy9BgBpE="
+            "AAcAAABAQUJDREVGR9MajTRkjmDbe4avvFPvfsKkre1RKW4I/\
+             qnitac27mLWPb6kXoypZxKC+vtp2pJyixpx3gqeBgspBdaltn7NOzaS3b1/\
+             LXeLjJgDruMoCRtY+rMk5PrWdZRVhYCLSDHXvD/03vCOS3qd5XbSZYbOxkthFhrhC1lPCeJqfpAuy9BgBpE="
         );
 
         let data = BASE64_STANDARD.decode(&encoded)?;

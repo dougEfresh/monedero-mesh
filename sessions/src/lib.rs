@@ -12,39 +12,45 @@ pub mod session;
 mod storage;
 mod transport;
 mod wallet;
-use std::fmt::{Display, Formatter};
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::{Arc, Mutex, Once};
-use std::task::{Context, Poll};
-
-pub use crypto::cipher::Cipher;
-pub use dapp::Dapp;
-pub use domain::Message;
-pub use error::Error;
-pub use handlers::*;
-pub use pair::{PairingManager, WalletConnectBuilder};
-pub use pairing_uri::Pairing;
-use pin_project_lite::pin_project;
-use serde::{Deserialize, Serialize};
-pub use storage::KvStorage;
-use tokio::sync::oneshot;
-pub use wallet::Wallet;
-
-pub use crate::session::ClientSession;
+pub use {
+    crate::session::ClientSession,
+    crypto::cipher::Cipher,
+    dapp::Dapp,
+    domain::Message,
+    error::Error,
+    handlers::*,
+    pair::{PairingManager, WalletConnectBuilder},
+    pairing_uri::Pairing,
+    storage::KvStorage,
+    wallet::Wallet,
+};
+use {
+    pin_project_lite::pin_project,
+    serde::{Deserialize, Serialize},
+    std::{
+        fmt::{Display, Formatter},
+        future::Future,
+        pin::Pin,
+        sync::{Arc, Mutex, Once},
+        task::{Context, Poll},
+    },
+    tokio::sync::oneshot,
+};
 pub type Atomic<T> = Arc<Mutex<T>>;
-pub use actors::{Actors, RegisteredComponents};
-pub use domain::*;
-use monedero_namespaces::{Event, Namespaces};
-pub use monedero_relay::ClientError;
-pub use rpc::{Metadata, SdkErrors};
-
-use crate::rpc::SessionRequestRequest;
+use {
+    crate::rpc::SessionRequestRequest,
+    monedero_namespaces::{Event, Namespaces},
+};
+pub use {
+    actors::{Actors, RegisteredComponents},
+    domain::*,
+    monedero_relay::ClientError,
+    rpc::{Metadata, SdkErrors},
+};
 pub type PairingTopic = Topic;
 pub type SessionTopic = Topic;
 
-pub use monedero_relay::auth_token;
-pub use storage::Error as StorageError;
+pub use {monedero_relay::auth_token, storage::Error as StorageError};
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {
     Connected,
@@ -130,16 +136,14 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use std::sync::Arc;
-    use std::time::Duration;
-
-    use monedero_namespaces::Event;
-    use tokio::sync::Mutex;
-    use tracing_subscriber::fmt::format::FmtSpan;
-    use tracing_subscriber::EnvFilter;
-    use xtra::prelude::*;
-
-    use crate::{NoopSessionHandler, SessionHandler, INIT};
+    use {
+        crate::{NoopSessionHandler, SessionHandler, INIT},
+        monedero_namespaces::Event,
+        std::{sync::Arc, time::Duration},
+        tokio::sync::Mutex,
+        tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
+        xtra::prelude::*,
+    };
 
     pub(crate) fn init_tracing() {
         INIT.call_once(|| {
@@ -222,7 +226,7 @@ pub(crate) mod test {
         a1.send(Dummy).await?;
         a1.send(boxed).await?;
         a1.send(Event::AccountsChanged).await?;
-        //a2.broadcast(Dummy).await?;
+        // a2.broadcast(Dummy).await?;
         tokio::time::sleep(Duration::from_secs(3)).await;
         eprintln!("size {}", act.handlers.lock().await.len());
         Ok(())

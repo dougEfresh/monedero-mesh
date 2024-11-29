@@ -1,13 +1,19 @@
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
-use std::thread;
-use std::time::Duration;
-
-use anyhow::Error;
-use ratatui::crossterm::event::{self, Event, MouseEventKind};
-
-use crate::app::{ExternalMsg, InternalMsg, MsgIn, Task};
-use crate::input::Key;
+use {
+    crate::{
+        app::{ExternalMsg, InternalMsg, MsgIn, Task},
+        input::Key,
+    },
+    anyhow::Error,
+    ratatui::crossterm::event::{self, Event, MouseEventKind},
+    std::{
+        sync::{
+            mpsc,
+            mpsc::{Receiver, Sender},
+        },
+        thread,
+        time::Duration,
+    },
+};
 
 pub(crate) struct EventReader {
     task_sender: Sender<Task>,
