@@ -1,0 +1,39 @@
+[package]
+name = "monedero-store"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+base64 = { workspace = true }
+microxdg = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+url = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+kvx = { version = "0.9" }
+sha2 = { workspace = true }
+hex = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { version = "0.3" ,  features = ["Storage", "Window"] }
+gloo-storage = { workspace = true }
+getrandom = { version = "0.2" , features = ["js"]}
+console_error_panic_hook = { workspace = true }
+
+[dev-dependencies]
+anyhow = "1"
+monedero-relay = { path = "../relay" }
+wasm-bindgen-test = { version = "0.3" }
+
+[lints]
+workspace = true
+
+[[test]]
+name = "browser"

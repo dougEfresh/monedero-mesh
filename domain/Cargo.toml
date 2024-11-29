@@ -1,0 +1,25 @@
+[package]
+name = "monedero-domain"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+data-encoding = { workspace = true }
+derive_more = { workspace = true }
+monedero-relay = { path = "../relay" }
+monedero-namespaces = { path = "../namespaces" }
+rand = { workspace = true }
+regex = { workspace = true }
+serde = { workspace =  true}
+thiserror = { workspace = true }
+url = { workspace = true }
+x25519-dalek = { version = "2", features = ["static_secrets", "serde"] }
+
+[dev-dependencies]
+hex-literal = "0.4"
+
+[lints]
+workspace = true
