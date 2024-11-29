@@ -104,7 +104,7 @@ async fn test_local_client() -> anyhow::Result<()> {
     init_tracing();
     let handler = DummyHandler::new();
     let c = Client::new(handler.clone());
-    let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
+    let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let opts = ConnectionOptions::new(p, auth_token("https://github.com/dougEfresh"));
     c.connect(&opts).await?;
     tokio::time::sleep(Duration::from_secs(1)).await;

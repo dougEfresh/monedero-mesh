@@ -6,11 +6,7 @@ use {
             RegisteredComponents,
             TransportActor,
         },
-        rpc::{
-            Request,
-            RequestParams,
-            RpcRequest,
-        },
+        rpc::{Request, RequestParams, RpcRequest},
         PairingManager,
         Result,
     },

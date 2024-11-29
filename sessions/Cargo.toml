@@ -82,20 +82,16 @@ name = "dapp"
 path = "examples/dapp/main.rs"
 
 [dev-dependencies]
-assert_matches = { version = "1.5.0" }
-hex-literal = { version = "0.4.1" }
-# Serialization/Deserealization changes order of fields. Preserving order
-# makes it easier to construct the unittests.
+assert_matches = { version = "1" }
+hex-literal = { version = "0.4" }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 anyhow = "1"
-clap = { version = "4.4", features = ["derive"] }
 chrono = "0.4"
 tokio = { version = "1", features = ["full"] }
-env_logger = { version = "0.9.3" }
+env_logger = { version = "0.11" }
 tracing = { version = "0.1" }
-tracing-error = { version = "0.2.0"}
+tracing-error = { version = "0.2"}
 dotenvy = {version = "0.15"}
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
-ratatui = { version = "0.28", features = ["all-widgets"]}
-tui-input = "0.10.0"
-
+copypasta = { version = "0.10" }
+qr2term = { version = "0.3" }

@@ -1,43 +1,39 @@
-mod app;
-mod config;
-mod event_reader;
-mod input;
 mod log;
-mod msg;
-mod runner;
-mod ui;
-
 use {
     crate::log::initialize_logging,
+    copypasta::{ClipboardContext, ClipboardProvider},
+    monedero_domain::{
+        namespaces::{ChainId, ChainType, Chains},
+        Pairing,
+        ProjectId,
+    },
     monedero_mesh::{
         self,
         ClientSession,
         Dapp,
-        KvStorage,
         Metadata,
         NoopSessionHandler,
-        Pairing,
-        ProjectId,
         WalletConnectBuilder,
     },
-    monedero_namespaces::{ChainId, ChainType, Chains},
-    std::{
-        collections::BTreeMap,
-        panic::{set_hook, take_hook},
-        time::Duration,
-    },
+    monedero_store::KvStorage,
+    std::time::Duration,
     tokio::{select, signal},
     tracing::info,
 };
 
 async fn propose(dapp: &Dapp) -> anyhow::Result<(Pairing, ClientSession)> {
     let chains = Chains::from([
-        ChainId::Solana(ChainType::Test),
+        ChainId::Solana(ChainType::Dev),
         ChainId::EIP155(alloy_chains::Chain::sepolia()),
     ]);
+    info!("purposing chains {chains}");
     let (p, rx, restored) = dapp.propose(NoopSessionHandler, &chains).await?;
+    let mut ctx = ClipboardContext::new().expect("Failed to open clipboard");
+    ctx.set_contents(p.to_string())
+        .expect("Failed to set clipboard");
     if !restored {
-        println!("\n\n{p}\n\n");
+        qr2term::print_qr(&p.to_string())?;
+        eprintln!("\n\n{p}\n\n");
     }
     let session = rx.await?;
     Ok((p, session))
@@ -77,7 +73,7 @@ async fn do_dapp_stuff(dapp: Dapp) {
 async fn dapp_test() -> anyhow::Result<()> {
     info!("starting sanity test");
     let auth = monedero_relay::auth_token("https://github.com/dougEfresh");
-    let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
+    let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let store = KvStorage::file(None)?;
     let builder = WalletConnectBuilder::new(p, auth);
     let builder = builder.store(store);
@@ -111,7 +107,5 @@ async fn dapp_test() -> anyhow::Result<()> {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     initialize_logging()?;
-    let runner = runner::Runner {};
-    runner.run()
-    // dapp_test().await
+    dapp_test().await
 }

@@ -208,8 +208,10 @@ mod tests {
           }
           }
         );
-        // eprintln!("{}", serde_json::to_string_pretty(&namespaces)?);
-        assert_eq!(expected_json, serde_json::to_value(&namespaces)?);
+        // eprintln!("{}", serde_json::to_string_pretty(&namespaces)?)
+        let result = serde_json::to_value(&namespaces)?;
+        eprintln!("result: {:?}", result);
+        assert_eq!(expected_json, result);
         Ok(())
     }
     #[test]
@@ -266,7 +268,7 @@ mod tests {
             ],
             "events": [],
             "chains": [
-              "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K"
+              "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
             ]
           },
           "near": {
@@ -332,7 +334,7 @@ mod tests {
         let accounts: Vec<Account> = sol_ns.accounts.iter().cloned().collect();
         let found = accounts
             .into_iter()
-            .find(|a| a.chain == ChainId::Solana(ChainType::Test));
+            .find(|a| a.chain == ChainId::Solana(ChainType::Dev));
         assert!(found.is_some());
         Ok(())
     }

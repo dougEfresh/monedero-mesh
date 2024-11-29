@@ -22,7 +22,7 @@ use {
     },
     tokio::{
         select,
-        sync::{broadcast, mpsc, RwLock},
+        sync::{mpsc, RwLock},
     },
     tracing::{debug, info, warn},
 };
@@ -101,8 +101,8 @@ impl Mocker {
         topic: Topic,
         message: impl Into<Arc<str>> + Send,
         tag: u32,
-        ttl: Duration,
-        prompt: bool,
+        _ttl: Duration,
+        _prompt: bool,
     ) -> Result<()> {
         if !self.connected.load(Ordering::Relaxed) {
             return Err(ClientError::Disconnected);

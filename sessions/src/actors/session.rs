@@ -1,11 +1,6 @@
 use {
     crate::{
-        actors::{
-            ClearPairing,
-            ClearSession,
-            SessionPing,
-            TransportActor,
-        },
+        actors::{ClearPairing, ClearSession, SessionPing, TransportActor},
         rpc::{
             ErrorParams,
             RequestParams,

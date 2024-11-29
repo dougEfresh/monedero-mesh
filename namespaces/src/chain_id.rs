@@ -15,10 +15,9 @@ const SOLANA: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 // const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
 const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
 /// This is actually Solana Dev
-const SOLANA_DEV: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
-// const SOLANA_TEST_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
+const SOLANA_DEV: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
+// const SOLANA_DEV: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 const SOLANA_DEV_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
-
 const SOLANA_TEST: &str = "solana:testnet";
 
 #[derive(
@@ -227,19 +226,19 @@ mod tests {
         assert!(matches!(eip155, ChainId::EIP155(_)));
         assert_eq!(eip155.to_string(), "eip155:1");
 
-        let solana = ChainId::from_str(SOLANA_OLD)?;
+        let solana = ChainId::from_str(SOLANA)?;
         assert!(matches!(solana, ChainId::Solana(_)));
-        assert_eq!(solana.to_string(), SOLANA_OLD);
-        assert_eq!(solana, SOLANA_OLD.parse()?);
+        assert_eq!(solana.to_string(), SOLANA);
+        assert_eq!(solana, SOLANA.parse()?);
 
         let with_account = format!("{SOLANA_OLD}:someaccount");
         let solana = ChainId::from_str(&with_account)?;
         assert!(matches!(solana, ChainId::Solana(_)));
 
-        let solana = ChainId::from_str(SOLANA_DEV_OLD)?;
+        let solana = ChainId::from_str(SOLANA_DEV)?;
         assert!(matches!(solana, ChainId::Solana(ChainType::Dev)));
-        assert_eq!(solana.to_string(), SOLANA_DEV_OLD);
-        assert_eq!(solana, SOLANA_DEV_OLD.parse()?);
+        assert_eq!(solana.to_string(), SOLANA_DEV);
+        assert_eq!(solana, SOLANA_DEV.parse()?);
 
         // let solana = ChainId::from_str(SOLANA_TEST_OLD)?;
         // assert!(matches!(solana, ChainId::Solana(ChainType::Test)));

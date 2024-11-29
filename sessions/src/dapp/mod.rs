@@ -2,12 +2,7 @@ mod session_settle;
 
 use {
     crate::{
-        rpc::{
-            Metadata,
-            RequestParams,
-            SessionProposeRequest,
-            SessionProposeResponse,
-        },
+        rpc::{Metadata, RequestParams, SessionProposeRequest, SessionProposeResponse},
         session::{Category, PendingSession},
         Error::NoPairingTopic,
         PairingManager,

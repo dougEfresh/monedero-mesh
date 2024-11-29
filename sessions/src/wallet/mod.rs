@@ -20,10 +20,7 @@ use {
         SessionHandler,
         WalletSettlementHandler,
     },
-    monedero_domain::{
-        Pairing,
-        SessionSettled,
-    },
+    monedero_domain::{Pairing, SessionSettled},
     std::{
         fmt::{Debug, Display, Formatter},
         str::FromStr,
@@ -95,7 +92,7 @@ impl Wallet {
 async fn send_settlement(wallet: Wallet, request: SessionProposeRequest, public_key: String) {
     // give time for dapp to get my public key and subscribe when in mock mode
     #[cfg(feature = "mock")]
-    tokio::time::sleep(Duration::from_millis(1000)).await;
+    tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
 
     if let Err(e) = wallet.send_settlement(request, public_key).await {
         warn!("failed to create ClientSession: '{e}'");

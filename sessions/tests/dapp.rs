@@ -2,8 +2,27 @@ use {
     anyhow::format_err,
     assert_matches::assert_matches,
     async_trait::async_trait,
+    monedero_domain::{
+        namespaces::{
+            Account,
+            Accounts,
+            AlloyChain,
+            ChainId,
+            ChainType,
+            Chains,
+            EipMethod,
+            Events,
+            Method,
+            Methods,
+            Namespace,
+            NamespaceName,
+            Namespaces,
+            SolanaMethod,
+        },
+        ProjectId,
+        Topic,
+    },
     monedero_mesh::{
-        crypto::CipherError,
         rpc::{
             Metadata,
             ResponseParamsError,
@@ -16,31 +35,13 @@ use {
         ClientSession,
         Dapp,
         NoopSessionHandler,
-        ProjectId,
         ProposeFuture,
         RegisteredComponents,
         Result,
         SdkErrors,
-        Topic,
         Wallet,
         WalletConnectBuilder,
         WalletSettlementHandler,
-    },
-    monedero_namespaces::{
-        Account,
-        Accounts,
-        AlloyChain,
-        ChainId,
-        ChainType,
-        Chains,
-        EipMethod,
-        Events,
-        Method,
-        Methods,
-        Namespace,
-        NamespaceName,
-        Namespaces,
-        SolanaMethod,
     },
     monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair},
     std::{
@@ -129,7 +130,7 @@ impl WalletSettlementHandler for WalletProposal {
 pub(crate) async fn init_test_components() -> anyhow::Result<TestStuff> {
     init_tracing();
     let shared_id = Topic::generate();
-    let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
+    let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let auth = auth_token("https://github.com/dougEfresh");
     let dapp_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Dapp);
     let wallet_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Wallet);

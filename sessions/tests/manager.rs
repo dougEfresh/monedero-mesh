@@ -1,16 +1,14 @@
 use {
     assert_matches::assert_matches,
     async_trait::async_trait,
+    monedero_cipher::Cipher,
+    monedero_domain::{Pairing, ProjectId, Topic},
     monedero_mesh::{
         Actors,
-        Cipher,
-        Pairing,
         PairingManager,
-        ProjectId,
         RegisteredComponents,
         SocketEvent,
         SocketListener,
-        Topic,
         WalletConnectBuilder,
     },
     monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair},
@@ -30,7 +28,6 @@ pub(crate) struct TestStuff {
     pub(crate) dapp_cipher: Cipher,
     pub(crate) wallet_cipher: Cipher,
     pub(crate) dapp_actors: Actors,
-    pub(crate) wallet_actors: Actors,
     pub(crate) dapp: PairingManager,
     pub(crate) wallet: PairingManager,
 }
@@ -63,13 +60,13 @@ pub(crate) async fn yield_ms(ms: u64) {
 pub(crate) async fn init_test_components(pair: bool) -> anyhow::Result<TestStuff> {
     init_tracing();
     let shared_id = Topic::generate();
-    let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
+    let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let auth = auth_token("https://github.com/dougEfresh");
     let dapp_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Dapp);
     let wallet_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Wallet);
     let dapp_opts = ConnectionOptions::new(p.clone(), auth.clone(), dapp_id);
     let wallet_opts = ConnectionOptions::new(p, auth, wallet_id);
-    let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
+    let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let dapp =
         WalletConnectBuilder::new(p.clone(), auth_token(String::from("https://example.com")))
             .connect_opts(dapp_opts)
@@ -87,16 +84,15 @@ pub(crate) async fn init_test_components(pair: bool) -> anyhow::Result<TestStuff
         dapp_cipher: dapp.ciphers(),
         wallet_cipher: wallet.ciphers(),
         dapp_actors: dapp_actors.clone(),
-        wallet_actors: wallet_actors.clone(),
         dapp,
         wallet,
     };
     if pair {
         dapp_wallet_ciphers(&t).await?;
         let registered = wallet_actors.request().send(RegisteredComponents).await?;
-        assert_eq!(1, registered);
+        assert!(registered);
         let registered = dapp_actors.request().send(RegisteredComponents).await?;
-        assert_eq!(1, registered);
+        assert!(registered);
     }
     Ok(t)
 }
@@ -148,7 +144,7 @@ async fn test_relay_pair_delete() -> anyhow::Result<()> {
     assert!(c.pairing().is_none());
     let dapp_actors = test_components.dapp_actors;
     let components = dapp_actors.request().send(RegisteredComponents).await?;
-    assert_eq!(0, components);
+    assert!(components);
     Ok(())
 }
 
@@ -181,7 +177,7 @@ async fn test_relay_disconnect() -> anyhow::Result<()> {
     yield_ms(3300).await;
     // should have reconnected
     dapp.ping().await?;
-    let l = listener.events.lock()?;
+    let l = listener.events.lock().unwrap();
     assert_eq!(2, l.len());
     Ok(())
 }

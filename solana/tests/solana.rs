@@ -186,7 +186,7 @@ impl monedero_mesh::SessionHandler for MockWallet {
 pub(crate) async fn init_test_components() -> anyhow::Result<(Dapp, Wallet, MockWallet)> {
     init_tracing();
     let shared_id = Topic::generate();
-    let p = ProjectId::from("9d5b20b16777cc49100cf9df3649bd24");
+    let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let auth = auth_token("https://github.com/dougEfresh");
     let dapp_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Dapp);
     let wallet_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Wallet);

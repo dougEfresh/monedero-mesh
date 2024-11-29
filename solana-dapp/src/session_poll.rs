@@ -41,7 +41,7 @@ pub struct SessionPoll {
 
 impl SessionPoll {
     pub async fn init(config: AppConfig) -> anyhow::Result<Self> {
-        let project = ProjectId::from("1760736b8b49aeb707b1a80099e51e58");
+        let project = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
         let auth = auth_token("https://github.com/dougEfresh");
         let mgr = WalletConnectBuilder::new(project, auth).build().await?;
         let dapp = Dapp::new(

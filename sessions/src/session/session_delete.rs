@@ -1,9 +1,5 @@
 use {
-    crate::{
-        rpc::SessionDeleteRequest,
-        ClientSession,
-        SessionDeleteHandler,
-    },
+    crate::{rpc::SessionDeleteRequest, ClientSession, SessionDeleteHandler},
     tokio::sync::mpsc,
     tracing::info,
     xtra::prelude::*,

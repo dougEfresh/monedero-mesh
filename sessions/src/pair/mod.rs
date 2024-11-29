@@ -9,12 +9,7 @@ use {
     crate::{
         actors::Actors,
         relay::RelayHandler,
-        rpc::{
-            PairDeleteRequest,
-            PairExtendRequest,
-            PairPingRequest,
-            RequestParams,
-        },
+        rpc::{PairDeleteRequest, PairExtendRequest, PairPingRequest, RequestParams},
         transport::TopicTransport,
         Error,
         Result,
