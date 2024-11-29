@@ -1,6 +1,6 @@
 use {
     crate::rpc::{ErrorParams, IntoUnknownError, ResponseParamsError},
-    monedero_namespaces::ChainId,
+    monedero_domain::namespaces::ChainId,
     serde::{Deserialize, Serialize},
     std::fmt::{Display, Formatter},
 };
@@ -23,7 +23,7 @@ pub(super) const IRN_RESPONSE_METADATA: IrnMetadata = IrnMetadata {
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestMethod {
-    pub method: monedero_namespaces::Method,
+    pub method: monedero_domain::namespaces::Method,
     /// Opaque blockchain RPC parameters.
     ///
     /// Parsing is deferred to a higher level, blockchain RPC aware code.

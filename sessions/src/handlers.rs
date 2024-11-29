@@ -14,7 +14,7 @@ use {
         SocketEvent,
     },
     async_trait::async_trait,
-    monedero_namespaces::Namespaces,
+    monedero_domain::namespaces::Namespaces,
     serde_json::json,
 };
 

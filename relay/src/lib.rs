@@ -35,6 +35,10 @@ mod client;
 #[cfg(not(feature = "mock"))]
 pub use client::Client;
 
+pub type PairingTopic = Topic;
+pub type SessionTopic = Topic;
+pub const RELAY_PROTOCOL: &str = "irn";
+
 #[cfg(feature = "mock")]
 mod mock;
 pub use error::ClientError;
@@ -42,8 +46,7 @@ pub use error::ClientError;
 pub use mock::*;
 pub type Result<T> = std::result::Result<T, ClientError>;
 
-#[cfg(feature = "mock")]
-pub(crate) fn shorten_topic(id: &Topic) -> String {
+pub fn shorten_topic(id: &Topic) -> String {
     let mut id = format!("{id}");
     if id.len() > 10 {
         id = String::from(&id[0..9]);
@@ -213,3 +216,4 @@ pub fn auth_token(url: impl Into<String>) -> SerializedAuthToken {
         .as_jwt(&key)
         .unwrap()
 }
+

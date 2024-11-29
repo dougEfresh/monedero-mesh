@@ -1,7 +1,6 @@
 use {
     crate::{
         actors::{AddRequest, ClearPairing, InboundResponseActor, SendRequest, Unsubscribe},
-        domain::{MessageId, SubscriptionId},
         rpc::{
             IrnMetadata,
             RelayProtocolMetadata,
@@ -10,9 +9,10 @@ use {
             RpcResponse,
             RpcResponsePayload,
         },
-        Cipher,
         Result,
     },
+    monedero_domain::{MessageId, SubscriptionId},
+    monedero_cipher::Cipher,
     monedero_relay::Client,
     std::{
         fmt::{Debug, Formatter},

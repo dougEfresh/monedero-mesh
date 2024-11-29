@@ -8,7 +8,6 @@ pub use builder::WalletConnectBuilder;
 use {
     crate::{
         actors::Actors,
-        domain::{SubscriptionId, Topic},
         relay::RelayHandler,
         rpc::{
             ErrorParams,
@@ -19,15 +18,14 @@ use {
             SessionSettleRequest,
         },
         transport::TopicTransport,
-        Cipher,
         Error,
-        Pairing,
         Result,
-        SessionSettled,
         SocketEvent,
         SocketListener,
     },
-    monedero_namespaces::Namespaces,
+    monedero_domain::{SubscriptionId, Topic, Pairing},
+    monedero_cipher::Cipher,
+    monedero_domain::namespaces::Namespaces,
     monedero_relay::{Client, ConnectionOptions},
     serde::de::DeserializeOwned,
     std::{
@@ -38,6 +36,7 @@ use {
     tokio::sync::mpsc,
     tracing::{info, warn},
 };
+use monedero_domain::SessionSettled;
 
 #[derive(Clone, xtra::Actor)]
 pub struct PairingManager {
@@ -253,7 +252,7 @@ impl PairingManager {
 
 #[cfg(test)]
 mod test {
-    use monedero_namespaces::*;
+    use monedero_domain::namespaces::*;
 
     #[test]
     fn test_namespace_compare() {

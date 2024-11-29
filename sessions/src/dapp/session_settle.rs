@@ -8,8 +8,8 @@ use {
         Dapp,
         Result,
         SessionEventRequest,
-        SessionSettled,
     },
+    monedero_domain::SessionSettled,
     tokio::sync::mpsc,
     xtra::{Context, Handler},
 };

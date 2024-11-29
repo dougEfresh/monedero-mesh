@@ -17,15 +17,14 @@ use {
         session::{Category, PendingSession},
         wallet::settlement::WalletSettlementActor,
         ClientSession,
-        Pairing,
         PairingManager,
         ProposeFuture,
         Result,
         SessionHandler,
-        SessionSettled,
         WalletSettlementHandler,
     },
-    monedero_namespaces::{
+    monedero_domain::{Pairing, SessionSettled},
+    monedero_domain::namespaces::{
         Account,
         Accounts,
         ChainId,

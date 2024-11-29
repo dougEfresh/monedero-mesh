@@ -1,4 +1,4 @@
-use crate::Topic;
+use monedero_domain::Topic;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -30,16 +30,16 @@ pub enum Error {
     JwtError,
 
     #[error(transparent)]
-    CipherError(#[from] crate::crypto::CipherError),
+    CipherError(#[from]  monedero_cipher::CipherError),
 
     #[error(transparent)]
-    StorageError(#[from] crate::storage::Error),
+    StorageError(#[from] monedero_store::Error),
 
     #[error("Timeout waiting for session settlement")]
     SessionSettlementTimeout,
 
     #[error("Failed to recv response from request id: {0}")]
-    ResponseChannelError(crate::domain::MessageId),
+    ResponseChannelError(monedero_domain::MessageId),
 
     #[error("Timeout waiting for session request")]
     SessionRequestTimeout,
@@ -75,7 +75,7 @@ pub enum Error {
     RpcErrorFromRequest(crate::rpc::RpcErrorResponse),
 
     #[error(transparent)]
-    PairingParseError(#[from] crate::pairing_uri::ParseError),
+    PairingParseError(#[from] monedero_domain::pairing_uri::ParseError),
 
     #[cfg(feature = "mock")]
     #[error("Must supply ConnectionsOptions when mock feature is used")]

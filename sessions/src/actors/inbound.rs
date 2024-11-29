@@ -1,7 +1,6 @@
 use {
     crate::{
         actors::{AddRequest, ClearPairing},
-        domain::MessageId,
         rpc::Response,
     },
     dashmap::DashMap,
@@ -10,6 +9,7 @@ use {
     tokio::sync::oneshot,
     tracing::{debug, error, warn},
     xtra::{Context, Handler},
+    monedero_domain::MessageId,
 };
 
 #[derive(Default, xtra::Actor)]

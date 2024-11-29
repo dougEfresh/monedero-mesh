@@ -5,7 +5,7 @@ mod params;
 mod sdkerrors;
 
 use {
-    crate::domain::{MessageId, Topic},
+    monedero_domain::{MessageId, Topic},
     serde::{Deserialize, Serialize},
     std::{
         fmt::{Debug, Display, Formatter},

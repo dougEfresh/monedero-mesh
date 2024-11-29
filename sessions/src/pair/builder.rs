@@ -1,7 +1,10 @@
 use {
-    crate::{actors::Actors, domain::ProjectId, Cipher, KvStorage, PairingManager},
+    crate::PairingManager,
     monedero_relay::{ConnectionOptions, SerializedAuthToken},
     std::sync::Arc,
+    monedero_domain::ProjectId,
+    monedero_cipher::Cipher,
+    monedero_store::KvStorage
 };
 
 pub struct WalletConnectBuilder {

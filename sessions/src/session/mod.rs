@@ -2,19 +2,18 @@ use {
     crate::{
         rpc::{RequestParams, SessionDeleteRequest},
         transport::SessionTransport,
-        Cipher,
         Dapp,
         Error,
         PairingManager,
-        PairingTopic,
         Result,
         SessionDeleteHandler,
         SessionEventRequest,
         SessionHandler,
-        SessionSettled,
         Topic,
     },
+    monedero_domain::{PairingTopic, SessionSettled},
     dashmap::DashMap,
+    monedero_domain::namespaces::Namespace,
     serde::de::DeserializeOwned,
     std::{
         fmt::{Debug, Display, Formatter},
@@ -39,10 +38,10 @@ pub(crate) use pending::PendingSession;
 use {
     crate::{
         actors::{ClearSession, SessionRequestHandlerActor},
-        crypto::CipherError,
     },
-    monedero_namespaces::Namespaces,
+    monedero_domain::namespaces::Namespaces,
 };
+use monedero_cipher::CipherError;
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub(crate) enum Category {

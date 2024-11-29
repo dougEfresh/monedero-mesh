@@ -3,14 +3,11 @@ use {
         actors::ClearPairing,
         rpc::{Proposer, SessionProposeResponse},
         Dapp,
-        Pairing,
         PairingManager,
         Result,
-        SessionTopic,
-        SubscriptionId,
-        Topic,
         Wallet,
     },
+    monedero_domain::{Topic, SessionTopic},
     tracing::{debug, info, warn},
 };
 

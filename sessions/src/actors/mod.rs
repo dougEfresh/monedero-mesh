@@ -13,8 +13,10 @@ pub(crate) use {
     transport::TransportActor,
 };
 use {
-    crate::{actors::proposal::ProposalActor, domain::Topic, rpc::RequestParams, Cipher, Result},
+    crate::{actors::proposal::ProposalActor, rpc::RequestParams, Result},
     monedero_relay::Client,
+    monedero_cipher::Cipher,
+    monedero_domain::Topic,
     std::{
         fmt::{Debug, Display, Formatter},
         ops::Deref,

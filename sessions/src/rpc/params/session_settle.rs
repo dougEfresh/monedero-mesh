@@ -4,7 +4,7 @@
 use {
     super::{IrnMetadata, RelayProtocol},
     crate::rpc::{params::Controller, ErrorParams, IntoUnknownError, ResponseParamsError},
-    monedero_namespaces::Namespaces,
+    monedero_domain::namespaces::Namespaces,
     serde::{Deserialize, Serialize},
     std::fmt::{Display, Formatter},
 };

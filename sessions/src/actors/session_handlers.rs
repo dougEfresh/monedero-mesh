@@ -3,10 +3,10 @@ use {
         actors::{SessionRequestHandlerActor, Unsubscribe},
         rpc::{IntoUnknownError, RpcResponse, RpcResponsePayload},
         ClientSession,
-        MessageId,
         Result,
         Topic,
     },
+    monedero_domain::MessageId,
     tracing::warn,
 };
 

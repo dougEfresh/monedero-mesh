@@ -5,7 +5,7 @@ use {
         Result,
         WalletSettlementHandler,
     },
-    monedero_namespaces::Namespaces,
+    monedero_domain::namespaces::Namespaces,
     std::sync::Arc,
     tokio::sync::Mutex,
     xtra::prelude::*,

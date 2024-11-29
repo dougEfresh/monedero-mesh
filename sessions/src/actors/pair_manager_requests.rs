@@ -2,11 +2,12 @@ use {
     crate::{
         actors::RequestHandlerActor,
         rpc::{ErrorParams, IntoUnknownError, PairDeleteRequest, RpcResponse, RpcResponsePayload},
-        MessageId,
+        
         PairingManager,
         Result,
         Topic,
     },
+    monedero_domain::MessageId,
     tracing::warn,
 };
 

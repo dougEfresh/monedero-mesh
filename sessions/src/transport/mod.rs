@@ -1,10 +1,10 @@
 use {
     crate::{
         actors::{SendRequest, TransportActor, Unsubscribe},
-        domain::Topic,
         rpc::{RequestParams, ResponseParams},
         Result,
     },
+    monedero_domain::Topic,
     serde::de::DeserializeOwned,
     std::fmt::{Debug, Display, Formatter},
     tokio::time::timeout,

@@ -1,11 +1,11 @@
 use {
     crate::{
         actors::{InboundResponseActor, RequestHandlerActor},
-        domain::Message,
         rpc::{Payload, Response, RpcRequest},
-        Cipher,
         SocketEvent,
     },
+    monedero_domain::Message,
+    monedero_cipher::Cipher,
     monedero_relay::{ClientError, CloseFrame, ConnectionHandler},
     tokio::sync::mpsc,
     tracing::{error, info, trace, warn},

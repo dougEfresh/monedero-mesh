@@ -3,7 +3,7 @@
 
 use {
     super::IrnMetadata,
-    monedero_namespaces::ChainId,
+    monedero_domain::namespaces::ChainId,
     serde::{Deserialize, Serialize},
 };
 

@@ -45,7 +45,9 @@ hkdf = { workspace = true }
 kvx = { version = "0.9", optional = true }
 lazy_static = { workspace = true }
 microxdg = { workspace = true }
-monedero-namespaces = { path = "../namespaces" }
+monedero-domain = { path = "../domain" }
+monedero-cipher = { path = "../cipher" }
+monedero-store = { path = "../store" }
 monedero-relay = { path = "../relay", optional = true }
 once_cell = { workspace = true }
 paste = { workspace = true }

@@ -7,7 +7,6 @@ use {
             RegisteredComponents,
             TransportActor,
         },
-        domain::Topic,
         rpc::{
             ErrorParams,
             IntoUnknownError,
@@ -22,13 +21,13 @@ use {
             SessionProposeRequest,
         },
         Dapp,
-        MessageId,
         PairingManager,
         Result,
         Wallet,
     },
     dashmap::DashMap,
     monedero_relay::Client,
+    monedero_domain::{Topic, MessageId},
     std::{
         fmt::{Debug, Formatter},
         sync::Arc,

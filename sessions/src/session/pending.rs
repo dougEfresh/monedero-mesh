@@ -6,14 +6,13 @@ use {
         ClientSession,
         Error,
         PairingManager,
-        PairingTopic,
         Result,
         SessionEventRequest,
         SessionHandler,
-        SessionSettled,
         SessionTopic,
     },
     dashmap::DashMap,
+    monedero_domain::{PairingTopic, SessionSettled},
     std::{sync::Arc, time::Duration},
     tokio::{
         sync::{

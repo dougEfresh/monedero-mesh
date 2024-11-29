@@ -2,7 +2,7 @@
 
 use {
     super::IrnMetadata,
-    monedero_namespaces::Namespaces,
+    monedero_domain::namespaces::Namespaces,
     serde::{Deserialize, Serialize},
 };
 

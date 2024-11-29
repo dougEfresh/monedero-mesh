@@ -11,9 +11,9 @@ use {
             SessionProposeRequest,
         },
         Dapp,
-        SessionSettled,
         Wallet,
     },
+    monedero_domain::SessionSettled,
     tracing::{error, info, warn},
     xtra::{prelude::*, Address},
 };

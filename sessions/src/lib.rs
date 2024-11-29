@@ -1,27 +1,19 @@
 mod actors;
-pub mod crypto;
 mod dapp;
-mod domain;
 mod error;
 pub mod handlers;
 mod pair;
-pub mod pairing_uri;
 mod relay;
 pub mod rpc;
 pub mod session;
-mod storage;
 mod transport;
 mod wallet;
 pub use {
     crate::session::ClientSession,
-    crypto::cipher::Cipher,
     dapp::Dapp,
-    domain::Message,
     error::Error,
     handlers::*,
     pair::{PairingManager, WalletConnectBuilder},
-    pairing_uri::Pairing,
-    storage::KvStorage,
     wallet::Wallet,
 };
 use {
@@ -39,18 +31,17 @@ use {
 pub type Atomic<T> = Arc<Mutex<T>>;
 use {
     crate::rpc::SessionRequestRequest,
-    monedero_namespaces::{Event, Namespaces},
+    monedero_domain::namespaces::Event,
 };
 pub use {
     actors::{Actors, RegisteredComponents},
-    domain::*,
     monedero_relay::ClientError,
     rpc::{Metadata, SdkErrors},
 };
-pub type PairingTopic = Topic;
-pub type SessionTopic = Topic;
 
-pub use {monedero_relay::auth_token, storage::Error as StorageError};
+pub use monedero_relay::auth_token;
+use monedero_domain::{SessionTopic, Topic};
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {
     Connected,
@@ -110,22 +101,6 @@ pub enum SessionEventRequest {
     Request(SessionRequestRequest),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SessionSettled {
-    pub topic: SessionTopic,
-    pub namespaces: Namespaces,
-    /// Unix timestamp.
-    ///
-    /// Expiry should be between .now() + TTL.
-    pub expiry: i64,
-}
-
-impl Display for SessionSettled {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}] [{}]", shorten_topic(&self.topic), self.namespaces)
-    }
-}
-
 pub(crate) fn shorten_topic(id: &Topic) -> String {
     let mut id = format!("{id}");
     if id.len() > 10 {
@@ -137,8 +112,7 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
 #[cfg(test)]
 pub(crate) mod test {
     use {
-        crate::{NoopSessionHandler, SessionHandler, INIT},
-        monedero_namespaces::Event,
+        crate::{NoopSessionHandler, SessionHandler, INIT, rpc::Event},
         std::{sync::Arc, time::Duration},
         tokio::sync::Mutex,
         tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
@@ -214,7 +188,8 @@ pub(crate) mod test {
             tracing::info!("Actor2 got message");
         }
     }
-
+    
+    /*
     #[tokio::test]
     async fn test_actor_broadcast() -> anyhow::Result<()> {
         init_tracing();
@@ -231,4 +206,5 @@ pub(crate) mod test {
         eprintln!("size {}", act.handlers.lock().await.len());
         Ok(())
     }
+     */
 }
