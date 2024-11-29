@@ -8,15 +8,9 @@ pub mod rpc;
 pub mod session;
 mod transport;
 mod wallet;
-pub use {
-    crate::session::ClientSession,
-    dapp::Dapp,
-    error::Error,
-    handlers::*,
-    pair::{PairingManager, WalletConnectBuilder},
-    wallet::Wallet,
-};
 use {
+    crate::rpc::SessionRequestRequest,
+    monedero_domain::{namespaces::Event, Topic},
     pin_project_lite::pin_project,
     std::{
         fmt::{Display, Formatter},
@@ -27,17 +21,18 @@ use {
     },
     tokio::sync::oneshot,
 };
-use {
-    crate::rpc::SessionRequestRequest,
-    monedero_domain::{namespaces::Event, Topic},
-};
 pub use {
+    crate::session::ClientSession,
     actors::{Actors, RegisteredComponents},
+    dapp::Dapp,
+    error::Error,
+    handlers::*,
+    monedero_domain as domain,
     monedero_relay::{auth_token, ClientError},
+    pair::{PairingManager, WalletConnectBuilder},
     rpc::{Metadata, SdkErrors},
+    wallet::Wallet,
 };
-
-pub use monedero_domain as domain;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {

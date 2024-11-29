@@ -13,6 +13,7 @@ use {
             SessionSettleRequest,
         },
         session::{Category, PendingSession},
+        spawn_task,
         wallet::settlement::WalletSettlementActor,
         PairingManager,
         ProposeFuture,
@@ -29,7 +30,6 @@ use {
     tracing::{error, warn},
     xtra::prelude::*,
 };
-use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct Wallet {

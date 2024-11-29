@@ -1,12 +1,14 @@
 use {
     crate::{
         actors::{
+            actor_spawn,
             proposal::ProposalActor,
             session::SessionRequestHandlerActor,
             RegisteredComponents,
             TransportActor,
         },
         rpc::{Request, RequestParams, RpcRequest},
+        spawn_task,
         PairingManager,
         Result,
     },
@@ -15,8 +17,6 @@ use {
     tracing::{debug, warn},
     xtra::prelude::*,
 };
-use crate::actors::actor_spawn;
-use crate::spawn_task;
 
 #[derive(Clone, Actor)]
 pub struct RequestHandlerActor {

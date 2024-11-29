@@ -9,6 +9,7 @@ use {
             RpcResponse,
             RpcResponsePayload,
         },
+        spawn_task,
         Result,
     },
     monedero_cipher::Cipher,
@@ -23,7 +24,6 @@ use {
     tracing::{debug, error, warn},
     xtra::{Address, Context, Handler},
 };
-use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct TransportActor {

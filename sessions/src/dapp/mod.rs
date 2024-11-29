@@ -4,6 +4,7 @@ use {
     crate::{
         rpc::{Metadata, RequestParams, SessionProposeRequest, SessionProposeResponse},
         session::{Category, PendingSession},
+        spawn_task,
         Error::NoPairingTopic,
         PairingManager,
         ProposeFuture,
@@ -18,7 +19,6 @@ use {
     tracing::{error, info},
     x25519_dalek::PublicKey,
 };
-use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct Dapp {

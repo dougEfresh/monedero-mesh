@@ -2,6 +2,7 @@ use {
     crate::{
         actors::{InboundResponseActor, RequestHandlerActor},
         rpc::{Payload, Response, RpcRequest},
+        spawn_task,
         SocketEvent,
     },
     monedero_cipher::Cipher,
@@ -11,7 +12,6 @@ use {
     tracing::{error, info, trace, warn},
     xtra::prelude::*,
 };
-use crate::spawn_task;
 
 pub struct RelayHandler {
     cipher: Cipher,

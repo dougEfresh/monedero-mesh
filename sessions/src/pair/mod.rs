@@ -10,6 +10,7 @@ use {
         actors::Actors,
         relay::RelayHandler,
         rpc::{PairDeleteRequest, PairExtendRequest, PairPingRequest, RequestParams},
+        spawn_task,
         transport::TopicTransport,
         Error,
         Result,
@@ -28,7 +29,6 @@ use {
     tokio::sync::mpsc,
     tracing::{info, warn},
 };
-use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct PairingManager {

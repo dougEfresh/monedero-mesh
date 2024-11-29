@@ -1,6 +1,6 @@
 use {
     crate::{
-        actors::TransportActor,
+        actors::{actor_spawn, TransportActor},
         rpc::{
             ErrorParams,
             IntoUnknownError,
@@ -16,7 +16,6 @@ use {
     tracing::{error, info, warn},
     xtra::{prelude::*, Address},
 };
-use crate::actors::actor_spawn;
 
 #[derive(Clone, Actor)]
 pub struct ProposalActor {

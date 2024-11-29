@@ -7,6 +7,7 @@ use {
             ResponseParamsSuccess,
             RpcResponsePayload,
         },
+        spawn_task,
         PairingManager,
         Topic,
     },
@@ -14,7 +15,6 @@ use {
     tracing::info,
     xtra::prelude::*,
 };
-use crate::spawn_task;
 
 impl Handler<PairExtendRequest> for PairingManager {
     type Return = RpcResponsePayload;

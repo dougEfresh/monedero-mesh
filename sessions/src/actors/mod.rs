@@ -6,7 +6,6 @@ mod session;
 mod session_handlers;
 mod transport;
 
-use xtra::Actor;
 pub(crate) use {
     crate::actors::session::SessionRequestHandlerActor,
     inbound::InboundResponseActor,
@@ -19,7 +18,7 @@ use {
     monedero_domain::Topic,
     monedero_relay::Client,
     std::fmt::{Display, Formatter},
-    xtra::{Address, Mailbox},
+    xtra::{Actor, Address, Mailbox},
 };
 
 #[derive(Clone)]
@@ -59,9 +58,7 @@ impl Actors {
     }
 }
 
-pub fn actor_spawn<A>(
-    actor: A,
-) -> Address<A>
+pub fn actor_spawn<A>(actor: A) -> Address<A>
 where
     A: Actor<Stop = ()>,
 {
@@ -74,22 +71,20 @@ where
 impl Actors {
     pub(crate) fn init(cipher: Cipher) -> Self {
         let inbound_response_actor = actor_spawn(InboundResponseActor::default());
-        let transport_actor = actor_spawn(
-            TransportActor::new(cipher.clone(), inbound_response_actor.clone()),
-        );
-        let session_actor = actor_spawn(
-            SessionRequestHandlerActor::new(transport_actor.clone(), cipher.clone()),
-        );
-        let proposal_actor = actor_spawn(
-            ProposalActor::new(transport_actor.clone()),
-        );
-        let request_actor = actor_spawn(
-            RequestHandlerActor::new(
-                transport_actor.clone(),
-                session_actor.clone(),
-                proposal_actor.clone(),
-            ),
-        );
+        let transport_actor = actor_spawn(TransportActor::new(
+            cipher.clone(),
+            inbound_response_actor.clone(),
+        ));
+        let session_actor = actor_spawn(SessionRequestHandlerActor::new(
+            transport_actor.clone(),
+            cipher.clone(),
+        ));
+        let proposal_actor = actor_spawn(ProposalActor::new(transport_actor.clone()));
+        let request_actor = actor_spawn(RequestHandlerActor::new(
+            transport_actor.clone(),
+            session_actor.clone(),
+            proposal_actor.clone(),
+        ));
 
         Self {
             inbound_response_actor,

@@ -1,6 +1,6 @@
 use {
     crate::{
-        actors::{ClearPairing, ClearSession, SessionPing, TransportActor},
+        actors::{actor_spawn, ClearPairing, ClearSession, SessionPing, TransportActor},
         rpc::{
             ErrorParams,
             RequestParams,
@@ -11,6 +11,7 @@ use {
             RpcResponsePayload,
         },
         session::ClientSession,
+        spawn_task,
         RegisteredComponents,
         Topic,
     },
@@ -24,8 +25,6 @@ use {
     tracing::{error, warn},
     xtra::prelude::*,
 };
-use crate::actors::actor_spawn;
-use crate::spawn_task;
 
 #[derive(Clone, xtra::Actor)]
 pub struct SessionRequestHandlerActor {

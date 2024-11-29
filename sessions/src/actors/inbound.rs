@@ -68,12 +68,12 @@ mod test {
                 ResponseParamsSuccess,
                 SessionProposeResponse,
             },
+            spawn_task,
         },
         anyhow::format_err,
         std::time::Duration,
         xtra::prelude::*,
     };
-    use crate::spawn_task;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 5)]
     async fn test_payload_response() -> anyhow::Result<()> {
@@ -89,7 +89,7 @@ mod test {
         let v = serde_json::to_value(params.clone())?;
         spawn_task(async move {
             let resp = Response::new(id, ResponseParams::Success(v));
-            if let Err(e) = addr_resp.send(resp).await{
+            if let Err(e) = addr_resp.send(resp).await {
                 error!("failed to send response: {}", e);
             }
         });
