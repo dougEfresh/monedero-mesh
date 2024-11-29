@@ -17,10 +17,7 @@ use {
     monedero_cipher::Cipher,
     monedero_domain::Topic,
     monedero_relay::Client,
-    std::{
-        fmt::{Debug, Display, Formatter},
-        ops::Deref,
-    },
+    std::fmt::{Display, Formatter},
     xtra::{Address, Mailbox},
 };
 

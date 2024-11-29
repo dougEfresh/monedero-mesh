@@ -9,7 +9,6 @@ use {
             SessionProposeRequest,
             SessionProposeResponse,
             SessionRequestRequest,
-            SessionSettleRequest,
         },
         SocketEvent,
     },

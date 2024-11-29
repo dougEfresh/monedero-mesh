@@ -10,12 +10,10 @@ use {
         actors::Actors,
         relay::RelayHandler,
         rpc::{
-            ErrorParams,
             PairDeleteRequest,
             PairExtendRequest,
             PairPingRequest,
             RequestParams,
-            SessionSettleRequest,
         },
         transport::TopicTransport,
         Error,

@@ -1,14 +1,11 @@
 use {
     crate::{
-        actors::ClearPairing,
         rpc::{Proposer, SessionProposeResponse},
-        Dapp,
         PairingManager,
         Result,
-        Wallet,
     },
     monedero_domain::{SessionTopic, Topic},
-    tracing::{debug, info, warn},
+    tracing::info,
 };
 
 impl PairingManager {

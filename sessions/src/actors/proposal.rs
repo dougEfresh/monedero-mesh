@@ -8,7 +8,6 @@ use {
             ResponseParamsError,
             RpcRequest,
             RpcResponse,
-            SessionProposeRequest,
         },
         Dapp,
         Wallet,

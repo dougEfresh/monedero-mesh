@@ -1,12 +1,11 @@
 use {
     crate::{
-        rpc::{ResponseParamsSuccess, RpcResponsePayload, SessionDeleteRequest},
+        rpc::SessionDeleteRequest,
         ClientSession,
         SessionDeleteHandler,
     },
-    std::time::Duration,
     tokio::sync::mpsc,
-    tracing::{info, warn},
+    tracing::info,
     xtra::prelude::*,
 };
 

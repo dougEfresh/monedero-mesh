@@ -2,15 +2,10 @@ use {
     crate::{
         rpc::{ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload},
         session::Category,
-        transport::SessionTransport,
-        Actors,
-        ClientSession,
         Dapp,
         Result,
-        SessionEventRequest,
     },
     monedero_domain::SessionSettled,
-    tokio::sync::mpsc,
     xtra::{Context, Handler},
 };
 

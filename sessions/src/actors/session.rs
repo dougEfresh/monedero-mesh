@@ -3,10 +3,8 @@ use {
         actors::{
             ClearPairing,
             ClearSession,
-            RequestHandlerActor,
             SessionPing,
             TransportActor,
-            Unsubscribe,
         },
         rpc::{
             ErrorParams,
@@ -23,14 +21,12 @@ use {
     },
     dashmap::DashMap,
     monedero_cipher::Cipher,
-    serde_json::json,
     std::{
         fmt::{Debug, Formatter},
-        future::Future,
         sync::Arc,
         time::Duration,
     },
-    tracing::{error, info, warn},
+    tracing::{error, warn},
     xtra::prelude::*,
 };
 

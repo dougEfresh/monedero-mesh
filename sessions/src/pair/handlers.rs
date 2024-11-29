@@ -1,6 +1,5 @@
 use {
     crate::{
-        actors::ClearPairing,
         rpc::{
             PairDeleteRequest,
             PairExtendRequest,
@@ -9,11 +8,10 @@ use {
             RpcResponsePayload,
         },
         PairingManager,
-        SocketEvent,
         Topic,
     },
     std::time::Duration,
-    tracing::{info, warn},
+    tracing::info,
     xtra::prelude::*,
 };
 

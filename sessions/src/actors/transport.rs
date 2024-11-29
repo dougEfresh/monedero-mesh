@@ -12,7 +12,7 @@ use {
         Result,
     },
     monedero_cipher::Cipher,
-    monedero_domain::{MessageId, SubscriptionId},
+    monedero_domain::MessageId,
     monedero_relay::Client,
     std::{
         fmt::{Debug, Formatter},

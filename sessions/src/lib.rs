@@ -18,7 +18,6 @@ pub use {
 };
 use {
     pin_project_lite::pin_project,
-    serde::{Deserialize, Serialize},
     std::{
         fmt::{Display, Formatter},
         future::Future,
@@ -31,7 +30,7 @@ use {
 pub type Atomic<T> = Arc<Mutex<T>>;
 use {
     crate::rpc::SessionRequestRequest,
-    monedero_domain::{namespaces::Event, SessionTopic, Topic},
+    monedero_domain::{namespaces::Event, Topic},
 };
 pub use {
     actors::{Actors, RegisteredComponents},
@@ -109,8 +108,8 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
 #[cfg(test)]
 pub(crate) mod test {
     use {
-        crate::{rpc::Event, NoopSessionHandler, SessionHandler, INIT},
-        std::{sync::Arc, time::Duration},
+        crate::{rpc::Event, SessionHandler, INIT},
+        std::sync::Arc,
         tokio::sync::Mutex,
         tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
         xtra::prelude::*,

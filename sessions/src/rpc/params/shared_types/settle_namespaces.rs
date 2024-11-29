@@ -1,9 +1,6 @@
 use {
     serde::{Deserialize, Serialize},
-    std::{
-        collections::{BTreeMap, BTreeSet},
-        ops::Deref,
-    },
+    std::collections::BTreeSet,
 };
 
 #[derive(Debug, Serialize, PartialEq, Eq, Deserialize, Clone, Default)]

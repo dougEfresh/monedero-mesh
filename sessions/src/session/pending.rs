@@ -7,16 +7,13 @@ use {
         Error,
         PairingManager,
         Result,
-        SessionEventRequest,
         SessionHandler,
-        SessionTopic,
     },
     dashmap::DashMap,
     monedero_domain::{PairingTopic, SessionSettled},
     std::{sync::Arc, time::Duration},
     tokio::{
         sync::{
-            mpsc,
             oneshot::{self, Sender},
             Mutex,
         },
