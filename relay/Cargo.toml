@@ -37,7 +37,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-tungstenite = { version = "0.23", optional = false }
 tracing = { version = "0.1" }
-walletconnect_sdk = { git = "https://github.com/WalletConnect/WalletConnectRust.git" , features = ["rpc", "client"]}
+walletconnect_sdk = { git = "https://github.com/dougEfresh/WalletConnectRust.git", branch = "wasm" , features = ["rpc", "client"] }
 ed25519-dalek = { version = "1.0.1", features = ["rand_core"] }
 
 ## wasm

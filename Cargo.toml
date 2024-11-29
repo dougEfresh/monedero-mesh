@@ -2,7 +2,7 @@
 version = "0.1.0"
 edition = "2021"
 authors = ["Doug Chimento <dchimento@gmail.com>"]
-repository = "https://github.com/dougEfish/walletconnect-signer"
+repository = "https://github.com/dougEfish/"
 license = "MIT"
 
 [workspace]
@@ -70,19 +70,19 @@ serde_with = { version = "3" }
 strum = { version = "0.26"}
 strum_macros = { version = "0.26" }
 
-spl-associated-token-account-client = { version = "1.0.0" }
-spl-associated-token-account = {  version = "5.0.1"  }
-spl-memo = { version = "5" }
+spl-associated-token-account-client = { version = "2.0.0" }
+spl-associated-token-account = {  version = "6"  }
+spl-memo = { version = "6" }
 spl-token = { version = "6.0.0" }
-spl-token-client = { version = "0.12.1"}
-spl-token-2022 = {version = "5.0.2" }
-solana-account-decoder = { version = "2.0.13" }
-solana-client ={ version = "2.0.13" }
-solana-feature-set ={ version = "0.0.1" }
-solana-program = { version = "2.0.13"}
-solana-rpc-client ={ version = "2.0.13" }
-solana-rpc-client-api = { version = "2.0.13" }
-solana-sdk = { version = "2.0.13" }
+spl-token-client = { version = "0.13"}
+spl-token-2022 = {version = "6.0.0" }
+solana-account-decoder = { version = "2.1.4" }
+solana-client ={ version = "2.1.4" }
+solana-feature-set ={ version = "2.1.4" }
+solana-program = { version = "2.1.4"}
+solana-rpc-client ={ version = "2.1.4" }
+solana-rpc-client-api = { version = "2.1.4" }
+solana-sdk = { version = "2.1.4" }
 stanza = { version = "0.5" }
 thiserror = "1.0"
 tokio = { version = "1", features = ["rt", "time", "sync", "macros", "rt-multi-thread"] }
