@@ -2,7 +2,6 @@ use {
     crate::{
         actors::RequestHandlerActor,
         rpc::{ErrorParams, IntoUnknownError, PairDeleteRequest, RpcResponse, RpcResponsePayload},
-        
         PairingManager,
         Result,
         Topic,

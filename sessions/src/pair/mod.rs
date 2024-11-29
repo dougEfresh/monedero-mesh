@@ -23,9 +23,8 @@ use {
         SocketEvent,
         SocketListener,
     },
-    monedero_domain::{SubscriptionId, Topic, Pairing},
     monedero_cipher::Cipher,
-    monedero_domain::namespaces::Namespaces,
+    monedero_domain::{namespaces::Namespaces, Pairing, SessionSettled, SubscriptionId, Topic},
     monedero_relay::{Client, ConnectionOptions},
     serde::de::DeserializeOwned,
     std::{
@@ -36,7 +35,6 @@ use {
     tokio::sync::mpsc,
     tracing::{info, warn},
 };
-use monedero_domain::SessionSettled;
 
 #[derive(Clone, xtra::Actor)]
 pub struct PairingManager {

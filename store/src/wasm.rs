@@ -1,16 +1,16 @@
-use serde::{Deserialize, Serialize};
-use gloo_storage::{LocalStorage, Storage};
+use {
+    gloo_storage::{LocalStorage, Storage},
+    serde::{Deserialize, Serialize},
+};
 
 #[derive(Clone)]
-pub struct KvStorage {
-}
+pub struct KvStorage {}
 
 impl KvStorage {
-
     pub fn new() -> Self {
         KvStorage {}
     }
-    
+
     pub fn get<T>(&self, key: impl AsRef<str>) -> crate::Result<Option<T>>
     where
         T: for<'de> Deserialize<'de> + Serialize,
@@ -43,5 +43,4 @@ impl KvStorage {
     pub const fn length(&self) -> u32 {
         LocalStorage::length()
     }
-
 }

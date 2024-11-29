@@ -18,8 +18,7 @@ use {
         SessionTopic,
         SocketListener,
     },
-    monedero_domain::{SessionSettled, PairingTopic, Pairing},
-    monedero_domain::namespaces::Namespaces,
+    monedero_domain::{namespaces::Namespaces, Pairing, PairingTopic, SessionSettled},
     std::{
         fmt::{Debug, Display, Formatter},
         sync::Arc,

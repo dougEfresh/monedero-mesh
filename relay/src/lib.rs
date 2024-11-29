@@ -216,4 +216,3 @@ pub fn auth_token(url: impl Into<String>) -> SerializedAuthToken {
         .as_jwt(&key)
         .unwrap()
 }
-

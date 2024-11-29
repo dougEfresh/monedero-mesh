@@ -26,8 +26,8 @@ use {
         Wallet,
     },
     dashmap::DashMap,
+    monedero_domain::{MessageId, Topic},
     monedero_relay::Client,
-    monedero_domain::{Topic, MessageId},
     std::{
         fmt::{Debug, Formatter},
         sync::Arc,

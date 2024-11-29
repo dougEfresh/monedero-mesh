@@ -30,7 +30,7 @@ pub enum Error {
     JwtError,
 
     #[error(transparent)]
-    CipherError(#[from]  monedero_cipher::CipherError),
+    CipherError(#[from] monedero_cipher::CipherError),
 
     #[error(transparent)]
     StorageError(#[from] monedero_store::Error),

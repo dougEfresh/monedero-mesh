@@ -1,10 +1,10 @@
 use {
     crate::PairingManager,
-    monedero_relay::{ConnectionOptions, SerializedAuthToken},
-    std::sync::Arc,
-    monedero_domain::ProjectId,
     monedero_cipher::Cipher,
-    monedero_store::KvStorage
+    monedero_domain::ProjectId,
+    monedero_relay::{ConnectionOptions, SerializedAuthToken},
+    monedero_store::KvStorage,
+    std::sync::Arc,
 };
 
 pub struct WalletConnectBuilder {

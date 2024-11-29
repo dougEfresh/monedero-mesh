@@ -7,7 +7,7 @@ use {
         Result,
         Wallet,
     },
-    monedero_domain::{Topic, SessionTopic},
+    monedero_domain::{SessionTopic, Topic},
     tracing::{debug, info, warn},
 };
 

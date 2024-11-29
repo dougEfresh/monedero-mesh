@@ -4,12 +4,12 @@ use {
         rpc::Response,
     },
     dashmap::DashMap,
+    monedero_domain::MessageId,
     monedero_relay::MessageIdGenerator,
     std::sync::Arc,
     tokio::sync::oneshot,
     tracing::{debug, error, warn},
     xtra::{Context, Handler},
-    monedero_domain::MessageId,
 };
 
 #[derive(Default, xtra::Actor)]

@@ -1,5 +1,4 @@
-use wasm_bindgen_test::*;
-use monedero_store::KvStorage;
+use {monedero_store::KvStorage, wasm_bindgen_test::*};
 wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
@@ -13,15 +12,15 @@ fn local_storage() -> anyhow::Result<()> {
     assert_eq!(value, stored.unwrap());
 
     kv.delete(key)?;
-    let not_found : Option<String> = kv.get(key)?;
+    let not_found: Option<String> = kv.get(key)?;
     assert!(not_found.is_none());
-    
+
     // make sure delete doesn't throw error
     kv.delete(key)?;
-    
+
     kv.set(key, value.clone())?;
     kv.clear();
-    let not_found : Option<String> = kv.get(key)?;
+    let not_found: Option<String> = kv.get(key)?;
     assert!(not_found.is_none());
     Ok(())
 }

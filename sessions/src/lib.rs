@@ -31,16 +31,13 @@ use {
 pub type Atomic<T> = Arc<Mutex<T>>;
 use {
     crate::rpc::SessionRequestRequest,
-    monedero_domain::namespaces::Event,
+    monedero_domain::{namespaces::Event, SessionTopic, Topic},
 };
 pub use {
     actors::{Actors, RegisteredComponents},
-    monedero_relay::ClientError,
+    monedero_relay::{auth_token, ClientError},
     rpc::{Metadata, SdkErrors},
 };
-
-pub use monedero_relay::auth_token;
-use monedero_domain::{SessionTopic, Topic};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SocketEvent {
@@ -112,7 +109,7 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
 #[cfg(test)]
 pub(crate) mod test {
     use {
-        crate::{NoopSessionHandler, SessionHandler, INIT, rpc::Event},
+        crate::{rpc::Event, NoopSessionHandler, SessionHandler, INIT},
         std::{sync::Arc, time::Duration},
         tokio::sync::Mutex,
         tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
@@ -188,23 +185,21 @@ pub(crate) mod test {
             tracing::info!("Actor2 got message");
         }
     }
-    
-    /*
-    #[tokio::test]
-    async fn test_actor_broadcast() -> anyhow::Result<()> {
-        init_tracing();
-        let handlers: Arc<Mutex<Vec<Box<dyn SessionHandler>>>> =
-            Arc::new(Mutex::new(vec![Box::new(NoopSessionHandler {})]));
-        let boxed: Box<dyn SessionHandler> = Box::new(NoopSessionHandler {});
-        let act = Actor1 { handlers };
-        let a1 = xtra::spawn_tokio(act.clone(), Mailbox::unbounded());
-        a1.send(Dummy).await?;
-        a1.send(boxed).await?;
-        a1.send(Event::AccountsChanged).await?;
-        // a2.broadcast(Dummy).await?;
-        tokio::time::sleep(Duration::from_secs(3)).await;
-        eprintln!("size {}", act.handlers.lock().await.len());
-        Ok(())
-    }
-     */
+
+    // #[tokio::test]
+    // async fn test_actor_broadcast() -> anyhow::Result<()> {
+    // init_tracing();
+    // let handlers: Arc<Mutex<Vec<Box<dyn SessionHandler>>>> =
+    // Arc::new(Mutex::new(vec![Box::new(NoopSessionHandler {})]));
+    // let boxed: Box<dyn SessionHandler> = Box::new(NoopSessionHandler {});
+    // let act = Actor1 { handlers };
+    // let a1 = xtra::spawn_tokio(act.clone(), Mailbox::unbounded());
+    // a1.send(Dummy).await?;
+    // a1.send(boxed).await?;
+    // a1.send(Event::AccountsChanged).await?;
+    // a2.broadcast(Dummy).await?;
+    // tokio::time::sleep(Duration::from_secs(3)).await;
+    // eprintln!("size {}", act.handlers.lock().await.len());
+    // Ok(())
+    // }
 }

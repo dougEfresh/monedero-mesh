@@ -14,9 +14,9 @@ pub(crate) use {
 };
 use {
     crate::{actors::proposal::ProposalActor, rpc::RequestParams, Result},
-    monedero_relay::Client,
     monedero_cipher::Cipher,
     monedero_domain::Topic,
+    monedero_relay::Client,
     std::{
         fmt::{Debug, Display, Formatter},
         ops::Deref,

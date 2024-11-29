@@ -21,8 +21,8 @@ use {
         RegisteredComponents,
         Topic,
     },
-    monedero_cipher::Cipher,
     dashmap::DashMap,
+    monedero_cipher::Cipher,
     serde_json::json,
     std::{
         fmt::{Debug, Formatter},
@@ -82,7 +82,10 @@ impl Handler<ClientSession> for SessionRequestHandlerActor {
         let topic = message.topic();
         let addr = xtra::spawn_tokio(message.clone(), Mailbox::unbounded());
         self.sessions.insert(topic.clone(), addr);
-        if let Err(e) = self.cipher.set_settlement(&topic, (*message.settled).clone()) {
+        if let Err(e) = self
+            .cipher
+            .set_settlement(&topic, (*message.settled).clone())
+        {
             error!("failed to set settlement for {topic}");
         }
     }
