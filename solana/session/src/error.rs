@@ -1,4 +1,3 @@
-use solana_sdk::signature::Signature;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -12,7 +11,7 @@ pub enum Error {
     SolanaAccountNotFound,
 
     #[error(transparent)]
-    InvalidPubkey(#[from] solana_sdk::pubkey::ParsePubkeyError),
+    InvalidPubkey(#[from] solana_pubkey::ParsePubkeyError),
 
     #[error(transparent)]
     BincodeEncodeError(#[from] bincode::Error),
@@ -36,8 +35,15 @@ pub enum Error {
     Base64Error(#[from] base64::DecodeError),
 
     #[error(transparent)]
-    SignerError(#[from] solana_sdk::signer::SignerError),
+    SignerError(#[from] solana_signer::SignerError),
 
+    #[error("invalid signature. Length is not 64 '{0}'")]
+    SigError(String),
+
+    #[error(transparent)]
+    PubkeyError(#[from] solana_pubkey::PubkeyError),
+
+    /*
     #[error(transparent)]
     SolanaRpcError(#[from] solana_rpc_client_api::client_error::Error),
 
@@ -48,16 +54,14 @@ pub enum Error {
     TransactionError(#[from] solana_sdk::transaction::TransactionError),
 
     #[error(transparent)]
-    PubkeyError(#[from] solana_sdk::pubkey::PubkeyError),
-
-    #[error(transparent)]
     InstructionError(#[from] solana_program::instruction::InstructionError),
 
     #[error(transparent)]
     TokenError(#[from] spl_token_client::token::TokenError),
-
+     */
+    
     #[error("signature failed to confirm {0}")]
-    ConfirmationFailure(Signature),
+    ConfirmationFailure(solana_signature::Signature),
 
     #[cfg(feature = "mock")]
     #[error("got a transaction but I have nothing to sign")]

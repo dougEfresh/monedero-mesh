@@ -6,7 +6,6 @@ mod sort;
 mod symbol;
 
 use {
-    crate::Result,
     serde::{Deserialize, Deserializer, Serialize, Serializer},
     solana_account_decoder::parse_token::UiTokenAccount,
     solana_program::pubkey::Pubkey,

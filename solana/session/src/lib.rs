@@ -1,11 +1,11 @@
-mod compute_budget;
+//mod compute_budget;
 mod error;
-mod fee;
-mod memo;
+//mod fee;
+//mod memo;
 mod signer;
-mod stake;
-mod token;
-mod wallet;
+//mod stake;
+//mod token;
+//mod wallet;
 
 use {
     base64::{prelude::BASE64_STANDARD, Engine},
@@ -15,15 +15,8 @@ use {
     },
     monedero_domain::namespaces::{ChainType, NamespaceName, SolanaMethod},
     serde::{Deserialize, Serialize},
-    solana_program::native_token::LAMPORTS_PER_SOL,
-    solana_rpc_client::nonblocking::rpc_client::RpcClient,
-    solana_sdk::{
-        message::Message,
-        pubkey::Pubkey,
-        signature::Signature,
-        transaction::Transaction,
-    },
-    spl_token_client::client::RpcClientResponse,
+    solana_pubkey::Pubkey,
+    solana_signature::Signature,
     std::{
         fmt::{Debug, Display, Formatter},
         ops::Deref,
@@ -33,18 +26,19 @@ use {
 };
 pub use {
     error::Error,
-    memo::*,
+    //memo::*,
     monedero_domain::namespaces::ChainId,
     signer::ReownSigner,
-    stake::*,
-    token::*,
-    wallet::*,
+    //stake::*,
+    //token::*,
+    //wallet::*,
 };
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub use monedero_mesh;
 pub(crate) const DEFAULT_MEMO: &str = "🛠️ by github.com/dougEfresh/monedero-mesh";
 
+/*
 async fn finish_tx(client: Arc<RpcClient>, rpc_response: &RpcClientResponse) -> Result<Signature> {
     match rpc_response {
         RpcClientResponse::Signature(s) => match client.confirm_transaction(s).await? {
@@ -55,6 +49,7 @@ async fn finish_tx(client: Arc<RpcClient>, rpc_response: &RpcClientResponse) -> 
         RpcClientResponse::Simulation(_) => unreachable!(),
     }
 }
+*/
 
 pub enum Network {
     Mainnet,
@@ -80,10 +75,12 @@ impl TryFrom<SolanaSignatureResponse> for Signature {
     type Error = Error;
 
     fn try_from(value: SolanaSignatureResponse) -> std::result::Result<Self, Self::Error> {
-        let decoded = solana_sdk::bs58::decode(&value.signature)
+        let decoded: Vec<u8> = bs58::decode(&value.signature)
             .into_vec()
-            .map_err(|e| crate::Error::Bs58Error(e.to_string()))?;
-        Signature::try_from(decoded).map_err(|_| crate::Error::InvalidSignature(value))
+            .map_err(|e| Error::Bs58Error(e.to_string()))?;
+        let array: [u8; 64] = decoded
+            .try_into().map_err(|_| Error::SigError(value.signature))?;
+        Ok(Signature::from(array))
     }
 }
 
@@ -145,16 +142,14 @@ impl TryFrom<&ClientSession> for SolanaSession {
     }
 }
 
-pub(crate) fn serialize_raw_message(message: Vec<u8>) -> Result<String> {
-    let msg: Message = bincode::deserialize(&message)?;
-    serialize_message(msg)
-}
+/*
 
 pub(crate) fn serialize_message(message: Message) -> Result<String> {
     let transaction = Transaction::new_unsigned(message);
     let hash = bincode::serialize(&transaction)?;
     Ok(BASE64_STANDARD.encode(hash))
 }
+ */
 
 impl SolanaSession {
     pub fn pubkey(&self) -> Pubkey {
@@ -165,11 +160,6 @@ impl SolanaSession {
         self.chain.clone()
     }
 
-    pub async fn balance(&self, rpc: &RpcClient) -> f64 {
-        let balance = rpc.get_balance(&self.pk).await.ok().unwrap_or_default();
-        (balance as f64) / (LAMPORTS_PER_SOL as f64)
-    }
-
     pub fn chain_type(&self) -> String {
         match self.chain {
             ChainId::Solana(ChainType::Main) => "main".to_string(),
@@ -178,10 +168,10 @@ impl SolanaSession {
         }
     }
 
-    pub async fn send_wallet_connect(
+    pub async fn sign_transaction(
         &self,
         tx: WalletConnectTransaction,
-    ) -> Result<SolanaSignatureResponse> {
+    ) -> Result<Signature> {
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
             request: RequestMethod {
                 method: monedero_domain::namespaces::Method::Solana(SolanaMethod::SignTransaction),
@@ -190,9 +180,9 @@ impl SolanaSession {
             },
             chain_id: self.chain.clone().into(),
         });
-        self.session
+        let response: SolanaSignatureResponse = self.session
             .publish_request(params)
-            .await
-            .map_err(|e| e.into())
+            .await?;
+        Signature::try_from(response)
     }
 }

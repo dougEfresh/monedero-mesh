@@ -159,7 +159,7 @@ mod tests {
         let eip_ns = namespaces
             .get(&NamespaceName::EIP155)
             .ok_or(Error::NamespaceNotFound)?;
-        let solana_s = namespaces
+        let _ = namespaces
             .get(&NamespaceName::Solana)
             .ok_or(Error::NamespaceNotFound)?;
 

@@ -1,0 +1,10 @@
+[package]
+name = "monedero-solana-wallet"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true

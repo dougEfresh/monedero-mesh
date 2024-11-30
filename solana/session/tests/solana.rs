@@ -280,6 +280,7 @@ async fn test_solana_session() -> anyhow::Result<()> {
     Ok(())
 }
 
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_solana_tokens() -> anyhow::Result<()> {
     let (wallet, _) = pair_dapp_wallet().await?;

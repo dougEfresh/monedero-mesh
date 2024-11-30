@@ -1,10 +1,10 @@
+use std::str::FromStr;
 use {
-    crate::{serialize_raw_message, Result, SolanaSession, WalletConnectTransaction},
-    solana_sdk::{
-        pubkey::Pubkey,
-        signature::{Signature, SignerError},
-        signer::Signer,
-    },
+    base64::{prelude::BASE64_STANDARD, Engine},
+    crate::{Result, SolanaSession, WalletConnectTransaction},
+    solana_pubkey::Pubkey,
+    solana_signature::{Signature},
+    solana_signer::{Signer, SignerError},
     std::{
         fmt::{Debug, Display, Formatter},
         time::Duration,
@@ -107,11 +107,10 @@ impl ReownSigner {
     }
 
     pub async fn wc_sign_transaction(&self, msg: Vec<u8>) -> Result<Signature> {
-        let encoded = serialize_raw_message(msg)?;
+        let encoded = BASE64_STANDARD.encode(msg);
         let sol_tx_req = WalletConnectTransaction {
             transaction: encoded,
         };
-        let sig = self.session.send_wallet_connect(sol_tx_req).await?;
-        Signature::try_from(sig)
+        self.session.sign_transaction(sol_tx_req).await
     }
 }

@@ -1,7 +1,7 @@
 use {
     anyhow::Result,
     serde::{Deserialize, Deserializer},
-    solana_sdk::bs58,
+    bs58,
     std::{collections::HashSet, fs::File, io::BufReader},
 };
 

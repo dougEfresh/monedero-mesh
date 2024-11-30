@@ -9,14 +9,15 @@ license = "MIT"
 resolver = "2"
 members = [
     "cipher",
-    "domain", 
+    "domain",
     "examples/web-demo",
     #"cli",
     #"extension",
     "namespaces",
     "relay",
     "sessions",
-    "solana",
+    "solana/session",
+    "solana/wallet",
     "store",
 ]
 
@@ -96,6 +97,9 @@ solana-program = { version = "2.1.4"}
 solana-rpc-client ={ version = "2.1.4" }
 solana-rpc-client-api = { version = "2.1.4" }
 solana-sdk = { version = "2.1.4" }
+solana-pubkey = { version = "2.1.4"}
+solana-signature = { version = "2.1.4"}
+solana-signer = { version = "0.0.2" }
 stanza = { version = "0.5" }
 thiserror = "1.0"
 tokio = { version = "1", features = ["rt", "time", "sync", "macros", "rt-multi-thread"] }
