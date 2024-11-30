@@ -2,6 +2,7 @@ mod settlement;
 
 use {
     crate::{
+        actors::actor_spawn,
         rpc::{
             Controller,
             Metadata,
@@ -149,8 +150,7 @@ impl Wallet {
             verify_url: None,
             redirect: None,
         };
-        let settlement_handler =
-            xtra::spawn_tokio(WalletSettlementActor::new(handler), Mailbox::unbounded());
+        let settlement_handler = actor_spawn(WalletSettlementActor::new(handler));
 
         let me = Self {
             manager,

@@ -15,10 +15,7 @@ impl KvStorage {
     where
         T: for<'de> Deserialize<'de> + Serialize,
     {
-        match LocalStorage::get::<T>(key) {
-            Err(e) => Ok(None),
-            Ok(r) => Ok(Some(r)),
-        }
+        Ok(LocalStorage::get::<T>(key).ok())
     }
 
     #[tracing::instrument(level = "debug", skip(self, value), fields(key = %key.as_ref()))]

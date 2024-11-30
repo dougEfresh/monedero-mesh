@@ -35,7 +35,7 @@ async fn propose(dapp: &Dapp) -> anyhow::Result<(Pairing, ClientSession)> {
     ctx.set_contents(p.to_string())
         .expect("Failed to set clipboard");
     if !restored {
-        qr2term::print_qr(&p.to_string())?;
+        // qr2term::print_qr(&p.to_string())?;
         eprintln!("\n\n{p}\n\n");
     }
     let session = rx.await?;
@@ -52,6 +52,43 @@ async fn pair_ping(dapp: Dapp) {
     }
 }
 
+async fn sign_message(session: ClientSession) {
+    if !session.namespaces().0.contains_key(&NamespaceName::Solana) {
+        return;
+    }
+    let sol_namespace = session.namespaces().0.get(&NamespaceName::Solana).unwrap();
+    for a in sol_namespace.accounts.0.iter() {
+        let addr = &a.address;
+        info!("found solana address {addr}");
+        let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
+            request: RequestMethod {
+                method: monedero_domain::namespaces::Method::Solana(SolanaMethod::SignMessage),
+                params: json!({
+                    "message": "37u9WtQpcm6ULa3VtWDFAWoQc1hUvybPrA3dtx99tgHvvcE7pKRZjuGmn7VX2tC3JmYDYGG7",
+                    "pubkey": addr,
+                }),
+                expiry: None,
+            },
+            chain_id: a.chain.clone(),
+        });
+        info!(
+            "signing a personal message\n{}",
+            serde_json::to_string_pretty(&params).unwrap()
+        );
+        match session.publish_request::<serde_json::Value>(params).await {
+            Err(e) => {
+                error!("failed to publish message! {e}");
+            }
+            Ok(r) => {
+                info!(
+                    "got back signature response\n{:?}",
+                    serde_json::to_string_pretty(&r).unwrap()
+                );
+            }
+        };
+    }
+}
+
 async fn do_dapp_stuff(dapp: Dapp) {
     info!("Running dapp - hit control-c to terminate");
     let session = match propose(&dapp).await {
@@ -64,40 +101,7 @@ async fn do_dapp_stuff(dapp: Dapp) {
     info!("settled {:#?}", session.namespaces());
     let pinger = dapp.clone();
     tokio::spawn(pair_ping(pinger));
-    if session.namespaces().0.contains_key(&NamespaceName::Solana) {
-        let sol_namespace = session.namespaces().0.get(&NamespaceName::Solana).unwrap();
-        for a in sol_namespace.accounts.0.iter() {
-            let addr = &a.address;
-            info!("found solana address {addr}");
-            let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
-                request: RequestMethod {
-                    method: monedero_domain::namespaces::Method::Solana(SolanaMethod::SignMessage),
-                    params: json!({
-                        "message": "37u9WtQpcm6ULa3VtWDFAWoQc1hUvybPrA3dtx99tgHvvcE7pKRZjuGmn7VX2tC3JmYDYGG7",
-                        "pubkey": addr,
-                    }),
-                    expiry: None,
-                },
-                chain_id: a.chain.clone(),
-            });
-            info!(
-                "signing a personal message\n{}",
-                serde_json::to_string_pretty(&params).unwrap()
-            );
-            match session.publish_request::<serde_json::Value>(params).await {
-                Err(e) => {
-                    error!("failed to publish message! {e}");
-                }
-                Ok(r) => {
-                    info!(
-                        "got back signature response\n{:?}",
-                        serde_json::to_string_pretty(&r).unwrap()
-                    );
-                }
-            };
-        }
-    }
-
+    tokio::spawn(sign_message(session.clone()));
     loop {
         info!("sending session ping");
         if let Err(e) = session.ping().await {

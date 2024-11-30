@@ -22,16 +22,10 @@ mock = [
 [dependencies]
 aead = { workspace = true }
 alloy-chains = {workspace = true}
-async-trait = { version = "0.1.81"}
+async-trait = { workspace = true }
 base64 = { workspace = true }
 chacha20poly1305 = { workspace = true }
-chrono = { version = "0.4", default-features = false, features = [
-    "std",
-    "clock",
-    "serde",
-    "wasmbind",
-    "wasm-bindgen"
-] }
+chrono = { workspace = true }
 data-encoding = { workspace = true }
 derive_more = { workspace = true }
 hkdf = { workspace = true }
@@ -56,18 +50,21 @@ tracing = { workspace = true}
 url = { workspace = true }
 dashmap = {  workspace = true }
 x25519-dalek = { version = "2", features = ["static_secrets", "serde"] }
-xtra = {workspace = true, features = ["macros", "tokio", "instrumentation", "wasm_bindgen"]}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 backoff = {version = "0.4", features = ["tokio"]}
 kvx = { version = "0.9" }
+xtra = { version = "0.6", features = ["macros", "tokio", "instrumentation"]}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-backoff = {version = "0.4", features = ["tokio", "wasm-bindgen"]}
-wasm-bindgen = { version = "0.2" }
-wasm-bindgen-futures = {  version = "0.4" }
-web-sys = { version = "0.3" }
+backoff = { version = "0.4", features = ["tokio", "wasm-bindgen"] }
+futures-util = { workspace = true, default-features = false , features = [] }
 getrandom = { version = "0.2" , features = ["js"]}
+gloo-timers = { workspace = true }
+# wasm-bindgen = { version = "0.2" }
+wasm-bindgen-futures = {  workspace = true }
+#web-sys = { version = "0.3" }
+xtra = { version = "0.6", features = ["macros", "wasm_bindgen", "instrumentation" ] }
 
 [[test]]
 name = "manager"
@@ -86,12 +83,10 @@ assert_matches = { version = "1" }
 hex-literal = { version = "0.4" }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 anyhow = "1"
-chrono = "0.4"
 tokio = { version = "1", features = ["full"] }
 env_logger = { version = "0.11" }
-tracing = { version = "0.1" }
 tracing-error = { version = "0.2"}
 dotenvy = {version = "0.15"}
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
 copypasta = { version = "0.10" }
-qr2term = { version = "0.3" }
+fast_qr = { version = "0.12" }

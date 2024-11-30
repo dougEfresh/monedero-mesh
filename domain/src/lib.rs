@@ -44,7 +44,7 @@ impl std::fmt::Display for DecodedSymKey {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SessionSettled {
-    pub topic: monedero_relay::SessionTopic,
+    pub topic: SessionTopic,
     pub namespaces: monedero_namespaces::Namespaces,
     /// Unix timestamp.
     ///

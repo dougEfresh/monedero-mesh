@@ -69,9 +69,9 @@ mod test {
                 SessionProposeResponse,
             },
             spawn_task,
+            wait,
         },
         anyhow::format_err,
-        std::time::Duration,
         xtra::prelude::*,
     };
 
@@ -93,7 +93,7 @@ mod test {
                 error!("failed to send response: {}", e);
             }
         });
-        let result = tokio::time::timeout(Duration::from_millis(300), rx).await??;
+        let result = wait::wait_until(300, rx).await??;
         match result.params {
             ResponseParams::Success(v) => {
                 let s: ResponseParamsSuccess = ResponseParamsSuccess::irn_try_from_tag(

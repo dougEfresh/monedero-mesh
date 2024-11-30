@@ -10,24 +10,31 @@ license.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
+alloy-chains = { workspace = true }
 anyhow = "1"
-console_error_panic_hook = { version = "0.1" }
-futures = "0.3"
+console_error_panic_hook = { workspace = true }
+fast_qr = { version = "0.12" }
+futures = { workspace = true }
 getrandom = { version = "0.2", features = ["js"] }
-gloo-timers = { version = "0.3", features = ["futures"] }
+gloo-timers = { workspace = true }
 monedero-mesh = { path = "../../sessions" }
 rand = { workspace = true }
-tracing-wasm = { version = "0.2" }
+tracing = { workspace = true }
+tracing-error = { workspace = true }
+tracing-subscriber = { workspace = true }
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4"
 web-time = { version = "1", features = ["serde"] }
-web-sys = { version = "0.3", features = [
+wasm-tracing = { workspace = true }
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
     "Element", "HtmlElement", "Window",
     "WebSocket", "console", "Event",
     "Document", "Crypto", "CryptoKey",
     "DateTimeValue", "SubtleCrypto", "Performance",
-    "TimeEvent"
-] }
+    "TimeEvent"]
 
 [lints]
 workspace = true

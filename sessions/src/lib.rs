@@ -7,7 +7,9 @@ mod relay;
 pub mod rpc;
 pub mod session;
 mod transport;
+mod wait;
 mod wallet;
+
 use {
     crate::rpc::SessionRequestRequest,
     monedero_domain::{namespaces::Event, Topic},
@@ -104,11 +106,8 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
 #[cfg(test)]
 pub(crate) mod test {
     use {
-        crate::{rpc::Event, SessionHandler, INIT},
-        std::sync::Arc,
-        tokio::sync::Mutex,
+        crate::INIT,
         tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
-        xtra::prelude::*,
     };
 
     pub(crate) fn init_tracing() {
@@ -121,82 +120,6 @@ pub(crate) mod test {
                 .init();
         });
     }
-
-    #[derive(Clone, Actor)]
-    struct Actor1 {
-        handlers: Arc<Mutex<Vec<Box<dyn SessionHandler>>>>,
-    }
-
-    #[derive(Actor)]
-    struct Actor2 {}
-
-    #[derive(Clone)]
-    struct Dummy;
-
-    impl Handler<Box<dyn SessionHandler>> for Actor1 {
-        type Return = ();
-
-        async fn handle(
-            &mut self,
-            message: Box<dyn SessionHandler>,
-            _ctx: &mut Context<Self>,
-        ) -> Self::Return {
-            self.handlers.lock().await.push(message);
-        }
-    }
-
-    impl Actor1 {
-        async fn handle_event(&self, event: Event) {
-            let l = self.handlers.lock().await;
-            for h in l.iter() {
-                h.event(event.clone()).await;
-            }
-        }
-    }
-
-    impl Handler<Event> for Actor1 {
-        type Return = ();
-
-        async fn handle(&mut self, message: Event, _ctx: &mut Context<Self>) -> Self::Return {
-            let me = self.clone();
-            tokio::spawn(async move {
-                me.handle_event(message).await;
-            });
-        }
-    }
-
-    impl Handler<Dummy> for Actor1 {
-        type Return = ();
-
-        async fn handle(&mut self, message: Dummy, _ctx: &mut Context<Self>) -> Self::Return {
-            tracing::info!("Actor1 got message");
-        }
-    }
-
-    impl Handler<Dummy> for Actor2 {
-        type Return = ();
-
-        async fn handle(&mut self, message: Dummy, _ctx: &mut Context<Self>) -> Self::Return {
-            tracing::info!("Actor2 got message");
-        }
-    }
-
-    // #[tokio::test]
-    // async fn test_actor_broadcast() -> anyhow::Result<()> {
-    // init_tracing();
-    // let handlers: Arc<Mutex<Vec<Box<dyn SessionHandler>>>> =
-    // Arc::new(Mutex::new(vec![Box::new(NoopSessionHandler {})]));
-    // let boxed: Box<dyn SessionHandler> = Box::new(NoopSessionHandler {});
-    // let act = Actor1 { handlers };
-    // let a1 = xtra::spawn_tokio(act.clone(), Mailbox::unbounded());
-    // a1.send(Dummy).await?;
-    // a1.send(boxed).await?;
-    // a1.send(Event::AccountsChanged).await?;
-    // a2.broadcast(Dummy).await?;
-    // tokio::time::sleep(Duration::from_secs(3)).await;
-    // eprintln!("size {}", act.handlers.lock().await.len());
-    // Ok(())
-    // }
 }
 
 #[cfg(not(target_arch = "wasm32"))]

@@ -17,19 +17,14 @@ mock = [
 ]
 
 [dependencies]
-chrono = { version = "0.4", default-features = false, features = [
-    "std",
-    "clock",
-    "serde",
-    "wasmbind"
-] }
+chrono = { workspace = true }
 dashmap = { version = "5", optional = true}
 once_cell = { version = "1", optional = true }
 rand = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
-tracing = { version = "0.1" }
+tracing = { workspace = true }
 walletconnect_sdk = { git = "https://github.com/dougEfresh/WalletConnectRust.git", branch = "wasm" , features = ["rpc", "client"] }
 
 [dev-dependencies]

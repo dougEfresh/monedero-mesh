@@ -2,12 +2,12 @@ use {
     crate::{
         actors::{SendRequest, TransportActor, Unsubscribe},
         rpc::{RequestParams, ResponseParams},
+        wait,
         Result,
     },
     monedero_domain::Topic,
     serde::de::DeserializeOwned,
     std::fmt::{Debug, Display, Formatter},
-    tokio::time::timeout,
     xtra::Address,
 };
 
@@ -38,7 +38,7 @@ impl TopicTransport {
             .send(SendRequest(topic, params))
             .await??;
 
-        if let Ok(result) = timeout(ttl, rx).await {
+        if let Ok(result) = wait::wait_until((ttl.as_secs() * 1000) as u32, rx).await {
             return match result {
                 Ok(response) => match response.params {
                     ResponseParams::Success(v) => Ok(serde_json::from_value(v)?),

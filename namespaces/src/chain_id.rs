@@ -15,9 +15,8 @@ const SOLANA: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 // const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
 const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
 /// This is actually Solana Dev
+// const SOLANA_DEV_NEW: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 const SOLANA_DEV: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
-// const SOLANA_DEV: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
-const SOLANA_DEV_OLD: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
 const SOLANA_TEST: &str = "solana:testnet";
 
 #[derive(
@@ -182,7 +181,7 @@ impl FromStr for ChainId {
         let chain_id = format!("{ns}:{id}");
         match chain_id.as_str() {
             SOLANA_OLD | SOLANA => Ok(Self::Solana(ChainType::Main)),
-            SOLANA_DEV_OLD | SOLANA_DEV => Ok(Self::Solana(ChainType::Dev)),
+            SOLANA_DEV => Ok(Self::Solana(ChainType::Dev)),
             SOLANA_TEST => Ok(Self::Solana(ChainType::Test)),
             _ => {
                 tracing::debug!("unknown chain {}", s);

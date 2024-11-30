@@ -89,4 +89,7 @@ pub enum Error {
 
     #[error("No client session for {0:#?}")]
     NoClientSession(Topic),
+
+    #[error("timeout occurred after {0}")]
+    WaitError(u32),
 }

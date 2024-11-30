@@ -40,11 +40,18 @@ doc_markdown = "allow"
 [workspace.dependencies]
 aead = { version = "0.5.2" }
 alloy-chains = {version = "0.1", features = ["serde"]}
+async-trait = { version = "0.1.81"}
 bs58 = "0.4.0"
 bincode = { version = "1.3"}
 base64 = "0.22"
 chacha20poly1305 = "0.10"
-chrono = { version = "0.4", features = ["serde"]}
+chrono = { version = "0.4", default-features = false, features = [
+    "std",
+    "clock",
+    "serde",
+    "wasmbind",
+    "wasm-bindgen"
+] }
 config  = { version = "0.14" }
 console-subscriber = { version = "0.4" }
 copypasta = { version = "0.10" }
@@ -94,15 +101,17 @@ tokio = { version = "1", features = ["rt", "time", "sync", "macros", "rt-multi-t
 tracing = { version = "0.1" }
 tracing-error = { version = "0.2.0" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
+
 trait-variant = "0.1.2"
 url = "2.4"
-xtra = { version = "0.6.0", features = ["macros", "tokio"]}
-
-
 
 ## wasm
 console_error_panic_hook = "0.1"
 gloo-storage = { version = "0.3" }
+gloo-timers = { version = "0.3", features = ["futures"] }
+web-time = { version = "1.1.0", features = ["serde"] }
+wasm-tracing = { version = "0.2", features = ["tracing-log"] }
+wasm-bindgen-futures = { version = "0.4" }
 
 ## TUI
 #tuirealm = { version = "1.9" }

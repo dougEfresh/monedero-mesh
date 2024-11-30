@@ -1,12 +1,21 @@
+mod log;
+
 use {
     gloo_timers::future::TimeoutFuture,
     monedero_mesh::{
-        domain::{auth_token, ProjectId},
+        domain::{
+            auth_token,
+            namespaces::{ChainId, ChainType, Chains},
+            ProjectId,
+        },
+        ClientSession,
         Dapp,
         Metadata,
+        NoopSessionHandler,
         PairingManager,
         WalletConnectBuilder,
     },
+    tracing::{error, info},
     wasm_bindgen::prelude::*,
     wasm_bindgen_futures::spawn_local,
     web_sys::console,
@@ -45,11 +54,38 @@ async fn dapp_init(mgr: PairingManager) -> Option<Dapp> {
     }
 }
 
+async fn propose(dapp: &Dapp) -> Option<ClientSession> {
+    let chains = Chains::from([
+        ChainId::Solana(ChainType::Dev),
+        ChainId::EIP155(alloy_chains::Chain::sepolia()),
+    ]);
+    info!("purposing chains {chains}");
+    let result = dapp.propose(NoopSessionHandler, &chains).await;
+    match result {
+        Err(e) => {
+            error!("failed to propose dapp {}", e);
+            None
+        }
+        Ok((pairing, fut, cached)) => {
+            if cached {
+                return Some(fut.await.unwrap());
+            }
+            info!("pairingUri {pairing}");
+            match fut.await {
+                Err(e) => {
+                    error!("failed to finalize session {e}");
+                    None
+                }
+                Ok(session) => Some(session),
+            }
+        }
+    }
+}
+
 #[wasm_bindgen(start)]
 pub fn run() {
-    console_error_panic_hook::set_once();
+    log::init();
     let project_id = env!["PROJECT_ID", "987f2292c12194ae69ddb6c52ceb1d62"];
-    tracing_wasm::set_as_global_default();
     spawn_local(async move {
         let p = ProjectId::from(project_id);
         let manager = pair_manager(p).await;
@@ -61,6 +97,13 @@ pub fn run() {
             return;
         }
         let dapp = dapp.unwrap();
+        let session = propose(&dapp).await;
+        if session.is_none() {
+            return;
+        }
+        let session = session.unwrap();
+        let _ = session.ping().await;
         TimeoutFuture::new(2000).await;
+        session.delete().await;
     })
 }

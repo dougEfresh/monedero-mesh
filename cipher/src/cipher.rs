@@ -82,7 +82,7 @@ impl std::fmt::Display for DecodedSymKey {
     }
 }
 
-#[derive(Clone, xtra::Actor)]
+#[derive(Clone)]
 pub struct Cipher {
     ciphers: CipherSessionKeyStore,
     pairing: AtomicPairing,
@@ -428,11 +428,10 @@ impl Cipher {
 mod tests {
     use {super::*, crate::session::SessionKey, anyhow::format_err, monedero_store::KvStorage};
 
-    fn temp_location() -> Option<String> {
-        let topic = Topic::generate();
-        Some(format!("target/kv/{topic}"))
-    }
-
+    // fn temp_location() -> Option<String> {
+    // let topic = Topic::generate();
+    // Some(format!("target/kv/{topic}"))
+    // }
     // #[test]
     // pub fn test_cipher_encrypt() -> anyhow::Result<()> {
     // crate::test::init_tracing();
@@ -569,7 +568,6 @@ mod tests {
         let (session_topic, _) = ciphers.create_common_topic(String::from(&responder_pk))?;
 
         let now = chrono::Utc::now();
-        let future = now + chrono::Duration::hours(24);
         let mut settlement = SessionSettleRequest::default();
 
         ciphers.set_settlement(&session_topic, settlement.clone())?;

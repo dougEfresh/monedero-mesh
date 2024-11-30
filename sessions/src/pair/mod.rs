@@ -12,6 +12,7 @@ use {
         rpc::{PairDeleteRequest, PairExtendRequest, PairPingRequest, RequestParams},
         spawn_task,
         transport::TopicTransport,
+        wait,
         Error,
         Result,
         SocketEvent,
@@ -24,7 +25,6 @@ use {
     std::{
         fmt::{Debug, Formatter},
         sync::Arc,
-        time::Duration,
     },
     tokio::sync::mpsc,
     tracing::{info, warn},
@@ -113,7 +113,7 @@ impl PairingManager {
     /// If the peer returns an RPC error then it is "alive"
     /// Error only for network communication errors or relay server is down
     pub(crate) async fn alive(&self) -> bool {
-        match tokio::time::timeout(Duration::from_secs(5), self.ping()).await {
+        match wait::wait_until(5000, self.ping()).await {
             Ok(r) => match r {
                 Ok(true) => true,
                 Ok(false) => false,
@@ -180,8 +180,8 @@ impl PairingManager {
 
     pub async fn delete(&self) -> Result<bool> {
         let t = self.topic().ok_or(Error::NoPairingTopic)?;
-        let result = tokio::time::timeout(
-            Duration::from_millis(1100),
+        let result = wait::wait_until(
+            1100,
             self.transport.publish_request::<bool>(
                 t.clone(),
                 RequestParams::PairDelete(PairDeleteRequest::default()),

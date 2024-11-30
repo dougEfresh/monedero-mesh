@@ -1,7 +1,8 @@
 use {
     crate::{
-        rpc::{ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload},
+        rpc::{ResponseParamsSuccess, RpcResponsePayload},
         session::Category,
+        spawn_task,
         Dapp,
         Result,
     },
@@ -22,14 +23,12 @@ impl Handler<SessionSettled> for Dapp {
     type Return = RpcResponsePayload;
 
     async fn handle(&mut self, message: SessionSettled, _ctx: &mut Context<Self>) -> Self::Return {
-        match self.process_settlement(message).await {
-            Ok(()) => RpcResponsePayload::Success(ResponseParamsSuccess::SessionSettle(true)),
-            Err(e) => {
+        let me = self.clone();
+        spawn_task(async move {
+            if let Err(e) = me.process_settlement(message).await {
                 tracing::warn!("failed to complete settlement: {e}");
-                RpcResponsePayload::Error(ResponseParamsError::SessionSettle(
-                    crate::SdkErrors::UserRejected.into(),
-                ))
             }
-        }
+        });
+        RpcResponsePayload::Success(ResponseParamsSuccess::SessionSettle(true))
     }
 }

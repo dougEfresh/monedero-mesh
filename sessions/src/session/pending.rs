@@ -11,13 +11,10 @@ use {
     },
     dashmap::DashMap,
     monedero_domain::{PairingTopic, SessionSettled},
-    std::{sync::Arc, time::Duration},
-    tokio::{
-        sync::{
-            oneshot::{self, Sender},
-            Mutex,
-        },
-        time::timeout,
+    std::sync::Arc,
+    tokio::sync::{
+        oneshot::{self, Sender},
+        Mutex,
     },
     tracing::warn,
 };
@@ -92,9 +89,9 @@ impl PendingSession {
         )
         .await?;
         // sanity check on connection
-        if let Err(e) = timeout(Duration::from_secs(5), client_session.ping()).await {
-            warn!("failed to ping session: {e}. Session maybe broken, try new pairing");
-        }
+        // if let Err(e) = crate::wait::wait_until(5000, client_session.ping()).await {
+        // warn!("failed to ping session: {e}. Session maybe broken, try new pairing");
+        // }
         if let Some(req) = send_to_peer {
             let result = client_session
                 .publish_request::<bool>(RequestParams::SessionSettle(req))
