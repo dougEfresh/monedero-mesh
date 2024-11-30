@@ -1,4 +1,4 @@
-use {solana_program::pubkey::Pubkey, solana_sdk::signature::Signature};
+use solana_sdk::signature::Signature;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -74,7 +74,7 @@ pub enum Error {
     BadParameter(String),
 
     #[error(transparent)]
-    StorageError(#[from] monedero_mesh::StorageError),
+    StorageError(#[from] monedero_store::Error),
 
     #[error(transparent)]
     HttpError(#[from] reqwest::Error),

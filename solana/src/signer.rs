@@ -1,15 +1,9 @@
 use {
     crate::{serialize_raw_message, Result, SolanaSession, WalletConnectTransaction},
-    base64::{prelude::BASE64_STANDARD, Engine},
-    monedero_mesh::ClientSession,
-    monedero_namespaces::ChainId,
     solana_sdk::{
-        message::Message,
         pubkey::Pubkey,
         signature::{Signature, SignerError},
         signer::Signer,
-        signers::Signers,
-        transaction::Transaction,
     },
     std::{
         fmt::{Debug, Display, Formatter},

@@ -28,7 +28,7 @@ use {
         WalletRequestResponse,
         WalletSettlementHandler,
     },
-    monedero_namespaces::{
+    monedero_domain::namespaces::{
         Account,
         Accounts,
         AlloyChain,

@@ -2,8 +2,7 @@ use {
     crate::TokenMetadata,
     chrono::{DateTime, Utc},
     dashmap::DashMap,
-    monedero_mesh::KvStorage,
-    serde::{Deserialize, Serialize},
+    monedero_store::KvStorage,
     solana_account_decoder::parse_token::UiTokenAccount,
     solana_program::pubkey::Pubkey,
     std::{

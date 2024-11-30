@@ -9,13 +9,14 @@ license = "MIT"
 resolver = "2"
 members = [
     "cipher",
-    "domain", "examples/web-demo",
+    "domain", 
+    "examples/web-demo",
     #"cli",
     #"extension",
     "namespaces",
     "relay",
     "sessions",
-    #"solana",
+    "solana",
     "store",
 ]
 

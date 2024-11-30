@@ -4,20 +4,15 @@ mod delegate;
 mod withdrawal;
 
 use {
-    crate::{fee::FeeService, ReownSigner, SolanaSession},
-    serde::{Deserialize, Serialize},
-    solana_program::{
+    crate::{fee::FeeService, ReownSigner, SolanaSession}, serde::{Deserialize, Serialize}, solana_program::{
         clock::{Epoch, Slot, UnixTimestamp},
         native_token::LAMPORTS_PER_SOL,
         pubkey::Pubkey,
         stake::state::{Authorized, Lockup},
-    },
-    solana_rpc_client::nonblocking::rpc_client::RpcClient,
-    solana_sdk::account_utils::StateMut,
-    std::{
+    }, solana_rpc_client::nonblocking::rpc_client::RpcClient, std::{
         fmt::{Debug, Display, Formatter},
         sync::Arc,
-    },
+    }
 };
 
 pub struct StakeClient {

@@ -13,7 +13,7 @@ use {
         rpc::{RequestMethod, RequestParams, SessionRequestRequest},
         ClientSession,
     },
-    monedero_namespaces::{ChainId, NamespaceName, SolanaMethod},
+    monedero_domain::namespaces::{ChainType, NamespaceName, SolanaMethod},
     serde::{Deserialize, Serialize},
     solana_program::native_token::LAMPORTS_PER_SOL,
     solana_rpc_client::nonblocking::rpc_client::RpcClient,
@@ -34,7 +34,7 @@ use {
 pub use {
     error::Error,
     memo::*,
-    monedero_namespaces::ChainType,
+    monedero_domain::namespaces::ChainId,
     signer::ReownSigner,
     stake::*,
     token::*,
@@ -184,7 +184,7 @@ impl SolanaSession {
     ) -> Result<SolanaSignatureResponse> {
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
             request: RequestMethod {
-                method: monedero_namespaces::Method::Solana(SolanaMethod::SignTransaction),
+                method: monedero_domain::namespaces::Method::Solana(SolanaMethod::SignTransaction),
                 params: serde_json::to_value(tx)?,
                 expiry: None,
             },

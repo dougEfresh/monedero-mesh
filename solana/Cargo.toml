@@ -24,7 +24,8 @@ bincode = { workspace = true }
 chrono = { workspace = true }
 dashmap = { workspace = true }
 monedero-mesh = { path = "../sessions", optional = true}
-monedero-namespaces = { path = "../namespaces"}
+monedero-domain = { path = "../domain"}
+monedero-store = { path = "../store"}
 monedero-relay = { path = "../relay", optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
