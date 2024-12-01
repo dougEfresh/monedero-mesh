@@ -1,19 +1,12 @@
-//mod compute_budget;
 mod error;
-//mod fee;
-//mod memo;
 mod signer;
-//mod stake;
-//mod token;
-//mod wallet;
 
 use {
-    base64::{prelude::BASE64_STANDARD, Engine},
     monedero_mesh::{
         rpc::{RequestMethod, RequestParams, SessionRequestRequest},
         ClientSession,
     },
-    monedero_domain::namespaces::{ChainType, NamespaceName, SolanaMethod},
+    monedero_domain::namespaces::{ChainType, NamespaceName, SolanaMethod, ChainId},
     serde::{Deserialize, Serialize},
     solana_pubkey::Pubkey,
     solana_signature::Signature,
@@ -21,44 +14,15 @@ use {
         fmt::{Debug, Display, Formatter},
         ops::Deref,
         str::FromStr,
-        sync::Arc,
     },
 };
 pub use {
     error::Error,
-    //memo::*,
-    monedero_domain::namespaces::ChainId,
     signer::ReownSigner,
-    //stake::*,
-    //token::*,
-    //wallet::*,
+    monedero_mesh as session,
 };
 
 pub type Result<T> = std::result::Result<T, Error>;
-pub use monedero_mesh;
-pub(crate) const DEFAULT_MEMO: &str = "🛠️ by github.com/dougEfresh/monedero-mesh";
-
-/*
-async fn finish_tx(client: Arc<RpcClient>, rpc_response: &RpcClientResponse) -> Result<Signature> {
-    match rpc_response {
-        RpcClientResponse::Signature(s) => match client.confirm_transaction(s).await? {
-            true => Ok(s.clone()),
-            false => Err(Error::ConfirmationFailure(s.clone())),
-        },
-        RpcClientResponse::Transaction(_) => unreachable!(),
-        RpcClientResponse::Simulation(_) => unreachable!(),
-    }
-}
-*/
-
-pub enum Network {
-    Mainnet,
-    Devnet,
-}
-
-pub(crate) fn bytes_to_str(b: &[u8]) -> String {
-    String::from(std::str::from_utf8(b).expect("this should not fail"))
-}
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -89,16 +53,11 @@ pub struct SolanaSession {
     pk: Pubkey,
     chain: ChainId,
     session: ClientSession,
+    network: ChainType,
 }
 
 fn fmt_common(s: &SolanaSession) -> String {
-    let c = match s.chain {
-        ChainId::Solana(ChainType::Main) => "main".to_string(),
-        ChainId::Solana(ChainType::Dev) => "dev".to_string(),
-        ChainId::Solana(ChainType::Test) => "test".to_string(),
-        _ => "unknown".to_string(),
-    };
-    format!("pk={} chain={c}", s.pk)
+    format!("pk={} chain={}", s.pk, s.chain)
 }
 
 impl Eq for SolanaSession {}
@@ -134,22 +93,20 @@ impl TryFrom<&ClientSession> for SolanaSession {
             .deref()
             .first()
             .ok_or(Error::SolanaAccountNotFound)?;
+        let network = match &account.chain {
+            ChainId::Solana(ChainType::Dev) => ChainType::Dev,
+            ChainId::Solana(ChainType::Test) => ChainType::Test,
+            ChainId::Solana(ChainType::Main) => ChainType::Main,
+            _ => ChainType::Dev,
+        };
         Ok(Self {
             pk: Pubkey::from_str(&account.address)?,
             chain: account.chain.clone(),
             session: value.clone(),
+            network,
         })
     }
 }
-
-/*
-
-pub(crate) fn serialize_message(message: Message) -> Result<String> {
-    let transaction = Transaction::new_unsigned(message);
-    let hash = bincode::serialize(&transaction)?;
-    Ok(BASE64_STANDARD.encode(hash))
-}
- */
 
 impl SolanaSession {
     pub fn pubkey(&self) -> Pubkey {
@@ -160,12 +117,8 @@ impl SolanaSession {
         self.chain.clone()
     }
 
-    pub fn chain_type(&self) -> String {
-        match self.chain {
-            ChainId::Solana(ChainType::Main) => "main".to_string(),
-            ChainId::Solana(ChainType::Test) => "dev".to_string(),
-            _ => "unknown".to_string(),
-        }
+    pub fn network(&self) -> ChainType {
+        self.network.clone()
     }
 
     pub async fn sign_transaction(

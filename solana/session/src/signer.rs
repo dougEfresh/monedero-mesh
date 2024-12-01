@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use {
     base64::{prelude::BASE64_STANDARD, Engine},
     crate::{Result, SolanaSession, WalletConnectTransaction},

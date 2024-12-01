@@ -1,78 +1,15 @@
 use {
-    anyhow::format_err,
-    assert_matches::assert_matches,
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
-    monedero_mesh::{
-        crypto::CipherError,
-        rpc::{
-            Metadata,
-            ResponseParamsError,
-            ResponseParamsSuccess,
-            RpcResponsePayload,
-            SessionProposeRequest,
-            SessionProposeResponse,
-            SessionRequestRequest,
-        },
-        Actors,
-        ClientSession,
-        Dapp,
-        NoopSessionHandler,
-        ProjectId,
-        ProposeFuture,
-        RegisteredComponents,
-        SdkErrors,
-        Topic,
-        Wallet,
-        WalletConnectBuilder,
-        WalletRequestResponse,
-        WalletSettlementHandler,
-    },
-    monedero_domain::namespaces::{
-        Account,
-        Accounts,
-        AlloyChain,
-        ChainId,
-        ChainType,
-        Chains,
-        EipMethod,
-        Events,
-        Method,
-        Methods,
-        Namespace,
-        NamespaceName,
-        Namespaces,
-        SolanaMethod,
-    },
-    monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair},
-    monedero_solana::{
-        Error,
-        KeyedStakeState,
-        ReownSigner,
-        Result,
-        SolanaSession,
-        SolanaSignatureResponse,
-        SolanaWallet,
-        StakeClient,
-        StakeType,
-        TokenMintClient,
-        TokenSymbolDev,
-        TokenTransferClient,
-        WalletConnectTransaction,
-    },
-    serde::Deserialize,
-    solana_program::native_token::LAMPORTS_PER_SOL,
-    solana_rpc_client::{
-        nonblocking::rpc_client::RpcClient,
-        rpc_client::{RpcClientConfig, SerializableTransaction},
-    },
-    solana_sdk::{
-        message::Message,
-        pubkey::Pubkey,
-        signature::{Keypair, Signature},
-        signer::Signer,
-        transaction::{Transaction, VersionedTransaction},
-    },
+    monedero_domain::*,
+    monedero_relay::{ConnectionCategory, ConnectionOptions, ConnectionPair},
+    solana_pubkey::Pubkey,
+    monedero_domain::namespaces::{ChainId, Method, ChainType},
+    solana_signature::Signature,
+    solana_keypair::Keypair,
+    monedero_mesh::{auth_token, NoopSessionHandler, ProposeFuture },
+    monedero_solana::SolanaSession,
+    solana_rpc_client::nonblocking::rpc_client::RpcClient,
     std::{
         collections::{BTreeMap, BTreeSet},
         path::{Path, PathBuf},
@@ -242,7 +179,7 @@ async fn await_wallet_pair(rx: ProposeFuture) {
     }
 }
 
-async fn pair_dapp_wallet() -> anyhow::Result<(SolanaWallet, MockWallet)> {
+async fn pair_dapp_wallet() -> anyhow::Result<(SolanaSession, MockWallet)> {
     let (dapp, wallet, mock_wallet) = init_test_components().await?;
     let (pairing, rx, _) = dapp
         .propose(NoopSessionHandler, &[ChainId::Solana(ChainType::Dev)])
@@ -256,15 +193,7 @@ async fn pair_dapp_wallet() -> anyhow::Result<(SolanaWallet, MockWallet)> {
     // let wallet get their ClientSession
     yield_ms(1000).await;
     let sol_session = SolanaSession::try_from(&session)?;
-    let w = SolanaWallet::init(
-        sol_session,
-        mock_wallet.rpc_client.clone(),
-        PathBuf::from(Path::new("/tmp")),
-        1000000,
-        Some("testing"),
-    )
-    .await?;
-    Ok((w, mock_wallet))
+    Ok((sol_session, mock_wallet))
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 
@@ -273,156 +202,9 @@ async fn test_solana_session() -> anyhow::Result<()> {
     info!("settlement complete");
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let amount = 1;
-    let balance = wallet.balance().await?;
     info!("balance in lamports {balance}");
     let sig = wallet.transfer(&to, amount).await?;
     info!("got sig {sig}");
     Ok(())
 }
 
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_solana_tokens() -> anyhow::Result<()> {
-    let (wallet, _) = pair_dapp_wallet().await?;
-    let token_account_client = wallet.token_accounts_client();
-    let accounts = token_account_client.accounts().await?.accounts;
-    let usdc = accounts
-        .iter()
-        .find(|a| a.metadata.symbol == "USDC")
-        .expect("No USDC");
-    let token_client = wallet.token_transfer_client(usdc);
-    let balance = token_client.balance().await?;
-    let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
-    info!(
-        "balance {} on token account {}  (wallet:{})",
-        balance,
-        token_client.account(),
-        wallet.pk()
-    );
-    info!("sending to {to}");
-    let sig = token_client.transfer(&to, 1).await?;
-    info!("got signature {sig}");
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_solana_mint() -> anyhow::Result<()> {
-    let (wallet, mock_wallet) = pair_dapp_wallet().await?;
-    let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
-    let mint = wallet.token_mint_client();
-    let (token_address, sig) = mint.create_mint(6, None).await?;
-    info!("created mint {token_address} signature: {sig}");
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_solana_wrap_sol() -> anyhow::Result<()> {
-    let (wallet, mock_wallet) = pair_dapp_wallet().await?;
-    let token_client = wallet.token_wrapped_client();
-    info!("wrapped account {}", token_client.account());
-    let wrapped = token_client.wrap(5000, false).await?;
-    let balance = token_client.balance().await?;
-    info!("immutable wrapped {wrapped} balance: {balance}");
-    let wrapped = token_client.wrap(5000, true).await?;
-    let balance = token_client.balance().await?;
-    info!("mut wrapped {wrapped} balance: {balance}");
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_solana_mint_new_tokens() -> anyhow::Result<()> {
-    // this came from  test_solana_mint above
-    let token_address = Pubkey::from_str("8m3uKEn4fMPNVr7nv6RmQYktT4zRqEZzhuZDpG8hQZT4")?;
-    let (wallet, _) = pair_dapp_wallet().await?;
-    let accounts = wallet.token_accounts_client().accounts().await?.accounts;
-    let my_token_account = accounts
-        .iter()
-        .find(|a| a.address == *wallet.pk())
-        .expect("failed to find my token!");
-    let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
-    let token_client = wallet.token_transfer_client(my_token_account);
-    let sig = token_client.mint_to(wallet.pk(), 100_000_000).await?;
-    info!("signature for minting to me {sig}");
-    let sig = token_client.transfer(&to, 1000000).await?;
-    info!("signature for sending to {to} {sig}");
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_solana_stake_accounts() -> anyhow::Result<()> {
-    let (wallet, _) = pair_dapp_wallet().await?;
-    info!("settlement complete {}", wallet.pk());
-    let staker = wallet.stake_client();
-    let validators = staker.validators().await?;
-    info!("there are {} validators", validators.len());
-    let accounts = staker.accounts().await?;
-    info!("you have {} staked accounts", accounts.len());
-    for a in &accounts {
-        info!("{a}")
-    }
-    let seed = std::time::SystemTime::now()
-        .duration_since(std::time::SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-        .to_string();
-    info!("using seed {seed}");
-    let (account, sig) = staker.create(seed, LAMPORTS_PER_SOL * 2).await?;
-    info!("create new account {account} sig: {sig}");
-    explorer(&sig);
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_solana_stake_withdrawal() -> anyhow::Result<()> {
-    let (wallet, _) = pair_dapp_wallet().await?;
-    info!("settlement complete {}", wallet.pk());
-    let staker = wallet.stake_client();
-    let validators = staker.validators().await?;
-    info!("there are {} validators", validators.len());
-    let accounts = staker.accounts_undelegated().await?;
-    if accounts.is_empty() {
-        info!("no accounts to withdrawal");
-        return Ok(());
-    }
-    let unstake = &accounts[0];
-    info!("withdrawl from {}", unstake);
-    let sig = staker.withdraw(unstake).await?;
-    explorer(&sig);
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_solana_stake_delegate() -> anyhow::Result<()> {
-    let (wallet, _) = pair_dapp_wallet().await?;
-    let staker = wallet.stake_client();
-    let validators = staker.validators().await?;
-    info!("there are {} validators", validators.len());
-    let accounts = staker.accounts_undelegated().await?;
-    if accounts.is_empty() {
-        info!("no accounts to delegate");
-        return Ok(());
-    }
-    for a in &accounts {
-        info!("{a}")
-    }
-    let a = &accounts[0];
-    let v = Pubkey::from_str(&validators[0].vote_pubkey)?;
-    let sig = staker.delegate(a, &v).await?;
-    explorer(&sig);
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_solana_stake_create_delegate() -> anyhow::Result<()> {
-    let (wallet, _) = pair_dapp_wallet().await?;
-    let staker = wallet.stake_client();
-    let validators = staker.validators().await?;
-    info!("there are {} validators", validators.len());
-    let v = Pubkey::from_str(&validators[0].vote_pubkey)?;
-    let (stake_account, sig) = staker
-        .create_delegate((2.1 * LAMPORTS_PER_SOL as f64) as u64, &v)
-        .await?;
-    info!("created stake account {stake_account}");
-    explorer(&sig);
-    Ok(())
-}

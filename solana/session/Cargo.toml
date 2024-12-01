@@ -38,26 +38,11 @@ solana-pubkey = { workspace = true }
 solana-signature = { workspace = true }
 solana-signer = { workspace = true }
 
-#spl-memo = { workspace = true }
-#spl-token = { workspace = true }
-#spl-token-client ={ workspace = true }
-#spl-token-2022 = { workspace = true }
-#spl-associated-token-account-client = { workspace = true }
-#spl-associated-token-account = { workspace = true }
-#solana-account-decoder =  { workspace = true }
-#solana-client = { workspace = true }
-#solana-feature-set = { workspace = true }
-#solana-program = { workspace = true }
-#solana-rpc-client = { workspace = true }
-#solana-rpc-client-api = { workspace = true }
-#solana-sdk = { workspace = true }
-
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 microxdg = { workspace = true }
 
 
 [dev-dependencies]
-alloy = { version = "0.6", features = ["full"] }
 assert_matches = { version = "1.5.0" }
 async-trait = "0.1.82"
 anyhow = "1"
@@ -67,6 +52,8 @@ tracing = { version = "0.1" }
 tracing-error = { version = "0.2.0"}
 dotenvy = {version = "0.15"}
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
+solana-keypair = { version = "0.0.2" }
+solana-rpc-client = { workspace = true }
 
 [[test]]
 name = "solana"
