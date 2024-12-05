@@ -28,10 +28,10 @@ use {
 };
 
 pub const RELAY_ADDRESS: &str = "wss://relay.walletconnect.com";
-mod error;
-
 #[cfg(not(feature = "mock"))]
 mod client;
+mod error;
+mod mock_server;
 #[cfg(not(feature = "mock"))]
 pub use client::Client;
 
@@ -165,10 +165,18 @@ impl ConnectionOptions {
         }
     }
 
-    #[cfg(not(feature = "mock"))]
+    pub fn mock(project_id: ProjectId, serialized: SerializedAuthToken) -> Self {
+        Self::create("ws://127.0.0.1:4000", project_id, serialized)
+    }
+
     pub fn new(project_id: ProjectId, serialized: SerializedAuthToken) -> Self {
+        Self::create(RELAY_ADDRESS, project_id, serialized)
+    }
+
+    #[cfg(not(feature = "mock"))]
+    fn create(address: &str, project_id: ProjectId, serialized: SerializedAuthToken) -> Self {
         Self {
-            address: RELAY_ADDRESS.into(),
+            address: address.into(),
             project_id,
             auth: Authorization::Query(serialized),
             origin: None,
@@ -182,6 +190,30 @@ impl ConnectionOptions {
 pub struct CloseFrame<'t> {
     /// The reason as text string.
     pub reason: Cow<'t, str>,
+}
+
+pub struct NoopHandler;
+
+impl ConnectionHandler for NoopHandler {
+    fn message_received(&mut self, _message: Message) {}
+}
+
+pub struct LogHandler {
+    handler: Box<dyn ConnectionHandler>,
+}
+
+impl LogHandler {
+    pub fn new(handler: impl ConnectionHandler) -> Self {
+        Self {
+            handler: Box::new(handler),
+        }
+    }
+}
+
+impl ConnectionHandler for LogHandler {
+    fn message_received(&mut self, message: Message) {
+        self.handler.message_received(message);
+    }
 }
 
 /// Handlers for the RPC events.
@@ -204,9 +236,13 @@ pub trait ConnectionHandler: Send + 'static {
     fn outbound_error(&mut self, _error: ClientError) {}
 }
 
+pub fn mock_connection_opts(project_id: ProjectId) -> ConnectionOptions {
+    let auth = auth_token("https://github.com/dougEfresh");
+    ConnectionOptions::mock(project_id, auth)
+}
 /// # Panics
 ///
-/// Will panic key is invalid
+/// Will panic when key is invalid
 #[allow(clippy::unwrap_used)]
 pub fn auth_token(url: impl Into<String>) -> SerializedAuthToken {
     let key = SigningKey::generate(&mut rand::thread_rng());

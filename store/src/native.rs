@@ -20,7 +20,7 @@ impl Default for KvStorage {
 }
 
 impl KvStorage {
-    pub fn path(location: PathBuf, ns: &str) -> Result<Self> {
+    pub fn path(location: &PathBuf, ns: &str) -> Result<Self> {
         info!("using storage path location {}", location.display());
         let namespace = Namespace::parse(ns).map_err(|_| crate::Error::NamespaceInvalid)?;
         let store = KeyValueStore::new(
@@ -48,7 +48,7 @@ impl KvStorage {
                 ))
             })?
         };
-        Self::path(location, "wc2")
+        Self::path(&location, "wc2")
     }
 
     pub fn new() -> Self {

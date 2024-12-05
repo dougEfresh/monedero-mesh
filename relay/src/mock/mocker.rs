@@ -101,8 +101,8 @@ impl Mocker {
         topic: Topic,
         message: impl Into<Arc<str>> + Send,
         tag: u32,
-        _ttl: Duration,
-        _prompt: bool,
+        ttl: Duration,
+        prompt: bool,
     ) -> Result<()> {
         if !self.connected.load(Ordering::Relaxed) {
             return Err(ClientError::Disconnected);
@@ -173,13 +173,6 @@ impl Mocker {
     #[allow(clippy::missing_errors_doc)]
     pub async fn disconnect(&self) -> Result<()> {
         self.connect_state(MockEvent::Closed)
-    }
-
-    pub async fn batch_subscribe(
-        &self,
-        topics: impl Into<Vec<Topic>>,
-    ) -> Result<Vec<SubscriptionId>> {
-        Ok(Vec::new())
     }
 }
 

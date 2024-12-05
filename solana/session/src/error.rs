@@ -1,4 +1,3 @@
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("invalid solana public key {0:#?}")]
@@ -43,23 +42,20 @@ pub enum Error {
     #[error(transparent)]
     PubkeyError(#[from] solana_pubkey::PubkeyError),
 
-    /*
-    #[error(transparent)]
-    SolanaRpcError(#[from] solana_rpc_client_api::client_error::Error),
-
-    #[error(transparent)]
-    SolanaProgramError(#[from] solana_program::program_error::ProgramError),
-
-    #[error(transparent)]
-    TransactionError(#[from] solana_sdk::transaction::TransactionError),
-
-    #[error(transparent)]
-    InstructionError(#[from] solana_program::instruction::InstructionError),
-
-    #[error(transparent)]
-    TokenError(#[from] spl_token_client::token::TokenError),
-     */
-    
+    // #[error(transparent)]
+    // SolanaRpcError(#[from] solana_rpc_client_api::client_error::Error),
+    //
+    // #[error(transparent)]
+    // SolanaProgramError(#[from] solana_program::program_error::ProgramError),
+    //
+    // #[error(transparent)]
+    // TransactionError(#[from] solana_sdk::transaction::TransactionError),
+    //
+    // #[error(transparent)]
+    // InstructionError(#[from] solana_program::instruction::InstructionError),
+    //
+    // #[error(transparent)]
+    // TokenError(#[from] spl_token_client::token::TokenError),
     #[error("signature failed to confirm {0}")]
     ConfirmationFailure(solana_signature::Signature),
 

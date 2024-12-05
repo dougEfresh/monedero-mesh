@@ -1,12 +1,13 @@
 mod error;
 mod signer;
 
+pub use {error::Error, monedero_mesh as session, signer::ReownSigner};
 use {
+    monedero_domain::namespaces::{ChainId, ChainType, NamespaceName, SolanaMethod},
     monedero_mesh::{
         rpc::{RequestMethod, RequestParams, SessionRequestRequest},
         ClientSession,
     },
-    monedero_domain::namespaces::{ChainType, NamespaceName, SolanaMethod, ChainId},
     serde::{Deserialize, Serialize},
     solana_pubkey::Pubkey,
     solana_signature::Signature,
@@ -15,11 +16,6 @@ use {
         ops::Deref,
         str::FromStr,
     },
-};
-pub use {
-    error::Error,
-    signer::ReownSigner,
-    monedero_mesh as session,
 };
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -43,7 +39,8 @@ impl TryFrom<SolanaSignatureResponse> for Signature {
             .into_vec()
             .map_err(|e| Error::Bs58Error(e.to_string()))?;
         let array: [u8; 64] = decoded
-            .try_into().map_err(|_| Error::SigError(value.signature))?;
+            .try_into()
+            .map_err(|_| Error::SigError(value.signature))?;
         Ok(Signature::from(array))
     }
 }
@@ -57,7 +54,7 @@ pub struct SolanaSession {
 }
 
 fn fmt_common(s: &SolanaSession) -> String {
-    format!("pk={} chain={}", s.pk, s.chain)
+    format!("pk={},chain={}", s.pk, s.chain)
 }
 
 impl Eq for SolanaSession {}
@@ -121,10 +118,7 @@ impl SolanaSession {
         self.network.clone()
     }
 
-    pub async fn sign_transaction(
-        &self,
-        tx: WalletConnectTransaction,
-    ) -> Result<Signature> {
+    pub async fn sign_transaction(&self, tx: WalletConnectTransaction) -> Result<Signature> {
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
             request: RequestMethod {
                 method: monedero_domain::namespaces::Method::Solana(SolanaMethod::SignTransaction),
@@ -133,9 +127,7 @@ impl SolanaSession {
             },
             chain_id: self.chain.clone().into(),
         });
-        let response: SolanaSignatureResponse = self.session
-            .publish_request(params)
-            .await?;
+        let response: SolanaSignatureResponse = self.session.publish_request(params).await?;
         Signature::try_from(response)
     }
 }

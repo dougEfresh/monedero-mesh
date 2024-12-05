@@ -12,20 +12,29 @@ workspace = true
 [features]
 default = []
 mock = [
-    "once_cell",
-    "dashmap"
+  "once_cell"
 ]
 
 [dependencies]
 chrono = { workspace = true }
-dashmap = { version = "5", optional = true}
+dashmap = { version = "5" }
 once_cell = { version = "1", optional = true }
 rand = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true }
 tracing = { workspace = true }
 walletconnect_sdk = { git = "https://github.com/dougEfresh/WalletConnectRust.git", branch = "wasm" , features = ["rpc", "client"] }
+
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true , features = ["full"]}
+futures-util = { workspace = true }
+tokio-tungstenite = { version = "0.24" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { workspace = true }
+
 
 [dev-dependencies]
 tokio = { version = "1" , features = ["full"] }

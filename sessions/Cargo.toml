@@ -6,9 +6,6 @@ authors.workspace = true
 repository.workspace = true
 license.workspace = true
 
-#[lib]
-#crate-type = ["cdylib", "rlib"]
-
 [lints]
 workspace = true
 
@@ -58,7 +55,7 @@ xtra = { version = "0.6", features = ["macros", "tokio", "instrumentation"]}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 backoff = { version = "0.4", features = ["tokio", "wasm-bindgen"] }
-futures-util = { workspace = true, default-features = false , features = [] }
+futures-util = { workspace = true }
 getrandom = { version = "0.2" , features = ["js"]}
 gloo-timers = { workspace = true }
 # wasm-bindgen = { version = "0.2" }
@@ -74,19 +71,15 @@ required-features = ["mock"]
 name = "dapp"
 required-features = ["mock"]
 
-[[example]]
-name = "dapp"
-path = "examples/dapp/main.rs"
+#[[test]]
+#name = "wasm"
+#required-features = ["mock"]
 
 [dev-dependencies]
 assert_matches = { version = "1" }
 hex-literal = { version = "0.4" }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 anyhow = "1"
-tokio = { version = "1", features = ["full"] }
 env_logger = { version = "0.11" }
 tracing-error = { version = "0.2"}
-dotenvy = {version = "0.15"}
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
-copypasta = { version = "0.10" }
-fast_qr = { version = "0.12" }

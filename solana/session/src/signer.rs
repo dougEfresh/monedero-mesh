@@ -1,8 +1,8 @@
 use {
-    base64::{prelude::BASE64_STANDARD, Engine},
     crate::{Result, SolanaSession, WalletConnectTransaction},
+    base64::{prelude::BASE64_STANDARD, Engine},
     solana_pubkey::Pubkey,
-    solana_signature::{Signature},
+    solana_signature::Signature,
     solana_signer::{Signer, SignerError},
     std::{
         fmt::{Debug, Display, Formatter},

@@ -36,4 +36,4 @@ wasm-bindgen-test = { version = "0.3" }
 workspace = true
 
 [[test]]
-name = "browser"
+name = "wasm"

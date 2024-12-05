@@ -29,4 +29,7 @@ pub enum ClientError {
 
     #[error(transparent)]
     PublicationError(#[from] walletconnect_sdk::client::error::Error<PublishError>),
+
+    #[error(transparent)]
+    BindError(#[from] tokio::io::Error),
 }

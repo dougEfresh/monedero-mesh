@@ -31,7 +31,7 @@ pub struct DecodedSymKey(pub [u8; MULTICODEC_ED25519_LENGTH]);
 
 impl DecodedSymKey {
     #[inline]
-    pub fn from_key(key: &SecretKey) -> Self {
+    pub const fn from_key(key: &SecretKey) -> Self {
         Self(*key)
     }
 }

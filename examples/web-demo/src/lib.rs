@@ -85,7 +85,8 @@ async fn propose(dapp: &Dapp) -> Option<ClientSession> {
 #[wasm_bindgen(start)]
 pub fn run() {
     log::init();
-    let project_id = std::env::var("PROJECT_ID").unwrap_or_else(|_| String::from("987f2292c12194ae69ddb6c52ceb1d62") );
+    let project_id = std::env::var("PROJECT_ID")
+        .unwrap_or_else(|_| String::from("987f2292c12194ae69ddb6c52ceb1d62"));
     spawn_local(async move {
         let p = ProjectId::from(project_id);
         let manager = pair_manager(p).await;

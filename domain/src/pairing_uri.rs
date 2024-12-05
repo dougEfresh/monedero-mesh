@@ -13,7 +13,7 @@ use {
     x25519_dalek::StaticSecret,
 };
 
-#[derive(Debug, Clone, thiserror::Error, PartialEq)]
+#[derive(Debug, Clone, thiserror::Error, Eq, PartialEq)]
 pub enum ParseError {
     #[error("Expecting protocol \"wc\" but \"{protocol}\" is found.")]
     UnexpectedProtocol { protocol: String },
@@ -67,7 +67,7 @@ impl Default for Pairing {
         Self {
             topic: Topic::generate(),
             version: "2".to_string(),
-            params: Default::default(),
+            params: Params::default(),
         }
     }
 }
@@ -190,8 +190,7 @@ mod tests {
                    symKey=7ff3e362f825ab868e20e767fe580d0311181632707e7c878cbeca0238d45b8b";
 
         let actual = Pairing {
-            topic: Topic::from("c9e6d30fb34afe70a15c14e9337ba8e4d5a35dd695c39b94884b0ee60c69d168")
-                .to_owned(),
+            topic: Topic::from("c9e6d30fb34afe70a15c14e9337ba8e4d5a35dd695c39b94884b0ee60c69d168"),
             version: "2".to_owned(),
             params: Params {
                 relay_protocol: "waku".to_owned(),

@@ -62,7 +62,7 @@ async fn sign_message(session: ClientSession) {
         info!("found solana address {addr}");
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
             request: RequestMethod {
-                method: monedero_domain::namespaces::Method::Solana(SolanaMethod::SignMessage),
+                method: monedero_domain::Method::Solana(SolanaMethod::SignMessage),
                 params: json!({
                     "message": "37u9WtQpcm6ULa3VtWDFAWoQc1hUvybPrA3dtx99tgHvvcE7pKRZjuGmn7VX2tC3JmYDYGG7",
                     "pubkey": addr,

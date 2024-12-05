@@ -1,15 +1,17 @@
 use {
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
-    monedero_domain::*,
+    monedero_domain::{
+        namespaces::{ChainId, ChainType, Method},
+        *,
+    },
+    monedero_mesh::{auth_token, NoopSessionHandler, ProposeFuture},
     monedero_relay::{ConnectionCategory, ConnectionOptions, ConnectionPair},
-    solana_pubkey::Pubkey,
-    monedero_domain::namespaces::{ChainId, Method, ChainType},
-    solana_signature::Signature,
-    solana_keypair::Keypair,
-    monedero_mesh::{auth_token, NoopSessionHandler, ProposeFuture },
     monedero_solana::SolanaSession,
+    solana_keypair::Keypair,
+    solana_pubkey::Pubkey,
     solana_rpc_client::nonblocking::rpc_client::RpcClient,
+    solana_signature::Signature,
     std::{
         collections::{BTreeMap, BTreeSet},
         path::{Path, PathBuf},
@@ -195,10 +197,10 @@ async fn pair_dapp_wallet() -> anyhow::Result<(SolanaSession, MockWallet)> {
     let sol_session = SolanaSession::try_from(&session)?;
     Ok((sol_session, mock_wallet))
 }
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_solana_session() -> anyhow::Result<()> {
-    let (wallet, _) = pair_dapp_wallet().await?;
+    let (session, _) = pair_dapp_wallet().await?;
     info!("settlement complete");
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let amount = 1;
@@ -207,4 +209,3 @@ async fn test_solana_session() -> anyhow::Result<()> {
     info!("got sig {sig}");
     Ok(())
 }
-
