@@ -3,12 +3,7 @@ pub use walletconnect_sdk::{
     rpc::{
         auth::*,
         domain::{
-            ClientIdDecodingError,
-            DecodedTopic,
-            MessageId,
-            ProjectId,
-            SubscriptionId,
-            Topic,
+            ClientIdDecodingError, DecodedTopic, MessageId, ProjectId, SubscriptionId, Topic,
         },
         user_agent::*,
     },
@@ -236,9 +231,9 @@ pub trait ConnectionHandler: Send + 'static {
     fn outbound_error(&mut self, _error: ClientError) {}
 }
 
-pub fn mock_connection_opts(project_id: ProjectId) -> ConnectionOptions {
+pub fn mock_connection_opts(project_id: &ProjectId) -> ConnectionOptions {
     let auth = auth_token("https://github.com/dougEfresh");
-    ConnectionOptions::mock(project_id, auth)
+    ConnectionOptions::mock(project_id.clone(), auth)
 }
 /// # Panics
 ///
