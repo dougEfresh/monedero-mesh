@@ -23,6 +23,7 @@ use {
 };
 
 pub const RELAY_ADDRESS: &str = "wss://relay.walletconnect.com";
+pub const AUTH_URL: &str = "https://cartera-mesh.com";
 #[cfg(not(feature = "mock"))]
 mod client;
 mod error;
@@ -232,9 +233,15 @@ pub trait ConnectionHandler: Send + 'static {
 }
 
 pub fn mock_connection_opts(project_id: &ProjectId) -> ConnectionOptions {
-    let auth = auth_token("https://github.com/dougEfresh");
+    let auth = auth_token(AUTH_URL);
     ConnectionOptions::mock(project_id.clone(), auth)
 }
+
+pub fn default_connection_opts(project_id: &ProjectId) -> ConnectionOptions {
+    let auth = auth_token(AUTH_URL);
+    ConnectionOptions::new(project_id.clone(), auth)
+}
+
 /// # Panics
 ///
 /// Will panic when key is invalid
