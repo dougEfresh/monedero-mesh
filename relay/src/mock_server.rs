@@ -1,6 +1,6 @@
 use {
     crate::Topic,
-    dashmap::DashMap,
+    dashmap::{DashMap, DashSet},
     futures_util::{stream::SplitSink, SinkExt, StreamExt},
     serde::{de::DeserializeOwned, Serialize},
     std::{
@@ -8,12 +8,15 @@ use {
         fmt::{Debug, Display},
         net::SocketAddr,
         sync::Arc,
+        time::Duration,
     },
     tokio::{
         net::{TcpListener, TcpStream},
         sync::{
             broadcast::{Receiver, Sender},
-            oneshot, Mutex, RwLock,
+            oneshot,
+            Mutex,
+            RwLock,
         },
         task::JoinHandle,
     },
@@ -23,7 +26,15 @@ use {
         client::MessageIdGenerator,
         rpc::{
             domain::{MessageId, SubscriptionId},
-            rpc::{Params, Payload, Request, Response, SubscriptionData, SuccessfulResponse},
+            rpc::{
+                Params,
+                Payload,
+                Publish,
+                Request,
+                Response,
+                SubscriptionData,
+                SuccessfulResponse,
+            },
         },
     },
 };
@@ -49,18 +60,22 @@ impl Debug for WsPublishedMessage {
         )
     }
 }
+
+type ClientId = u16;
 type TopicMap = Arc<DashMap<Topic, Sender<WsPublishedMessage>>>;
 
-//type PendingMessages = Arc<RwLock<VecDeque<crate::Message>>>;
-type PendingMessages = Arc<DashMap<MessageId, WsPublishedMessage>>;
+type PendingMessages = Arc<DashSet<Publish>>;
+type SentMessages = Arc<DashSet<MessageId>>;
+// type PendingMessages = Arc<DashMap<u16, Publish>>;
 type WsSender = Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 #[derive(Clone)]
 struct WsClient {
     id: u16,
-    topics: Arc<DashMap<Topic, bool>>,
+    topics: Arc<DashSet<Topic>>,
     ws_sender: WsSender,
     generator: MessageIdGenerator,
     pending: PendingMessages,
+    // sent: SentMessages,
 }
 
 impl Display for WsClient {
@@ -78,11 +93,12 @@ impl WsClient {
     fn fmt_common(&self) -> String {
         format!("[wsclient-{}]({})", self.id, self.topics.len())
     }
+
     fn new(relay: &MockRelay, id: u16, ws_sender: WsSender) -> Self {
         let me = Self {
             id,
             ws_sender,
-            topics: Arc::new(DashMap::new()),
+            topics: Arc::new(DashSet::new()),
             generator: relay.generator.clone(),
             pending: relay.pending.clone(),
         };
@@ -107,23 +123,19 @@ impl WsClient {
         match &published_message.payload {
             Payload::Request(ref req) => {
                 if let Params::Publish(ref p) = req.params {
-                    if !self.topics.contains_key(&p.topic) {
+                    if !self.topics.contains(&p.topic) {
                         warn!(
                             "got a message but I am not subscribed to this topic {}",
                             p.topic
                         );
                         return;
                     }
-                    let forward_id = self.generator.next();
+                    self.pending.remove(p);
                     debug!(
-                        "forwarding request from client_id:{} with new message_id: {forward_id}",
+                        "forwarding request from client_id:{} with",
                         published_message.client_id,
                     );
-                    let now = chrono::Utc::now().timestamp();
-                    let subscription_id = SubscriptionId::from(p.topic.as_ref());
-                    let sub_req = p.as_subscription_request(forward_id, subscription_id, now);
-                    let forward_payload = Payload::Request(sub_req);
-                    tokio::spawn(MockRelay::forward(forward_payload, self.ws_sender.clone()));
+                    self.send_message(vec![p.clone()]);
                 } else {
                     debug!("not handling message");
                 }
@@ -132,25 +144,58 @@ impl WsClient {
         };
     }
 
+    fn send_message(&self, messages: Vec<Publish>) {
+        for p in messages {
+            let forward_id = self.generator.next();
+            let now = chrono::Utc::now().timestamp();
+            let subscription_id = SubscriptionId::from(p.topic.as_ref());
+            let sub_req = p.as_subscription_request(forward_id, subscription_id, now);
+            let forward_payload = Payload::Request(sub_req);
+            tokio::spawn(MockRelay::forward(
+                forward_payload,
+                self.ws_sender.clone(),
+                Duration::from_millis(50),
+            ));
+        }
+    }
+
+    fn check_pending(&self, topic: &Topic) {
+        let to_send: Vec<Publish> = self
+            .pending
+            .iter()
+            .filter(|m| m.topic == *topic)
+            .map(|m| m.clone())
+            .collect();
+        debug!("found {} to send", to_send.len());
+        for p in &to_send {
+            self.pending.remove(p);
+        }
+        self.send_message(to_send);
+    }
+
     #[tracing::instrument(level = Level::DEBUG)]
     fn handle_own_message(&self, id: MessageId, published_message: WsPublishedMessage) {
         debug!("handle my own message");
         match published_message.payload {
-            Payload::Request(req) => match req.params {
+            Payload::Request(ref req) => match &req.params {
                 Params::Subscribe(s) => {
                     let sub_id = SubscriptionId::from(s.topic.as_ref());
                     debug!("subscribe request to subId:{} {}", sub_id, s.topic);
-                    self.topics.insert(s.topic, true);
+                    self.topics.insert(s.topic.clone());
                     tokio::spawn(MockRelay::handle_ack(id, self.ws_sender.clone(), sub_id));
+                    self.check_pending(&s.topic);
                 }
                 Params::BatchSubscribe(b) => {
                     debug!("batch sub");
                     let mut ids: Vec<SubscriptionId> = Vec::with_capacity(b.topics.len());
-                    for t in b.topics {
+                    for t in &b.topics {
                         ids.push(SubscriptionId::from(t.as_ref()));
-                        self.topics.insert(t, true);
+                        self.topics.insert(t.clone());
                     }
                     tokio::spawn(MockRelay::handle_ack(id, self.ws_sender.clone(), ids));
+                    for t in &b.topics {
+                        self.check_pending(t);
+                    }
                 }
                 Params::Unsubscribe(s) => {
                     tokio::spawn(MockRelay::handle_ack(id, self.ws_sender.clone(), true));
@@ -158,6 +203,7 @@ impl WsClient {
                 }
                 Params::Publish(p) => {
                     debug!("responding to my own published message");
+                    self.pending.insert(p.clone());
                     tokio::spawn(MockRelay::handle_ack(id, self.ws_sender.clone(), true));
                 }
                 _ => {}
@@ -167,7 +213,7 @@ impl WsClient {
     }
 }
 
-//pub subs: Subscriptions,
+// pub subs: Subscriptions,
 #[derive(Clone)]
 struct MockRelay {
     clients: Arc<DashMap<u16, WsClient>>,
@@ -190,8 +236,7 @@ impl MockRelay {
         let (tx, _rx) = tokio::sync::broadcast::channel::<WsPublishedMessage>(100);
         let me = Self {
             clients: Arc::new(DashMap::new()),
-            //pending: Arc::new(RwLock::new(VecDeque::new())),
-            pending: Arc::new(DashMap::new()),
+            pending: Arc::new(DashSet::new()),
             tx,
             generator: MessageIdGenerator::new(),
         };
@@ -221,12 +266,14 @@ impl MockRelay {
     async fn forward(
         payload: Payload,
         ws_sender: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+        delay: Duration,
     ) {
         let mut ws_sender = ws_sender.lock().await;
         let payload = serde_json::to_string(&payload).expect("this should never happen");
         if ws_sender.send(Message::text(&payload)).await.is_err() {
             error!("client has closed connection");
         }
+        tokio::time::sleep(delay).await;
     }
 
     async fn handle_ack<T: Serialize + Send>(
@@ -253,7 +300,7 @@ impl MockRelay {
             Ok(ws_stream) => {
                 let (ws_sender, mut ws_receiver) = ws_stream.split();
                 let ws_sender = Arc::new(Mutex::new(ws_sender));
-                let ws_client = WsClient::new(&self, addr.port(), ws_sender);
+                let ws_client = WsClient::new(self, addr.port(), ws_sender);
                 info!("created new ws client {ws_client}");
                 self.clients.insert(addr.port(), ws_client);
                 while let Some(msg) = ws_receiver.next().await {
@@ -303,8 +350,14 @@ mod test {
     use {
         super::*,
         crate::{
-            default_connection_opts, mock_connection_opts, Client, ConnectionHandler, LogHandler,
-            NoopHandler, ProjectId, Topic,
+            default_connection_opts,
+            mock_connection_opts,
+            Client,
+            ConnectionHandler,
+            LogHandler,
+            NoopHandler,
+            ProjectId,
+            Topic,
         },
         serde_json::json,
         std::time::Duration,
@@ -368,7 +421,8 @@ mod test {
         {
             messages_1.write().expect("cannot drain").clear();
         }
-        // Verify the when I unsubscribe, and client_2 sends a message it is put in "PendingMessages"
+        // Verify the when I unsubscribe, and client_2 sends a message it is put in
+        // "PendingMessages"
         client_1.unsubscribe(topic.clone()).await?;
         client_2
             .publish(
@@ -380,19 +434,13 @@ mod test {
             )
             .await?;
         yield_ms(100).await;
+        assert_eq!(0, 0);
+        let topics = vec![topic.clone(), Topic::generate(), Topic::generate()];
+        client_1.batch_subscribe(topics.clone()).await?;
+        yield_ms(100).await;
         let num_messages = { messages_1.read().expect("could not unlock").len() };
         assert_eq!(1, num_messages);
-        {
-            messages_1.write().expect("cannot drain").clear();
-        }
-
-        //let topics = vec![Topic::generate(), Topic::generate()];
-        //client_1.batch_subscribe(topics.clone()).await?;
-        //tokio::time::sleep(Duration::from_millis(500)).await;
-        //for t in topics {
-        //    client_1.unsubscribe(t).await?;
-        //}
-        //client_1.disconnect().await?;
+        client_1.disconnect().await?;
         Ok(())
     }
 

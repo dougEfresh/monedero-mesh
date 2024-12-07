@@ -3,7 +3,12 @@ pub use walletconnect_sdk::{
     rpc::{
         auth::*,
         domain::{
-            ClientIdDecodingError, DecodedTopic, MessageId, ProjectId, SubscriptionId, Topic,
+            ClientIdDecodingError,
+            DecodedTopic,
+            MessageId,
+            ProjectId,
+            SubscriptionId,
+            Topic,
         },
         user_agent::*,
     },
