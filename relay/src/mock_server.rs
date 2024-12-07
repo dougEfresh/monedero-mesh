@@ -51,7 +51,8 @@ impl Debug for WsPublishedMessage {
 }
 type TopicMap = Arc<DashMap<Topic, Sender<WsPublishedMessage>>>;
 
-type PendingMessages = Arc<RwLock<VecDeque<crate::Message>>>;
+//type PendingMessages = Arc<RwLock<VecDeque<crate::Message>>>;
+type PendingMessages = Arc<DashMap<MessageId, WsPublishedMessage>>;
 type WsSender = Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 #[derive(Clone)]
 struct WsClient {
@@ -77,21 +78,16 @@ impl WsClient {
     fn fmt_common(&self) -> String {
         format!("[wsclient-{}]({})", self.id, self.topics.len())
     }
-    fn new(
-        id: u16,
-        rx: Receiver<WsPublishedMessage>,
-        ws_sender: WsSender,
-        pending: PendingMessages,
-    ) -> Self {
+    fn new(relay: &MockRelay, id: u16, ws_sender: WsSender) -> Self {
         let me = Self {
             id,
             ws_sender,
             topics: Arc::new(DashMap::new()),
-            generator: MessageIdGenerator::new(),
-            pending,
+            generator: relay.generator.clone(),
+            pending: relay.pending.clone(),
         };
         let listener = me.clone();
-        tokio::spawn(listener.handle_message(rx));
+        tokio::spawn(listener.handle_message(relay.tx.subscribe()));
         me
     }
 
@@ -177,6 +173,7 @@ struct MockRelay {
     clients: Arc<DashMap<u16, WsClient>>,
     pending: PendingMessages,
     tx: tokio::sync::broadcast::Sender<WsPublishedMessage>,
+    generator: MessageIdGenerator,
 }
 
 impl Debug for MockRelay {
@@ -193,8 +190,10 @@ impl MockRelay {
         let (tx, _rx) = tokio::sync::broadcast::channel::<WsPublishedMessage>(100);
         let me = Self {
             clients: Arc::new(DashMap::new()),
-            pending: Arc::new(RwLock::new(VecDeque::new())),
+            //pending: Arc::new(RwLock::new(VecDeque::new())),
+            pending: Arc::new(DashMap::new()),
             tx,
+            generator: MessageIdGenerator::new(),
         };
 
         let topic_map: TopicMap = Arc::new(DashMap::new());
@@ -216,33 +215,6 @@ impl MockRelay {
                     error!("Failed to accept connection: {e}");
                 }
             };
-        }
-    }
-
-    async fn handle_pending_messages(
-        ws_sender: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-        pending: PendingMessages,
-    ) {
-        let mut w = pending.write().await;
-        if (*w).is_empty() {
-            return;
-        }
-        let pending: Vec<crate::Message> = w.drain(..).collect();
-        drop(w);
-        info!("{} sending from pending queue ", pending.len());
-        for m in pending {
-            tokio::time::sleep(std::time::Duration::from_millis(800)).await;
-            debug!("sending message");
-            let payload: Payload = Payload::Response(Response::Success(SuccessfulResponse::new(
-                m.id,
-                serde_json::json!(true),
-            )));
-            let payload = serde_json::to_string(&payload).expect("never");
-            let mut ws_sender_lk = ws_sender.lock().await;
-            if ws_sender_lk.send(Message::text(&payload)).await.is_err() {
-                error!("client has closed connection");
-            }
-            drop(ws_sender_lk);
         }
     }
 
@@ -281,12 +253,7 @@ impl MockRelay {
             Ok(ws_stream) => {
                 let (ws_sender, mut ws_receiver) = ws_stream.split();
                 let ws_sender = Arc::new(Mutex::new(ws_sender));
-                let ws_client = WsClient::new(
-                    addr.port(),
-                    self.tx.subscribe(),
-                    ws_sender,
-                    self.pending.clone(),
-                );
+                let ws_client = WsClient::new(&self, addr.port(), ws_sender);
                 info!("created new ws client {ws_client}");
                 self.clients.insert(addr.port(), ws_client);
                 while let Some(msg) = ws_receiver.next().await {
