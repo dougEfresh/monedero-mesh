@@ -11,9 +11,6 @@ workspace = true
 
 [features]
 default = []
-mock = [
-  "once_cell"
-]
 
 [dependencies]
 chrono = { workspace = true }

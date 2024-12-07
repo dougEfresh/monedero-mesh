@@ -19,7 +19,7 @@ pub(crate) mod test {
         tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
     };
 
-    pub(crate) fn init_tracing() {
+    pub fn init_tracing() {
         INIT.call_once(|| {
             tracing_subscriber::fmt()
                 .with_target(true)

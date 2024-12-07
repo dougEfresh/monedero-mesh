@@ -59,10 +59,6 @@ pub enum Error {
     #[error("signature failed to confirm {0}")]
     ConfirmationFailure(solana_signature::Signature),
 
-    #[cfg(feature = "mock")]
-    #[error("got a transaction but I have nothing to sign")]
-    NothingToSign,
-
     #[error("spl-token program is not valid for this operation try spl-token-2022")]
     InvalidTokenProgram,
 

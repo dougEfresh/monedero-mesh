@@ -10,12 +10,7 @@ license.workspace = true
 workspace = true
 
 [features]
-default = ["relay"]
-relay = ["monedero-relay", "monedero-mesh"] # with default features
-mock = [
-    "monedero-mesh/mock",
-    "monedero-relay/mock"
-]
+default = []
 
 [dependencies]
 anyhow = "1"
@@ -24,10 +19,10 @@ bincode = { workspace = true }
 bs58 = { workspace = true }
 chrono = { workspace = true }
 dashmap = { workspace = true }
-monedero-mesh = { path = "../../sessions", optional = true}
-monedero-domain = { path = "../../domain"}
-monedero-store = { path = "../../store"}
-monedero-relay = { path = "../../relay", optional = true }
+monedero-mesh = { path = "../../sessions" }
+monedero-domain = { path = "../../domain" }
+monedero-store = { path = "../../store" }
+monedero-relay = { path = "../../relay" }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
@@ -47,7 +42,6 @@ assert_matches = { version = "1.5.0" }
 async-trait = "0.1.82"
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
-env_logger = { version = "0.9.3" }
 tracing = { version = "0.1" }
 tracing-error = { version = "0.2.0"}
 dotenvy = {version = "0.15"}

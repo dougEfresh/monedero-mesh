@@ -28,23 +28,16 @@ use {
 };
 
 pub const RELAY_ADDRESS: &str = "wss://relay.walletconnect.com";
+pub const RELAY_PROTOCOL: &str = "irn";
 pub const AUTH_URL: &str = "https://cartera-mesh.com";
-#[cfg(not(feature = "mock"))]
+
 mod client;
 mod error;
-mod mock_server;
-#[cfg(not(feature = "mock"))]
-pub use client::Client;
-
+mod mock;
+pub use {client::Client, mock::MockRelay};
 pub type PairingTopic = Topic;
 pub type SessionTopic = Topic;
-pub const RELAY_PROTOCOL: &str = "irn";
-
-#[cfg(feature = "mock")]
-mod mock;
 pub use error::ClientError;
-#[cfg(feature = "mock")]
-pub use mock::*;
 pub type Result<T> = std::result::Result<T, ClientError>;
 
 pub fn shorten_topic(id: &Topic) -> String {
@@ -141,31 +134,9 @@ pub struct ConnectionOptions {
     pub origin: Option<String>,
 
     pub user_agent: Option<UserAgent>,
-
-    #[cfg(feature = "mock")]
-    /// Create a mock connection and bind the connections by this pairId
-    /// Only used for tests
-    pub conn_pair: mock::ConnectionPair,
 }
 
 impl ConnectionOptions {
-    #[cfg(feature = "mock")]
-    #[must_use]
-    pub fn new(
-        project_id: ProjectId,
-        serialized: SerializedAuthToken,
-        conn_pair: ConnectionPair,
-    ) -> Self {
-        Self {
-            address: RELAY_ADDRESS.into(),
-            project_id,
-            auth: Authorization::Query(serialized),
-            origin: None,
-            user_agent: None,
-            conn_pair,
-        }
-    }
-
     pub fn mock(project_id: ProjectId, serialized: SerializedAuthToken) -> Self {
         Self::create("ws://127.0.0.1:4000", project_id, serialized)
     }
@@ -174,7 +145,6 @@ impl ConnectionOptions {
         Self::create(RELAY_ADDRESS, project_id, serialized)
     }
 
-    #[cfg(not(feature = "mock"))]
     fn create(address: &str, project_id: ProjectId, serialized: SerializedAuthToken) -> Self {
         Self {
             address: address.into(),

@@ -60,12 +60,7 @@ impl PairingManager {
             actors.response(),
             socket_tx,
         );
-        #[cfg(feature = "mock")]
-        let relay = Client::new(handler, &opts.conn_pair);
-
-        #[cfg(not(feature = "mock"))]
         let relay = Client::new(handler);
-
         actors.register_client(relay.clone()).await?;
         relay.connect(&opts).await?;
 
@@ -126,7 +121,6 @@ impl PairingManager {
         }
     }
 
-    #[cfg(feature = "mock")]
     pub fn ciphers(&self) -> Cipher {
         self.ciphers.clone()
     }

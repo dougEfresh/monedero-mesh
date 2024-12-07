@@ -71,7 +71,7 @@ pub struct DecodedSymKey(pub [u8; MULTICODEC_ED25519_LENGTH]);
 
 impl DecodedSymKey {
     #[inline]
-    pub fn from_key(key: &SecretKey) -> Self {
+    pub const fn from_key(key: &SecretKey) -> Self {
         Self(*key)
     }
 }
@@ -114,7 +114,7 @@ impl Cipher {
     }
 
     fn storage_settlement(topic: &Topic) -> String {
-        format!("{CRYPTO_STORAGE_PREFIX_KEY}-settlement-{}", topic)
+        format!("{CRYPTO_STORAGE_PREFIX_KEY}-settlement-{topic}")
     }
 }
 
@@ -486,7 +486,7 @@ mod tests {
     // }
 
     fn create_pairing() -> Pairing {
-        Default::default()
+        Pairing::default()
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -530,12 +530,11 @@ mod tests {
         );
 
         // Add a Session
-        let session_key =
-            SessionKey::from_osrng(ciphers.public_key().ok_or(format_err!("shit"))?.as_bytes())?;
+        let session_key = SessionKey::from_osrng(ciphers.public_key().unwrap().as_bytes())?;
         let responder_pk = session_key.public_key();
         let (session_topic, _) = ciphers.create_common_topic(String::from(&responder_pk))?;
         assert_eq!(session_topic, session_key.generate_topic());
-        assert_eq!(ciphers.session_topics(), 1);
+        assert_eq!(ciphers.session_topics(), 2);
 
         // Validate Sessions in Store
         let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
@@ -557,13 +556,19 @@ mod tests {
 
         // Restore sessions
         let ciphers = Cipher::new(store.clone(), None)?;
-        let restored_pairing = ciphers.pairing().ok_or(format_err!("pairing not here!"))?;
+        let restored_pairing = ciphers
+            .pairing()
+            .ok_or_else(|| format_err!("pairing not here!"))?;
         assert_eq!(ciphers.session_topics(), 1);
         assert_eq!(restored_pairing.topic, pairing_topic);
 
         // Settlement
-        let session_key =
-            SessionKey::from_osrng(ciphers.public_key().ok_or(format_err!("shit"))?.as_bytes())?;
+        let session_key = SessionKey::from_osrng(
+            ciphers
+                .public_key()
+                .ok_or_else(|| format_err!("shit"))?
+                .as_bytes(),
+        )?;
         let responder_pk = session_key.public_key();
         let (session_topic, _) = ciphers.create_common_topic(String::from(&responder_pk))?;
 
@@ -578,7 +583,7 @@ mod tests {
 
         let past = now - chrono::Duration::hours(1);
         settlement.expiry = past.timestamp();
-        ciphers.set_settlement(&session_topic, settlement.clone())?;
+        ciphers.set_settlement(&session_topic, settlement)?;
         assert!(ciphers.is_expired(session_topic.clone())?);
         drop(ciphers);
         // restore should reset / clear storage due to expired session

@@ -78,7 +78,7 @@ impl Handler<ClientSession> for SessionRequestHandlerActor {
             .cipher
             .set_settlement(&topic, (*message.settled).clone())
         {
-            error!("failed to set settlement for {topic}");
+            error!("failed to set settlement for {topic} error:{e}");
         }
     }
 }

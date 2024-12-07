@@ -10,11 +10,7 @@ license.workspace = true
 workspace = true
 
 [features]
-default = ["relay"]
-relay = ["monedero-relay"] # with default features
-mock = [
-    "monedero-relay/mock"
-]
+default = []
 
 [dependencies]
 aead = { workspace = true }
@@ -31,7 +27,7 @@ microxdg = { workspace = true }
 monedero-domain = { path = "../domain" }
 monedero-cipher = { path = "../cipher" }
 monedero-store = { path = "../store" }
-monedero-relay = { path = "../relay", optional = true }
+monedero-relay = { path = "../relay" }
 once_cell = { workspace = true }
 paste = { workspace = true }
 pin-project-lite = { workspace = true }
@@ -65,11 +61,9 @@ xtra = { version = "0.6", features = ["macros", "wasm_bindgen", "instrumentation
 
 [[test]]
 name = "manager"
-required-features = ["mock"]
 
 [[test]]
 name = "dapp"
-required-features = ["mock"]
 
 #[[test]]
 #name = "wasm"

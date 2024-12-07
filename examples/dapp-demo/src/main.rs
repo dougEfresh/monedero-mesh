@@ -3,21 +3,21 @@ mod log;
 use {
     crate::log::initialize_logging,
     copypasta::{ClipboardContext, ClipboardProvider},
-    monedero_domain::{
-        namespaces::{ChainId, ChainType, Chains, NamespaceName, SolanaMethod},
-        Pairing,
-        ProjectId,
-    },
     monedero_mesh::{
         self,
+        domain::{
+            namespaces::{ChainId, ChainType, Chains, Method, NamespaceName, SolanaMethod},
+            Pairing,
+            ProjectId,
+        },
         rpc::{RequestMethod, RequestParams, SessionRequestRequest},
         ClientSession,
         Dapp,
+        KvStorage,
         Metadata,
         NoopSessionHandler,
         WalletConnectBuilder,
     },
-    monedero_store::KvStorage,
     serde_json::json,
     std::time::Duration,
     tokio::{select, signal},
@@ -62,7 +62,7 @@ async fn sign_message(session: ClientSession) {
         info!("found solana address {addr}");
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
             request: RequestMethod {
-                method: monedero_domain::Method::Solana(SolanaMethod::SignMessage),
+                method: Method::Solana(SolanaMethod::SignMessage),
                 params: json!({
                     "message": "37u9WtQpcm6ULa3VtWDFAWoQc1hUvybPrA3dtx99tgHvvcE7pKRZjuGmn7VX2tC3JmYDYGG7",
                     "pubkey": addr,
@@ -112,7 +112,7 @@ async fn do_dapp_stuff(dapp: Dapp) {
 }
 
 async fn dapp_test() -> anyhow::Result<()> {
-    let auth = monedero_relay::auth_token("https://github.com/dougEfresh");
+    let auth = monedero_mesh::auth_token("https://github.com/CarteraMesh");
     let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let store = KvStorage::file(None)?;
     let builder = WalletConnectBuilder::new(p, auth);

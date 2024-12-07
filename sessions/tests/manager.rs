@@ -11,7 +11,7 @@ use {
         SocketListener,
         WalletConnectBuilder,
     },
-    monedero_relay::{auth_token, ConnectionCategory, ConnectionOptions, ConnectionPair},
+    monedero_relay::{auth_token, mock_connection_opts},
     std::{
         str::FromStr,
         sync::{Arc, Mutex, Once},
@@ -61,22 +61,19 @@ pub(crate) async fn init_test_components(pair: bool) -> anyhow::Result<TestStuff
     init_tracing();
     let shared_id = Topic::generate();
     let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
-    let auth = auth_token("https://github.com/dougEfresh");
-    let dapp_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Dapp);
-    let wallet_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Wallet);
-    let dapp_opts = ConnectionOptions::new(p.clone(), auth.clone(), dapp_id);
-    let wallet_opts = ConnectionOptions::new(p, auth, wallet_id);
-    let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
-    let dapp =
-        WalletConnectBuilder::new(p.clone(), auth_token(String::from("https://example.com")))
-            .connect_opts(dapp_opts)
-            .build()
-            .await?;
-    let wallet =
-        WalletConnectBuilder::new(p, auth_token(String::from("https://github.com/dougEfresh")))
-            .connect_opts(wallet_opts)
-            .build()
-            .await?;
+
+    let url = "https://github.com/dougEfresh";
+    let auth = auth_token(url);
+    let dapp_opts = mock_connection_opts(&p);
+    let wallet_opts = mock_connection_opts(&p);
+    let dapp = WalletConnectBuilder::new(p.clone(), auth.clone())
+        .connect_opts(dapp_opts)
+        .build()
+        .await?;
+    let wallet = WalletConnectBuilder::new(p, auth)
+        .connect_opts(wallet_opts)
+        .build()
+        .await?;
     let dapp_actors = dapp.actors();
     let wallet_actors = wallet.actors();
     yield_ms(500).await;

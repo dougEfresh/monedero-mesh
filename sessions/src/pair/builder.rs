@@ -9,9 +9,7 @@ use {
 
 pub struct WalletConnectBuilder {
     connect_opts: Option<ConnectionOptions>,
-    #[cfg(not(feature = "mock"))]
     auth: SerializedAuthToken,
-    #[cfg(not(feature = "mock"))]
     project_id: ProjectId,
     store: Option<KvStorage>,
 }
@@ -21,9 +19,7 @@ impl WalletConnectBuilder {
     pub fn new(project_id: ProjectId, auth: SerializedAuthToken) -> Self {
         Self {
             connect_opts: None,
-            #[cfg(not(feature = "mock"))]
             auth,
-            #[cfg(not(feature = "mock"))]
             project_id,
             store: None,
         }
@@ -40,17 +36,10 @@ impl WalletConnectBuilder {
     }
 
     pub async fn build(&self) -> crate::Result<PairingManager> {
-        #[cfg(not(feature = "mock"))]
         let opts: ConnectionOptions = match self.connect_opts {
             Some(ref opts) => opts.clone(),
             None => ConnectionOptions::new(self.project_id.clone(), self.auth.clone()),
         };
-
-        #[cfg(feature = "mock")]
-        let opts: ConnectionOptions = self
-            .connect_opts
-            .clone()
-            .ok_or(crate::Error::InvalidateConnectionOpts)?;
 
         #[cfg(not(target_arch = "wasm32"))]
         let store = match self.store.as_ref() {
@@ -58,7 +47,7 @@ impl WalletConnectBuilder {
             None => KvStorage::file(None)?,
         };
 
-        #[cfg(any(target_arch = "wasm32", feature = "mock"))]
+        #[cfg(target_arch = "wasm32")]
         let store = KvStorage::new();
 
         let store = Arc::new(store);

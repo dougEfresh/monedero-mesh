@@ -1,7 +1,9 @@
+#[allow(unused_imports)]
 use {monedero_store::KvStorage, wasm_bindgen_test::*};
 wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
+#[cfg(target_family = "wasm")]
 fn local_storage() -> anyhow::Result<()> {
     let key = "key";
     let value = String::from("value");
