@@ -40,7 +40,3 @@ tracing = { version = "0.1" }
 tracing-error = { version = "0.2.0"}
 dotenvy = {version = "0.15"}
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
-
-[[test]]
-name = "local"
-
