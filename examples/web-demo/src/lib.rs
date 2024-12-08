@@ -8,12 +8,7 @@ use {
             namespaces::{ChainId, ChainType, Chains},
             ProjectId,
         },
-        ClientSession,
-        Dapp,
-        Metadata,
-        NoopSessionHandler,
-        PairingManager,
-        WalletConnectBuilder,
+        ClientSession, Dapp, Metadata, NoopSessionHandler, PairingManager, ReownBuilder,
     },
     tracing::{error, info},
     wasm_bindgen::prelude::*,
@@ -23,7 +18,7 @@ use {
 
 async fn pair_manager(p: ProjectId) -> Option<PairingManager> {
     let auth = auth_token("https://github.com/dougEfresh");
-    let builder = WalletConnectBuilder::new(p, auth);
+    let builder = ReownBuilder::new(p, auth);
     match builder.build().await {
         Err(e) => {
             let msg = format!("failed to create pairing manager {}", e);
@@ -35,14 +30,17 @@ async fn pair_manager(p: ProjectId) -> Option<PairingManager> {
 }
 
 async fn dapp_init(mgr: PairingManager) -> Option<Dapp> {
-    match Dapp::new(mgr, Metadata {
-        name: "monedero-mesh".to_string(),
-        description: "reown but for rust".to_string(),
-        url: "https://github.com/dougEfresh".to_string(),
-        icons: vec![],
-        verify_url: None,
-        redirect: None,
-    })
+    match Dapp::new(
+        mgr,
+        Metadata {
+            name: "monedero-mesh".to_string(),
+            description: "reown but for rust".to_string(),
+            url: "https://github.com/dougEfresh".to_string(),
+            icons: vec![],
+            verify_url: None,
+            redirect: None,
+        },
+    )
     .await
     {
         Ok(dapp) => Some(dapp),

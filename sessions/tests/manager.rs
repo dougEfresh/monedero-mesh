@@ -4,12 +4,7 @@ use {
     monedero_cipher::Cipher,
     monedero_domain::{Pairing, ProjectId, Topic},
     monedero_mesh::{
-        Actors,
-        PairingManager,
-        RegisteredComponents,
-        SocketEvent,
-        SocketListener,
-        WalletConnectBuilder,
+        Actors, PairingManager, RegisteredComponents, ReownBuilder, SocketEvent, SocketListener,
     },
     monedero_relay::{auth_token, mock_connection_opts},
     std::{
@@ -66,11 +61,11 @@ pub(crate) async fn init_test_components(pair: bool) -> anyhow::Result<TestStuff
     let auth = auth_token(url);
     let dapp_opts = mock_connection_opts(&p);
     let wallet_opts = mock_connection_opts(&p);
-    let dapp = WalletConnectBuilder::new(p.clone(), auth.clone())
+    let dapp = ReownBuilder::new(p.clone(), auth.clone())
         .connect_opts(dapp_opts)
         .build()
         .await?;
-    let wallet = WalletConnectBuilder::new(p, auth)
+    let wallet = ReownBuilder::new(p, auth)
         .connect_opts(wallet_opts)
         .build()
         .await?;

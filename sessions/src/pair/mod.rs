@@ -4,7 +4,7 @@ mod pairing;
 mod registration;
 mod socket_handler;
 
-pub use builder::WalletConnectBuilder;
+pub use builder::ReownBuilder;
 use {
     crate::{
         actors::Actors,
@@ -12,11 +12,7 @@ use {
         rpc::{PairDeleteRequest, PairExtendRequest, PairPingRequest, RequestParams},
         spawn_task,
         transport::TopicTransport,
-        wait,
-        Error,
-        Result,
-        SocketEvent,
-        SocketListener,
+        wait, Error, Result, SocketEvent, SocketListener,
     },
     monedero_cipher::Cipher,
     monedero_domain::{namespaces::Namespaces, Pairing, SessionSettled, SubscriptionId, Topic},

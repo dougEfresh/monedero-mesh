@@ -31,14 +31,10 @@ pub use {
     handlers::*,
     monedero_domain as domain,
     monedero_relay::{
-        auth_token,
-        default_connection_opts,
-        mock_connection_opts,
-        ClientError,
-        MockRelay,
+        auth_token, default_connection_opts, mock_connection_opts, ClientError, MockRelay, AUTH_URL,
     },
     monedero_store::{Error as StoreError, KvStorage},
-    pair::{PairingManager, WalletConnectBuilder},
+    pair::{PairingManager, ReownBuilder},
     rpc::{Metadata, SdkErrors},
     wallet::Wallet,
 };

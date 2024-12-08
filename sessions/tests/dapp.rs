@@ -4,48 +4,19 @@ use {
     async_trait::async_trait,
     monedero_domain::{
         namespaces::{
-            Account,
-            Accounts,
-            AlloyChain,
-            ChainId,
-            ChainType,
-            Chains,
-            EipMethod,
-            Events,
-            Method,
-            Methods,
-            Namespace,
-            NamespaceName,
-            Namespaces,
-            SolanaMethod,
+            Account, Accounts, AlloyChain, ChainId, ChainType, Chains, EipMethod, Events, Method,
+            Methods, Namespace, NamespaceName, Namespaces, SolanaMethod,
         },
-        ProjectId,
-        Topic,
+        ProjectId, Topic,
     },
     monedero_mesh::{
-        auth_token,
-        default_connection_opts,
-        mock_connection_opts,
+        auth_token, default_connection_opts, mock_connection_opts,
         rpc::{
-            Metadata,
-            ResponseParamsError,
-            ResponseParamsSuccess,
-            RpcResponsePayload,
-            SessionProposeRequest,
-            SessionProposeResponse,
+            Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
+            SessionProposeRequest, SessionProposeResponse,
         },
-        Actors,
-        ClientSession,
-        Dapp,
-        MockRelay,
-        NoopSessionHandler,
-        ProposeFuture,
-        RegisteredComponents,
-        Result,
-        SdkErrors,
-        Wallet,
-        WalletConnectBuilder,
-        WalletSettlementHandler,
+        Actors, ClientSession, Dapp, KvStorage, MockRelay, NoopSessionHandler, ProposeFuture,
+        RegisteredComponents, ReownBuilder, Result, SdkErrors, Wallet, WalletSettlementHandler,
     },
     std::{
         collections::{BTreeMap, BTreeSet},
@@ -95,12 +66,15 @@ impl WalletSettlementHandler for WalletProposal {
                 NamespaceName::Solana => SolanaMethod::defaults(),
                 NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
             };
-            settled.insert(name.clone(), Namespace {
-                accounts: Accounts(accounts),
-                chains: Chains(namespace.chains.iter().cloned().collect()),
-                methods: Methods(methods),
-                events: Events::default(),
-            });
+            settled.insert(
+                name.clone(),
+                Namespace {
+                    accounts: Accounts(accounts),
+                    chains: Chains(namespace.chains.iter().cloned().collect()),
+                    methods: Methods(methods),
+                    events: Events::default(),
+                },
+            );
         }
         Ok(settled)
     }
@@ -137,16 +111,16 @@ pub(crate) async fn init_test_components() -> anyhow::Result<TestStuff> {
     let dapp_opts = mock_connection_opts(&p);
     let wallet_opts = mock_connection_opts(&p);
     let relay = monedero_mesh::MockRelay::start().await?;
-    let dapp_manager =
-        WalletConnectBuilder::new(p.clone(), monedero_mesh::auth_token("https://reown.owg"))
-            .connect_opts(dapp_opts)
-            .build()
-            .await?;
-    let wallet_manager =
-        WalletConnectBuilder::new(p, monedero_mesh::auth_token("https://reown.org"))
-            .connect_opts(wallet_opts)
-            .build()
-            .await?;
+    let dapp_manager = ReownBuilder::new(p.clone())
+        .connect_opts(dapp_opts)
+        .store(KvStorage::mem())
+        .build()
+        .await?;
+    let wallet_manager = ReownBuilder::new(p)
+        .connect_opts(wallet_opts)
+        .store(KvStorage::mem())
+        .build()
+        .await?;
     let dapp_actors = dapp_manager.actors();
     let wallet_actors = wallet_manager.actors();
     let md = Metadata {
@@ -194,11 +168,14 @@ async fn pair_dapp_wallet() -> anyhow::Result<(TestStuff, ClientSession)> {
     let dapp = t.dapp.clone();
     let wallet = t.wallet.clone();
     let (pairing, rx, _) = dapp
-        .propose(NoopSessionHandler, &[
-            ChainId::EIP155(alloy_chains::Chain::holesky()),
-            ChainId::EIP155(alloy_chains::Chain::sepolia()),
-            ChainId::Solana(ChainType::Dev),
-        ])
+        .propose(
+            NoopSessionHandler,
+            &[
+                ChainId::EIP155(alloy_chains::Chain::holesky()),
+                ChainId::EIP155(alloy_chains::Chain::sepolia()),
+                ChainId::Solana(ChainType::Dev),
+            ],
+        )
         .await?;
     info!("got pairing topic {pairing}");
     let (_, wallet_rx) = wallet.pair(pairing.to_string(), NoopSessionHandler).await?;
@@ -231,9 +208,10 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
     let original_pairing = test.dapp.pairing().ok_or(format_err!("no pairing!"))?;
     let (new_pairing, rx, restored) = test
         .dapp
-        .propose(NoopSessionHandler, &[
-            ChainId::EIP155(AlloyChain::sepolia()),
-        ])
+        .propose(
+            NoopSessionHandler,
+            &[ChainId::EIP155(AlloyChain::sepolia())],
+        )
         .await?;
     assert!(!restored);
     assert_ne!(original_pairing.topic, new_pairing.topic);
