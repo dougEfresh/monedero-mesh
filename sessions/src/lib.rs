@@ -11,7 +11,6 @@ mod wait;
 mod wallet;
 
 use {
-    crate::rpc::SessionRequestRequest,
     monedero_domain::{namespaces::Event, Topic},
     pin_project_lite::pin_project,
     std::{
@@ -25,7 +24,11 @@ use {
     tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
 };
 
+#[cfg(not(target_family = "wasm"))]
+pub use monedero_relay::MockRelay;
 pub use {
+    crate::rpc::SessionProposeRequest,
+    crate::rpc::SessionRequestRequest,
     crate::session::ClientSession,
     actors::{Actors, RegisteredComponents},
     dapp::Dapp,
@@ -33,9 +36,9 @@ pub use {
     handlers::*,
     monedero_domain as domain,
     monedero_relay::{
-        auth_token, default_connection_opts, mock_connection_opts, ClientError, MockRelay, AUTH_URL,
+        auth_token, default_connection_opts, mock_connection_opts, ClientError, AUTH_URL,
     },
-    monedero_store::{Error as StoreError, KvStorage},
+    monedero_store::{Error as KvStorageError, KvStorage},
     pair::{PairingManager, ReownBuilder},
     rpc::{Metadata, SdkErrors},
     wallet::Wallet,

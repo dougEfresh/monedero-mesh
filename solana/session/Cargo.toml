@@ -20,9 +20,6 @@ bs58 = { workspace = true }
 chrono = { workspace = true }
 dashmap = { workspace = true }
 monedero-mesh = { path = "../../sessions" }
-monedero-domain = { path = "../../domain" }
-monedero-store = { path = "../../store" }
-monedero-relay = { path = "../../relay" }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
@@ -41,14 +38,10 @@ microxdg = { workspace = true }
 assert_matches = { version = "1.5.0" }
 async-trait = "0.1.82"
 anyhow = "1"
-tokio = { version = "1", features = ["full"] }
-tracing = { version = "0.1" }
-tracing-error = { version = "0.2.0"}
-dotenvy = {version = "0.15"}
+dotenvy = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
-solana-keypair = { version = "0.0.2" }
+solana-keypair = { workspace = true }
 solana-rpc-client = { workspace = true }
 
 [[test]]
 name = "solana"
-required-features = ["mock"]

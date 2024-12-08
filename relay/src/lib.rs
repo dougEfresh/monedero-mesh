@@ -3,12 +3,7 @@ pub use walletconnect_sdk::{
     rpc::{
         auth::*,
         domain::{
-            ClientIdDecodingError,
-            DecodedTopic,
-            MessageId,
-            ProjectId,
-            SubscriptionId,
-            Topic,
+            ClientIdDecodingError, DecodedTopic, MessageId, ProjectId, SubscriptionId, Topic,
         },
         user_agent::*,
     },
@@ -33,8 +28,11 @@ pub const AUTH_URL: &str = "https://cartera-mesh.com";
 
 mod client;
 mod error;
+#[cfg(not(target_family = "wasm"))]
 mod mock;
-pub use {client::Client, mock::MockRelay};
+pub use client::Client;
+#[cfg(not(target_family = "wasm"))]
+pub use mock::MockRelay;
 pub type PairingTopic = Topic;
 pub type SessionTopic = Topic;
 pub use error::ClientError;

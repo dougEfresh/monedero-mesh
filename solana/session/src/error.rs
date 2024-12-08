@@ -64,14 +64,15 @@ pub enum Error {
 
     #[error("{0}")]
     RpcRequestError(String),
+
     #[error("Account exists! {0}")]
     AccountExists(String),
+
     #[error("Invalid param for rpc {0}")]
     BadParameter(String),
 
-    #[error(transparent)]
-    StorageError(#[from] monedero_store::Error),
-
+    //#[error(transparent)]
+    //StorageError(#[from] monedero_mesh::KvError),
     #[error(transparent)]
     HttpError(#[from] reqwest::Error),
 

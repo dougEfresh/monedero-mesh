@@ -1,13 +1,18 @@
 use {
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
-    monedero_domain::{
-        namespaces::{ChainId, ChainType, Method},
-        *,
+    monedero_solana::domain::namespaces::{
+        Account, Accounts, ChainId, ChainType, Chains, EipMethod, Method, Methods, Namespace,
+        NamespaceName, Namespaces, SolanaMethod,
     },
-    monedero_mesh::{auth_token, NoopSessionHandler, ProposeFuture},
-    monedero_relay::{ConnectionCategory, ConnectionOptions, ConnectionPair},
-    monedero_solana::SolanaSession,
+    monedero_solana::session::{
+        init_tracing, mock_connection_opts, MockRelay, NoopSessionHandler, ProposeFuture,
+        SessionProposeRequest, SessionRequestRequest, Wallet, WalletSettlementHandler,
+    },
+    monedero_solana::{
+        Dapp, Error, KvStorage, Metadata, ProjectId, ReownBuilder, Result, SolanaSession,
+        SolanaSignatureResponse, WalletConnectTransaction,
+    },
     solana_keypair::Keypair,
     solana_pubkey::Pubkey,
     solana_rpc_client::nonblocking::rpc_client::RpcClient,
@@ -24,149 +29,50 @@ use {
     tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
 };
 
-#[allow(dead_code)]
-static INIT: Once = Once::new();
+mod mock_wallet;
+use mock_wallet::*;
 
 fn explorer(sig: &Signature) {
-    info!("https://solscan.io/tx/{sig}?cluster=custom&customUrl=https://soldev.dougchimento.com");
+    info!("https://solscan.io/tx/{sig}?cluster=devnet");
 }
 
 pub(crate) async fn yield_ms(ms: u64) {
     tokio::time::sleep(Duration::from_millis(ms)).await;
 }
 
-#[derive(Clone)]
-struct MockWallet {
-    rpc_client: Arc<RpcClient>,
-}
-
-const SUPPORTED_ACCOUNT: &str = "215r9xfTFVYcE9g3fAUGowauM84egyUvFCbSo3LKNaep";
-
-#[async_trait]
-impl WalletSettlementHandler for MockWallet {
-    async fn settlement(
-        &self,
-        proposal: SessionProposeRequest,
-    ) -> monedero_mesh::Result<Namespaces> {
-        let mut settled: Namespaces = Namespaces(BTreeMap::new());
-        for (name, namespace) in proposal.required_namespaces.iter() {
-            let accounts: BTreeSet<Account> = namespace
-                .chains
-                .iter()
-                .map(|c| Account {
-                    address: String::from(SUPPORTED_ACCOUNT),
-                    chain: c.clone(),
-                })
-                .collect();
-
-            let methods = match name {
-                NamespaceName::EIP155 => EipMethod::defaults(),
-                NamespaceName::Solana => SolanaMethod::defaults(),
-                NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
-            };
-            settled.insert(name.clone(), Namespace {
-                accounts: Accounts(accounts),
-                chains: Chains(namespace.chains.iter().cloned().collect()),
-                methods: Methods(methods),
-                events: Events::default(),
-            });
-        }
-        Ok(settled)
-    }
-}
-
-impl monedero_mesh::SessionEventHandler for MockWallet {}
-
-const KEYPAIR: [u8; 64] = [
-    186, 128, 232, 61, 254, 246, 197, 13, 125, 103, 212, 83, 16, 121, 144, 20, 93, 161, 35, 128,
-    89, 135, 157, 200, 81, 159, 83, 204, 204, 130, 28, 42, 14, 225, 43, 2, 44, 16, 255, 214, 161,
-    18, 184, 164, 253, 126, 16, 187, 134, 176, 75, 35, 179, 194, 181, 150, 67, 236, 131, 49, 45,
-    155, 45, 253,
-];
-
-impl MockWallet {
-    pub async fn sign(&self, value: serde_json::Value) -> Result<SolanaSignatureResponse> {
-        let kp = Keypair::from_bytes(&KEYPAIR).map_err(|_| Error::KeyPairFailure)?;
-        info!("PK of signer: {}", kp.pubkey());
-        let req = serde_json::from_value::<WalletConnectTransaction>(value)?;
-        let decoded = BASE64_STANDARD.decode(req.transaction)?;
-        let mut tx = bincode::deserialize::<Transaction>(decoded.as_ref())?;
-        let positions = tx.get_signing_keypair_positions(&[kp.pubkey()])?;
-        if positions.is_empty() {
-            return Err(Error::NothingToSign);
-        }
-        tx.try_partial_sign(&[&kp], tx.get_recent_blockhash().clone())?;
-        // tx.try_sign(&[&kp], tx.get_recent_blockhash().clone())?;
-        let sig = tx.get_signature();
-        let signature = solana_sdk::bs58::encode(sig).into_string();
-        info!("returning sig: {signature}");
-        Ok(SolanaSignatureResponse { signature })
-    }
-}
-
-#[async_trait]
-impl monedero_mesh::SessionHandler for MockWallet {
-    async fn request(&self, request: SessionRequestRequest) -> WalletRequestResponse {
-        match request.request.method {
-            Method::Solana(SolanaMethod::SignTransaction) => {
-                match self.sign(request.request.params).await {
-                    Err(e) => {
-                        tracing::warn!("failed sig: {e}");
-                        WalletRequestResponse::Error(SdkErrors::UserRejected)
-                    }
-                    Ok(sig) => WalletRequestResponse::Success(serde_json::to_value(&sig).unwrap()),
-                }
-            }
-            _ => WalletRequestResponse::Error(SdkErrors::InvalidMethod),
-        }
-    }
-}
-
-pub(crate) async fn init_test_components() -> anyhow::Result<(Dapp, Wallet, MockWallet)> {
+pub(crate) async fn init_test_components() -> anyhow::Result<(Dapp, Wallet, MockWallet, MockRelay)>
+{
     init_tracing();
-    let shared_id = Topic::generate();
     let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
-    let auth = auth_token("https://github.com/dougEfresh");
-    let dapp_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Dapp);
-    let wallet_id = ConnectionPair(shared_id.clone(), ConnectionCategory::Wallet);
-    let dapp_opts = ConnectionOptions::new(p.clone(), auth.clone(), dapp_id);
-    let wallet_opts = ConnectionOptions::new(p.clone(), auth.clone(), wallet_id);
-    let dapp_manager = WalletConnectBuilder::new(p.clone(), auth.clone())
+    let dapp_opts = mock_connection_opts(&p);
+    let wallet_opts = mock_connection_opts(&p);
+    let relay = monedero_mesh::MockRelay::start().await?;
+    let dapp_manager = ReownBuilder::new(p.clone())
         .connect_opts(dapp_opts)
+        .store(KvStorage::mem())
         .build()
         .await?;
-    let wallet_manager = WalletConnectBuilder::new(p, auth)
+    let wallet_manager = ReownBuilder::new(p)
         .connect_opts(wallet_opts)
+        .store(KvStorage::mem())
         .build()
         .await?;
+
     let md = Metadata {
         name: "mock-dapp".to_string(),
         ..Default::default()
     };
-    let dapp = Dapp::new(dapp_manager, md).await?;
-    dotenvy::dotenv()?;
-    // let url = std::env::var(ChainId::Solana(ChainType::Test).to_string())
-    //.ok()
-    //.unwrap_or(String::from("https://api.devnet.solana.com"));
-    let url = std::env::var(ChainId::Solana(ChainType::Dev).to_string())
-        .ok()
-        .unwrap_or(String::from("https://soldev.dougchimento.com"));
-    info!("using url {url}");
-    let rpc_client = Arc::new(RpcClient::new(url));
-    let mock_wallet = MockWallet { rpc_client };
-    let wallet = Wallet::new(wallet_manager, mock_wallet.clone()).await?;
-    Ok((dapp, wallet, mock_wallet))
-}
 
-pub(crate) fn init_tracing() {
-    INIT.call_once(|| {
-        tracing_subscriber::fmt()
-            .with_target(true)
-            .with_level(true)
-            .with_span_events(FmtSpan::CLOSE)
-            .with_env_filter(EnvFilter::from_default_env())
-            .init();
-    });
+    let mock_wallet = MockWallet {};
+    let dapp = Dapp::new(dapp_manager, md).await?;
+    let wallet = Wallet::new(wallet_manager, mock_wallet.clone()).await?;
+    //dotenvy::dotenv()?;
+    //let url = std::env::var(ChainId::Solana(ChainType::Dev).to_string())
+    //    .ok()
+    //    .unwrap_or(String::from("https://api.devnet.solana.com"));
+    //info!("using url {url}");
+    //let rpc_client = Arc::new(RpcClient::new(url));
+    Ok((dapp, wallet, mock_wallet, relay))
 }
 
 async fn await_wallet_pair(rx: ProposeFuture) {
@@ -182,7 +88,7 @@ async fn await_wallet_pair(rx: ProposeFuture) {
 }
 
 async fn pair_dapp_wallet() -> anyhow::Result<(SolanaSession, MockWallet)> {
-    let (dapp, wallet, mock_wallet) = init_test_components().await?;
+    let (dapp, wallet, mock_wallet, _) = init_test_components().await?;
     let (pairing, rx, _) = dapp
         .propose(NoopSessionHandler, &[ChainId::Solana(ChainType::Dev)])
         .await?;
@@ -204,8 +110,5 @@ async fn test_solana_session() -> anyhow::Result<()> {
     info!("settlement complete");
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let amount = 1;
-    info!("balance in lamports {balance}");
-    let sig = wallet.transfer(&to, amount).await?;
-    info!("got sig {sig}");
     Ok(())
 }

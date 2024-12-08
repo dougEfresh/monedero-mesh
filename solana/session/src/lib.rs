@@ -1,9 +1,14 @@
 mod error;
 mod signer;
 
-pub use {error::Error, monedero_mesh as session, signer::ReownSigner};
+pub use {
+    error::Error, monedero_mesh as session, monedero_mesh::domain,
+    monedero_mesh::domain::ProjectId, monedero_mesh::Dapp, monedero_mesh::KvStorage,
+    monedero_mesh::KvStorageError, monedero_mesh::Metadata, monedero_mesh::ReownBuilder,
+    signer::ReownSigner,
+};
 use {
-    monedero_domain::namespaces::{ChainId, ChainType, NamespaceName, SolanaMethod},
+    monedero_mesh::domain::namespaces::{ChainId, ChainType, Method, NamespaceName, SolanaMethod},
     monedero_mesh::{
         rpc::{RequestMethod, RequestParams, SessionRequestRequest},
         ClientSession,
@@ -121,7 +126,7 @@ impl SolanaSession {
     pub async fn sign_transaction(&self, tx: WalletConnectTransaction) -> Result<Signature> {
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
             request: RequestMethod {
-                method: monedero_domain::namespaces::Method::Solana(SolanaMethod::SignTransaction),
+                method: Method::Solana(SolanaMethod::SignTransaction),
                 params: serde_json::to_value(tx)?,
                 expiry: None,
             },
