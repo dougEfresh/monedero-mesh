@@ -106,18 +106,15 @@ async fn do_dapp_stuff(dapp: Dapp) {
 }
 
 async fn dapp_test() -> anyhow::Result<()> {
-    let auth = monedero_mesh::auth_token("https://github.com/CarteraMesh");
     let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let store = KvStorage::file(None)?;
-    let builder = ReownBuilder::new(p, auth);
-    let builder = builder.store(store);
-    let pairing_mgr = builder.build().await?;
+    let pairing_mgr = ReownBuilder::new(p).store(store).build().await?;
     let dapp = Dapp::new(
         pairing_mgr.clone(),
         Metadata {
             name: "monedero-mesh".to_string(),
             description: "reown but for rust".to_string(),
-            url: "https://github.com/dougEfresh".to_string(),
+            url: String::from(monedero_mesh::AUTH_URL),
             icons: vec![],
             verify_url: None,
             redirect: None,

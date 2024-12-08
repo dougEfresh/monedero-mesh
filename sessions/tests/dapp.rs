@@ -1,31 +1,11 @@
 use {
     anyhow::format_err,
     assert_matches::assert_matches,
-    async_trait::async_trait,
-    monedero_domain::{
-        namespaces::{
-            Account, Accounts, AlloyChain, ChainId, ChainType, Chains, EipMethod, Events, Method,
-            Methods, Namespace, NamespaceName, Namespaces, SolanaMethod,
-        },
-        ProjectId, Topic,
-    },
-    monedero_mesh::{
-        auth_token, default_connection_opts, mock_connection_opts,
-        rpc::{
-            Metadata, ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload,
-            SessionProposeRequest, SessionProposeResponse,
-        },
-        Actors, ClientSession, Dapp, KvStorage, MockRelay, NoopSessionHandler, ProposeFuture,
-        RegisteredComponents, ReownBuilder, Result, SdkErrors, Wallet, WalletSettlementHandler,
-    },
-    std::{
-        collections::{BTreeMap, BTreeSet},
-        sync::Once,
-        time::Duration,
-    },
+    monedero_domain::namespaces::{AlloyChain, ChainId, ChainType, NamespaceName},
+    monedero_mesh::{ClientSession, NoopSessionHandler, ProposeFuture, RegisteredComponents},
+    std::time::Duration,
     tokio::time::timeout,
     tracing::{error, info},
-    tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
 };
 
 mod test_utils;

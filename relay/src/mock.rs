@@ -45,17 +45,12 @@ mod test {
     use {
         super::*,
         crate::{
-            default_connection_opts,
-            mock_connection_opts,
-            Client,
-            ConnectionHandler,
-            LogHandler,
-            NoopHandler,
-            ProjectId,
-            Topic,
+            default_connection_opts, mock_connection_opts, Client, ConnectionHandler, LogHandler,
+            NoopHandler, ProjectId, Topic,
         },
-        serde_json::json,
+        std::collections::VecDeque,
         std::time::Duration,
+        tracing::error,
         tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
     };
 

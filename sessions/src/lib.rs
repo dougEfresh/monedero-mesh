@@ -22,7 +22,9 @@ use {
         task::{Context, Poll},
     },
     tokio::sync::oneshot,
+    tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
 };
+
 pub use {
     crate::session::ClientSession,
     actors::{Actors, RegisteredComponents},
@@ -106,23 +108,15 @@ pub(crate) fn shorten_topic(id: &Topic) -> String {
     id
 }
 
-#[cfg(test)]
-pub(crate) mod test {
-    use {
-        crate::INIT,
-        tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
-    };
-
-    pub(crate) fn init_tracing() {
-        INIT.call_once(|| {
-            tracing_subscriber::fmt()
-                .with_target(true)
-                .with_level(true)
-                .with_span_events(FmtSpan::CLOSE)
-                .with_env_filter(EnvFilter::from_default_env())
-                .init();
-        });
-    }
+pub fn init_tracing() {
+    INIT.call_once(|| {
+        tracing_subscriber::fmt()
+            .with_target(true)
+            .with_level(true)
+            .with_span_events(FmtSpan::CLOSE)
+            .with_env_filter(EnvFilter::from_default_env())
+            .init();
+    });
 }
 
 #[cfg(not(target_arch = "wasm32"))]

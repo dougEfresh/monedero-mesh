@@ -4,7 +4,6 @@ use {
     gloo_timers::future::TimeoutFuture,
     monedero_mesh::{
         domain::{
-            auth_token,
             namespaces::{ChainId, ChainType, Chains},
             ProjectId,
         },
@@ -17,8 +16,7 @@ use {
 };
 
 async fn pair_manager(p: ProjectId) -> Option<PairingManager> {
-    let auth = auth_token("https://github.com/dougEfresh");
-    let builder = ReownBuilder::new(p, auth);
+    let builder = ReownBuilder::new(p);
     match builder.build().await {
         Err(e) => {
             let msg = format!("failed to create pairing manager {}", e);

@@ -6,10 +6,7 @@ use {
         session::{Category, PendingSession},
         spawn_task,
         Error::NoPairingTopic,
-        PairingManager,
-        ProposeFuture,
-        Result,
-        SessionHandler,
+        PairingManager, ProposeFuture, Result, SessionHandler,
     },
     monedero_domain::{namespaces::Namespaces, Pairing, PairingTopic, SessionSettled},
     std::{
@@ -154,6 +151,9 @@ impl Dapp {
         self.manager.pairing()
     }
 
+    pub async fn extend(&self, expire: u64) -> Result<bool> {
+        self.manager.extend(expire).await
+    }
     pub async fn purge(&self) -> Result<()> {
         let _ = self.manager.delete().await;
         Ok(())
