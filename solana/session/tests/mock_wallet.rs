@@ -2,32 +2,21 @@ use {
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
     monedero_solana::domain::namespaces::{
-        Account, Accounts, ChainId, ChainType, Chains, EipMethod, Events, Method, Methods,
+        Account, Accounts, Chains, EipMethod, Events, Method, Methods,
         Namespace, NamespaceName, Namespaces, SolanaMethod,
     },
     monedero_solana::session::{
-        init_tracing, mock_connection_opts, MockRelay, NoopSessionHandler, ProposeFuture,
         SdkErrors, SessionProposeRequest, SessionRequestRequest, WalletRequestResponse,
         WalletSettlementHandler,
     },
     monedero_solana::{
-        Dapp, Error, KvStorage, Metadata, ProjectId, ReownBuilder, Result, SolanaSession,
+        Error,
         SolanaSignatureResponse, WalletConnectTransaction,
     },
     solana_keypair::Keypair,
-    solana_pubkey::Pubkey,
-    solana_signature::Signature,
     solana_signer::Signer,
-    std::{
-        collections::{BTreeMap, BTreeSet},
-        path::{Path, PathBuf},
-        str::FromStr,
-        sync::{Arc, Once},
-        time::Duration,
-    },
-    tokio::time::timeout,
-    tracing::{error, info},
-    tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
+    std::collections::{BTreeMap, BTreeSet},
+    tracing::info,
 };
 
 #[derive(Clone)]

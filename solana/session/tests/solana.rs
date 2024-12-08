@@ -1,32 +1,14 @@
 use {
-    async_trait::async_trait,
-    base64::{prelude::BASE64_STANDARD, Engine},
-    monedero_solana::domain::namespaces::{
-        Account, Accounts, ChainId, ChainType, Chains, EipMethod, Method, Methods, Namespace,
-        NamespaceName, Namespaces, SolanaMethod,
-    },
+    monedero_solana::domain::namespaces::{ChainId, ChainType},
     monedero_solana::session::{
-        init_tracing, mock_connection_opts, MockRelay, NoopSessionHandler, ProposeFuture,
-        SessionProposeRequest, SessionRequestRequest, Wallet, WalletSettlementHandler,
+        init_tracing, mock_connection_opts, MockRelay, NoopSessionHandler, ProposeFuture, Wallet,
     },
-    monedero_solana::{
-        Dapp, Error, KvStorage, Metadata, ProjectId, ReownBuilder, Result, SolanaSession,
-        SolanaSignatureResponse, WalletConnectTransaction,
-    },
-    solana_keypair::Keypair,
+    monedero_solana::{Dapp, KvStorage, Metadata, ProjectId, ReownBuilder, SolanaSession},
     solana_pubkey::Pubkey,
-    solana_rpc_client::nonblocking::rpc_client::RpcClient,
     solana_signature::Signature,
-    std::{
-        collections::{BTreeMap, BTreeSet},
-        path::{Path, PathBuf},
-        str::FromStr,
-        sync::{Arc, Once},
-        time::Duration,
-    },
+    std::{str::FromStr, time::Duration},
     tokio::time::timeout,
     tracing::{error, info},
-    tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
 };
 
 mod mock_wallet;
@@ -107,7 +89,7 @@ async fn pair_dapp_wallet() -> anyhow::Result<(SolanaSession, MockWallet)> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn test_solana_session() -> anyhow::Result<()> {
     let (session, _) = pair_dapp_wallet().await?;
-    info!("settlement complete");
+    info!("settlement complete pk is {session}");
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let amount = 1;
     Ok(())

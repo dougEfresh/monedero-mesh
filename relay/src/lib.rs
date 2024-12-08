@@ -23,6 +23,7 @@ use {
 };
 
 pub const RELAY_ADDRESS: &str = "wss://relay.walletconnect.com";
+pub(crate) const MOCK_RELAY_ADDRESS: &str = "127.0.0.1:4001";
 pub const RELAY_PROTOCOL: &str = "irn";
 pub const AUTH_URL: &str = "https://cartera-mesh.com";
 
@@ -136,7 +137,11 @@ pub struct ConnectionOptions {
 
 impl ConnectionOptions {
     pub fn mock(project_id: ProjectId, serialized: SerializedAuthToken) -> Self {
-        Self::create("ws://127.0.0.1:4000", project_id, serialized)
+        Self::create(
+            format!("ws://{MOCK_RELAY_ADDRESS}").as_str(),
+            project_id,
+            serialized,
+        )
     }
 
     pub fn new(project_id: ProjectId, serialized: SerializedAuthToken) -> Self {

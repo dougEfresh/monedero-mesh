@@ -1,5 +1,6 @@
 use {
     super::{client::WsClient, PendingMessages, WsPublishedMessage},
+    crate::MOCK_RELAY_ADDRESS,
     dashmap::DashSet,
     futures_util::{stream::SplitSink, SinkExt, StreamExt},
     serde::Serialize,
@@ -37,8 +38,7 @@ impl Debug for MockRelay {
 impl MockRelay {
     /// Starts the mock relay server and returns an instance of `MockRelay`.
     pub async fn start() -> crate::Result<Self> {
-        let addr = "127.0.0.1:4000";
-        let listener = TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(MOCK_RELAY_ADDRESS).await?;
         let (tx, _rx) = tokio::sync::broadcast::channel::<WsPublishedMessage>(100);
         let me = Self {
             clients: Arc::new(DashSet::new()),
