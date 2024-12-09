@@ -2,14 +2,22 @@ mod error;
 mod signer;
 
 pub use {
-    error::Error, monedero_mesh as session, monedero_mesh::domain,
-    monedero_mesh::domain::ProjectId, monedero_mesh::Dapp, monedero_mesh::KvStorage,
-    monedero_mesh::KvStorageError, monedero_mesh::Metadata, monedero_mesh::ReownBuilder,
+    error::Error,
+    monedero_mesh::{
+        self as session,
+        domain::{self, ProjectId},
+        spawn_task,
+        Dapp,
+        KvStorage,
+        KvStorageError,
+        Metadata,
+        ReownBuilder,
+    },
     signer::ReownSigner,
 };
 use {
-    monedero_mesh::domain::namespaces::{ChainId, ChainType, Method, NamespaceName, SolanaMethod},
     monedero_mesh::{
+        domain::namespaces::{ChainId, ChainType, Method, NamespaceName, SolanaMethod},
         rpc::{RequestMethod, RequestParams, SessionRequestRequest},
         ClientSession,
     },

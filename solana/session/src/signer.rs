@@ -1,9 +1,8 @@
 use {
     crate::{Result, SolanaSession, WalletConnectTransaction},
     base64::{prelude::BASE64_STANDARD, Engine},
-    solana_pubkey::Pubkey,
+    solana_sdk::signer::{Signer, SignerError},
     solana_signature::Signature,
-    solana_signer::{Signer, SignerError},
     std::{
         fmt::{Debug, Display, Formatter},
         time::Duration,
@@ -42,7 +41,7 @@ impl PartialEq for ReownSigner {
 }
 
 impl Signer for ReownSigner {
-    fn try_pubkey(&self) -> std::result::Result<Pubkey, SignerError> {
+    fn try_pubkey(&self) -> std::result::Result<solana_pubkey::Pubkey, SignerError> {
         Ok(self.session.pubkey())
     }
 
@@ -101,7 +100,7 @@ impl ReownSigner {
     pub fn new(session: SolanaSession) -> Self {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<ChannelProps>();
         let wc_signer = ReownSigner { session, tx };
-        tokio::spawn(handler_signer(wc_signer.clone(), rx));
+        crate::spawn_task(handler_signer(wc_signer.clone(), rx));
         wc_signer
     }
 

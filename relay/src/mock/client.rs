@@ -22,7 +22,7 @@ use {
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct WsClient {
-    id: u16,
+    pub id: u16,
     topics: Arc<DashSet<Topic>>,
     ws_sender: WsSender,
     generator: MessageIdGenerator,
@@ -75,6 +75,13 @@ impl WsClient {
 
     async fn handle_message(self, mut rx: Receiver<WsPublishedMessage>) {
         while let Ok(published_message) = rx.recv().await {
+            if published_message.close {
+                if published_message.client_id == self.id {
+                    debug!("{self} connection was closed");
+                    return;
+                }
+                continue;
+            }
             let id = published_message.payload.id();
             if published_message.client_id == self.id {
                 self.handle_own_message(id, published_message);
@@ -84,14 +91,14 @@ impl WsClient {
         }
     }
 
-    #[tracing::instrument(level = Level::DEBUG)]
+    #[tracing::instrument(level = Level::DEBUG, skip(published_message))]
     fn handle_published_message(&self, id: MessageId, published_message: WsPublishedMessage) {
         match &published_message.payload {
             Payload::Request(ref req) => {
                 if let Params::Publish(ref p) = req.params {
                     if !self.topics.contains(&p.topic) {
                         warn!(
-                            "got a message but I am not subscribed to this topic {}",
+                            "{self} got a message but I am not subscribed to this topic {}",
                             p.topic
                         );
                         return;

@@ -10,6 +10,30 @@ mod transport;
 mod wait;
 mod wallet;
 
+#[cfg(not(target_family = "wasm"))]
+pub use monedero_relay::MockRelay;
+pub use {
+    crate::{
+        rpc::{SessionProposeRequest, SessionRequestRequest},
+        session::ClientSession,
+    },
+    actors::{Actors, RegisteredComponents},
+    dapp::Dapp,
+    error::Error,
+    handlers::*,
+    monedero_domain as domain,
+    monedero_relay::{
+        auth_token,
+        default_connection_opts,
+        mock_connection_opts,
+        ClientError,
+        AUTH_URL,
+    },
+    monedero_store::{Error as KvStorageError, KvStorage},
+    pair::{PairingManager, ReownBuilder},
+    rpc::{Metadata, SdkErrors},
+    wallet::Wallet,
+};
 use {
     monedero_domain::{namespaces::Event, Topic},
     pin_project_lite::pin_project,
@@ -22,26 +46,6 @@ use {
     },
     tokio::sync::oneshot,
     tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
-};
-
-#[cfg(not(target_family = "wasm"))]
-pub use monedero_relay::MockRelay;
-pub use {
-    crate::rpc::SessionProposeRequest,
-    crate::rpc::SessionRequestRequest,
-    crate::session::ClientSession,
-    actors::{Actors, RegisteredComponents},
-    dapp::Dapp,
-    error::Error,
-    handlers::*,
-    monedero_domain as domain,
-    monedero_relay::{
-        auth_token, default_connection_opts, mock_connection_opts, ClientError, AUTH_URL,
-    },
-    monedero_store::{Error as KvStorageError, KvStorage},
-    pair::{PairingManager, ReownBuilder},
-    rpc::{Metadata, SdkErrors},
-    wallet::Wallet,
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -123,7 +127,7 @@ pub fn init_tracing() {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub(crate) fn spawn_task<F>(future: F)
+pub fn spawn_task<F>(future: F)
 where
     F: std::future::Future<Output = ()> + 'static + Send,
 {
@@ -131,7 +135,7 @@ where
 }
 
 #[cfg(target_arch = "wasm32")]
-pub(crate) fn spawn_task<F>(future: F)
+pub fn spawn_task<F>(future: F)
 where
     F: std::future::Future<Output = ()> + 'static,
 {

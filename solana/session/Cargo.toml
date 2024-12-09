@@ -27,20 +27,16 @@ reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 solana-pubkey = { workspace = true }
+solana-sdk = { workspace = true }
 solana-signature = { workspace = true }
 solana-signer = { workspace = true }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-microxdg = { workspace = true }
-
 
 [dev-dependencies]
 assert_matches = { version = "1.5.0" }
 async-trait = "0.1.82"
 anyhow = "1"
 dotenvy = { workspace = true }
-tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
-solana-keypair = { workspace = true }
+tracing-subscriber = { workspace = true }
 solana-rpc-client = { workspace = true }
 
 [[test]]

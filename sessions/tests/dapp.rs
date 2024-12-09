@@ -28,14 +28,11 @@ async fn pair_dapp_wallet() -> anyhow::Result<(TestStuff, ClientSession)> {
     let dapp = t.dapp.clone();
     let wallet = t.wallet.clone();
     let (pairing, rx, _) = dapp
-        .propose(
-            NoopSessionHandler,
-            &[
-                ChainId::EIP155(alloy_chains::Chain::holesky()),
-                ChainId::EIP155(alloy_chains::Chain::sepolia()),
-                ChainId::Solana(ChainType::Dev),
-            ],
-        )
+        .propose(NoopSessionHandler, &[
+            ChainId::EIP155(alloy_chains::Chain::holesky()),
+            ChainId::EIP155(alloy_chains::Chain::sepolia()),
+            ChainId::Solana(ChainType::Dev),
+        ])
         .await?;
     info!("got pairing topic {pairing}");
     let (_, wallet_rx) = wallet.pair(pairing.to_string(), NoopSessionHandler).await?;
@@ -68,10 +65,9 @@ async fn test_dapp_settlement() -> anyhow::Result<()> {
     let original_pairing = test.dapp.pairing().ok_or(format_err!("no pairing!"))?;
     let (new_pairing, rx, restored) = test
         .dapp
-        .propose(
-            NoopSessionHandler,
-            &[ChainId::EIP155(AlloyChain::sepolia())],
-        )
+        .propose(NoopSessionHandler, &[
+            ChainId::EIP155(AlloyChain::sepolia()),
+        ])
         .await?;
     assert!(!restored);
     assert_ne!(original_pairing.topic, new_pairing.topic);

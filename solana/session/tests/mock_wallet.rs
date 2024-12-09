@@ -1,27 +1,53 @@
 use {
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
-    monedero_solana::domain::namespaces::{
-        Account, Accounts, Chains, EipMethod, Events, Method, Methods,
-        Namespace, NamespaceName, Namespaces, SolanaMethod,
-    },
-    monedero_solana::session::{
-        SdkErrors, SessionProposeRequest, SessionRequestRequest, WalletRequestResponse,
-        WalletSettlementHandler,
-    },
     monedero_solana::{
+        domain::namespaces::{
+            Account,
+            Accounts,
+            Chains,
+            EipMethod,
+            Events,
+            Method,
+            Methods,
+            Namespace,
+            NamespaceName,
+            Namespaces,
+            SolanaMethod,
+        },
+        session::{
+            ClientSession,
+            SdkErrors,
+            SessionProposeRequest,
+            SessionRequestRequest,
+            WalletRequestResponse,
+            WalletSettlementHandler,
+        },
+        Dapp,
         Error,
-        SolanaSignatureResponse, WalletConnectTransaction,
+        SolanaSignatureResponse,
+        WalletConnectTransaction,
     },
     solana_keypair::Keypair,
+    solana_rpc_client::nonblocking::rpc_client::RpcClient,
     solana_signer::Signer,
-    std::collections::{BTreeMap, BTreeSet},
+    std::{
+        collections::{BTreeMap, BTreeSet},
+        sync::Arc,
+    },
     tracing::info,
 };
 
+pub struct TestContext {
+    pub dapp: Dapp,
+    pub session: monedero_solana::SolanaSession,
+    pub wallet: MockWallet,
+    pub rpc: Arc<RpcClient>,
+}
+
 #[derive(Clone)]
 pub struct MockWallet {
-    //pub rpc_client: Arc<RpcClient>,
+    // pub rpc_client: Arc<RpcClient>,
 }
 
 pub const SUPPORTED_ACCOUNT: &str = "215r9xfTFVYcE9g3fAUGowauM84egyUvFCbSo3LKNaep";
@@ -48,15 +74,12 @@ impl WalletSettlementHandler for MockWallet {
                 NamespaceName::Solana => SolanaMethod::defaults(),
                 NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
             };
-            settled.insert(
-                name.clone(),
-                Namespace {
-                    accounts: Accounts(accounts),
-                    chains: Chains(namespace.chains.iter().cloned().collect()),
-                    methods: Methods(methods),
-                    events: Events::default(),
-                },
-            );
+            settled.insert(name.clone(), Namespace {
+                accounts: Accounts(accounts),
+                chains: Chains(namespace.chains.iter().cloned().collect()),
+                methods: Methods(methods),
+                events: Events::default(),
+            });
         }
         Ok(settled)
     }
@@ -78,14 +101,14 @@ impl MockWallet {
         let req = serde_json::from_value::<WalletConnectTransaction>(value)?;
         let decoded = BASE64_STANDARD.decode(req.transaction)?;
         let sig = kp.sign_message(&decoded);
-        //let mut tx = bincode::deserialize::<Transaction>(decoded.as_ref())?;
-        //let positions = tx.get_signing_keypair_positions(&[kp.pubkey()])?;
-        //if positions.is_empty() {
+        // let mut tx = bincode::deserialize::<Transaction>(decoded.as_ref())?;
+        // let positions = tx.get_signing_keypair_positions(&[kp.pubkey()])?;
+        // if positions.is_empty() {
         //    return Err(anyhow::format_err!("nothing to sign"));
         //}
-        //tx.try_partial_sign(&[&kp], tx.get_recent_blockhash().clone())?;
+        // tx.try_partial_sign(&[&kp], tx.get_recent_blockhash().clone())?;
         //// tx.try_sign(&[&kp], tx.get_recent_blockhash().clone())?;
-        //let sig = tx.get_signature();
+        // let sig = tx.get_signature();
         let signature = bs58::encode(sig).into_string();
         info!("returning sig: {signature}");
         Ok(SolanaSignatureResponse { signature })

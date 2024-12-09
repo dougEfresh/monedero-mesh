@@ -1,8 +1,6 @@
 use {
     async_trait::async_trait,
-    monedero_mesh::{
-        SocketEvent, SocketListener,
-    },
+    monedero_mesh::{SocketEvent, SocketListener},
     std::sync::{Arc, Mutex},
 };
 mod test_utils;
@@ -43,12 +41,12 @@ async fn test_relay_pair_delete() -> anyhow::Result<()> {
     let dapp = test_components.dapp;
     dapp.purge().await?;
     // TODO verify purge
-    //let c = dapp.ciphers();
-    //yield_ms(2000).await;
-    //assert!(c.pairing().is_none());
-    //let dapp_actors = test_components.dapp_actors;
-    //let components = dapp_actors.request().send(RegisteredComponents).await?;
-    //assert!(components);
+    // let c = dapp.ciphers();
+    // yield_ms(2000).await;
+    // assert!(c.pairing().is_none());
+    // let dapp_actors = test_components.dapp_actors;
+    // let components = dapp_actors.request().send(RegisteredComponents).await?;
+    // assert!(components);
     Ok(())
 }
 
@@ -61,14 +59,15 @@ async fn test_relay_pair_extend() -> anyhow::Result<()> {
 }
 
 //#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-//async fn test_relay_disconnect() -> anyhow::Result<()> {
+// async fn test_relay_disconnect() -> anyhow::Result<()> {
 //    let test_components = init_test_components().await?;
 //    let dapp = test_components.dapp;
 //    let listener = DummySocketListener::new();
 //    dapp.register_socket_listener(listener.clone()).await;
 //    // special topic to indicate a force disconnect
 //    let disconnect_topic =
-//        Topic::from("92b2701dbdbb72abea51591a06d41e7d76ebfe18e1a1ca5680a5ac6e3717c6d9");
+//        Topic::from("
+// 92b2701dbdbb72abea51591a06d41e7d76ebfe18e1a1ca5680a5ac6e3717c6d9");
 //    dapp.subscribe(disconnect_topic.clone()).await?;
 //    yield_ms(1000).await;
 //    assert_matches!(

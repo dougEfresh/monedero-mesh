@@ -91,17 +91,22 @@ spl-memo = { version = "6" }
 spl-token = { version = "7.0.0" }
 spl-token-client = { version = "0.13"}
 spl-token-2022 = {version = "6.0.0" }
-solana-account-decoder = { version = "2.1.4" }
-solana-client ={ version = "2.1.4" }
-solana-feature-set ={ version = "2.1.4" }
+solana-account-decoder = { version = "2.1.5" }
+solana-client ={ version = "2.1.5" }
+solana-instruction = { version = "2.1.5"}
+solana-feature-set ={ version = "2.1.5" }
 solana-keypair = { version = "0.0.2" }
-solana-program = { version = "2.1.4"}
-solana-rpc-client ={ version = "2.1.4" }
-solana-rpc-client-api = { version = "2.1.4" }
-solana-sdk = { version = "2.1.4" }
-solana-pubkey = { version = "2.1.4"}
-solana-signature = { version = "2.1.4"}
+solana-message = { version = "0.0.3"}
+solana-program = { version = "2.1.5"}
+solana-rpc-client ={ version = "2.1.5" }
+solana-rpc-client-api = { version = "2.1.5" }
+solana-sdk = { version = "2.1.5", default-features = false , features = ["full"] }
+solana-pubkey = { version = "2.1.5"}
+solana-signature = { version = "2.1.5"}
 solana-signer = { version = "0.0.2" }
+solana-system-transaction = { version = "0.0.2" }
+solana-system-interface = { version = "1" , features = ["bincode"] }
+solana-transaction = { version = "0.0.2" }
 stanza = { version = "0.5" }
 thiserror = "1.0"
 tokio = { version = "1", features = ["rt", "time", "sync", "macros", "rt-multi-thread"] }

@@ -1,7 +1,7 @@
 use {
     super::{client::WsClient, PendingMessages, WsPublishedMessage},
     crate::MOCK_RELAY_ADDRESS,
-    dashmap::DashSet,
+    dashmap::{DashMap, DashSet},
     futures_util::{stream::SplitSink, SinkExt, StreamExt},
     serde::Serialize,
     std::{fmt::Debug, net::SocketAddr, sync::Arc, time::Duration},
@@ -23,7 +23,7 @@ use {
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct MockRelay {
-    pub(super) clients: Arc<DashSet<WsClient>>,
+    pub(super) clients: Arc<DashMap<u16, WsClient>>,
     pub(super) pending: PendingMessages,
     pub(super) tx: tokio::sync::broadcast::Sender<WsPublishedMessage>,
     pub(super) generator: MessageIdGenerator,
@@ -38,10 +38,11 @@ impl Debug for MockRelay {
 impl MockRelay {
     /// Starts the mock relay server and returns an instance of `MockRelay`.
     pub async fn start() -> crate::Result<Self> {
+        info!("Starting mock relay server on {MOCK_RELAY_ADDRESS}");
         let listener = TcpListener::bind(MOCK_RELAY_ADDRESS).await?;
         let (tx, _rx) = tokio::sync::broadcast::channel::<WsPublishedMessage>(100);
         let me = Self {
-            clients: Arc::new(DashSet::new()),
+            clients: Arc::new(DashMap::new()),
             pending: Arc::new(DashSet::new()),
             tx,
             generator: MessageIdGenerator::new(),
@@ -108,7 +109,7 @@ impl MockRelay {
                 let ws_sender = Arc::new(Mutex::new(ws_sender));
                 let ws_client = WsClient::new(self, addr.port(), ws_sender);
                 info!("created new ws client {ws_client}");
-                self.clients.insert(ws_client);
+                self.clients.insert(ws_client.id, ws_client);
                 while let Some(msg) = ws_receiver.next().await {
                     match msg {
                         Ok(msg) => {
@@ -123,6 +124,7 @@ impl MockRelay {
                                         let msg = WsPublishedMessage {
                                             client_id: addr.port(),
                                             payload,
+                                            close: false,
                                         };
                                         debug!("broadcast payload from client id {}", addr.port());
                                         let _ = self.tx.send(msg);
@@ -147,6 +149,18 @@ impl MockRelay {
                 error!("Failed to upgrade to WebSocket: {e}");
             }
         }
+        let payload: Payload = Payload::Response(Response::Success(SuccessfulResponse::new(
+            self.generator.next(),
+            "some result".into(),
+        )));
+        let msg: WsPublishedMessage = WsPublishedMessage {
+            client_id: addr.port(),
+            close: true,
+            payload,
+        };
+
+        let _ = self.tx.send(msg);
+        self.clients.remove(&addr.port());
         info!("Connection with {addr} closed.");
     }
 }

@@ -101,7 +101,7 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
     #[tracing::instrument(skip(_ctx), level = "info", fields(message = message.to_string()))]
     async fn handle(&mut self, message: RpcRequest, _ctx: &mut Context<Self>) -> Self::Return {
         match message.payload.params {
-            RequestParams::SessionUpdate(args) => {
+            RequestParams::SessionUpdate(_args) => {
                 let response = RpcResponse {
                     id: message.payload.id,
                     topic: message.topic,
@@ -113,7 +113,7 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                     warn!("responder actor is not responding {e}");
                 }
             }
-            RequestParams::SessionExtend(args) => {
+            RequestParams::SessionExtend(_args) => {
                 let response = RpcResponse {
                     id: message.payload.id,
                     topic: message.topic,
@@ -129,7 +129,7 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                 self.handle_session_request(message.payload.id, message.topic, args)
                     .await;
             }
-            RequestParams::SessionEvent(args) => {
+            RequestParams::SessionEvent(_args) => {
                 let response = RpcResponse {
                     id: message.payload.id,
                     topic: message.topic,
@@ -139,7 +139,7 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                     warn!("responder actor is not responding {e}");
                 }
             }
-            RequestParams::SessionDelete(args) => {
+            RequestParams::SessionDelete(_args) => {
                 if let Err(e) = self
                     .responder
                     .send(RpcResponse {

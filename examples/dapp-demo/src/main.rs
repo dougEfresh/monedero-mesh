@@ -7,10 +7,16 @@ use {
         self,
         domain::{
             namespaces::{ChainId, ChainType, Chains, Method, NamespaceName, SolanaMethod},
-            Pairing, ProjectId,
+            Pairing,
+            ProjectId,
         },
         rpc::{RequestMethod, RequestParams, SessionRequestRequest},
-        ClientSession, Dapp, KvStorage, Metadata, NoopSessionHandler, ReownBuilder,
+        ClientSession,
+        Dapp,
+        KvStorage,
+        Metadata,
+        NoopSessionHandler,
+        ReownBuilder,
     },
     serde_json::json,
     std::time::Duration,
@@ -109,17 +115,14 @@ async fn dapp_test() -> anyhow::Result<()> {
     let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let store = KvStorage::file(None)?;
     let pairing_mgr = ReownBuilder::new(p).store(store).build().await?;
-    let dapp = Dapp::new(
-        pairing_mgr.clone(),
-        Metadata {
-            name: "monedero-mesh".to_string(),
-            description: "reown but for rust".to_string(),
-            url: String::from(monedero_mesh::AUTH_URL),
-            icons: vec![],
-            verify_url: None,
-            redirect: None,
-        },
-    )
+    let dapp = Dapp::new(pairing_mgr.clone(), Metadata {
+        name: "monedero-mesh".to_string(),
+        description: "reown but for rust".to_string(),
+        url: String::from(monedero_mesh::AUTH_URL),
+        icons: vec![],
+        verify_url: None,
+        redirect: None,
+    })
     .await?;
     tokio::spawn(do_dapp_stuff(dapp));
 

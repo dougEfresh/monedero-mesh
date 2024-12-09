@@ -72,12 +72,9 @@ pub enum Error {
     BadParameter(String),
 
     //#[error(transparent)]
-    //StorageError(#[from] monedero_mesh::KvError),
+    // StorageError(#[from] monedero_mesh::KvError),
     #[error(transparent)]
     HttpError(#[from] reqwest::Error),
-
-    #[error(transparent)]
-    XdgError(#[from] microxdg::XdgError),
 
     #[error("amount {amt} is not enough for minimum delegation {min_amt} ")]
     MinimumDelegation { amt: u64, min_amt: u64 },
