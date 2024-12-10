@@ -98,6 +98,9 @@ async fn test_solana_session() -> anyhow::Result<()> {
     info!("settlement complete pk is {}", tc.session);
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let signer = ReownSigner::new(tc.session.clone());
-    transfer(signer, &to, 1).await?;
+    transfer(signer.clone(), &to, 1).await?;
+
+    tc.session.sign_message("something").await?;
+
     Ok(())
 }

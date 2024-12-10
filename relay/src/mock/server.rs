@@ -69,6 +69,7 @@ impl MockRelay {
         }
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub async fn forward(
         payload: Payload,
         ws_sender: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
@@ -83,6 +84,7 @@ impl MockRelay {
         tokio::time::sleep(delay).await;
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub async fn handle_ack<T: Serialize + Send>(
         id: MessageId,
         ws_sender: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,

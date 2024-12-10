@@ -6,12 +6,7 @@ pub use {
     monedero_mesh::{
         self as session,
         domain::{self, ProjectId},
-        spawn_task,
-        Dapp,
-        KvStorage,
-        KvStorageError,
-        Metadata,
-        ReownBuilder,
+        spawn_task, Dapp, KvStorage, KvStorageError, Metadata, ReownBuilder,
     },
     signer::ReownSigner,
 };
@@ -21,7 +16,6 @@ use {
         rpc::{RequestMethod, RequestParams, SessionRequestRequest},
         ClientSession,
     },
-    serde::{Deserialize, Serialize},
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     std::{
@@ -31,32 +25,9 @@ use {
     },
 };
 
+mod rpc;
+pub use rpc::*;
 pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WalletConnectTransaction {
-    pub transaction: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SolanaSignatureResponse {
-    pub signature: String,
-}
-
-impl TryFrom<SolanaSignatureResponse> for Signature {
-    type Error = Error;
-
-    fn try_from(value: SolanaSignatureResponse) -> std::result::Result<Self, Self::Error> {
-        let decoded: Vec<u8> = bs58::decode(&value.signature)
-            .into_vec()
-            .map_err(|e| Error::Bs58Error(e.to_string()))?;
-        let array: [u8; 64] = decoded
-            .try_into()
-            .map_err(|_| Error::SigError(value.signature))?;
-        Ok(Signature::from(array))
-    }
-}
 
 #[derive(Clone)]
 pub struct SolanaSession {
@@ -129,6 +100,20 @@ impl SolanaSession {
 
     pub fn network(&self) -> ChainType {
         self.network.clone()
+    }
+
+    pub async fn sign_message(&self, message: impl Into<&str>) -> Result<Signature> {
+        let m = SignMessageRequest::new(self.pubkey(), message.into());
+        let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
+            request: RequestMethod {
+                method: Method::Solana(SolanaMethod::SignMessage),
+                params: serde_json::to_value(&m)?,
+                expiry: None,
+            },
+            chain_id: self.chain.clone().into(),
+        });
+        let response: SolanaSignatureResponse = self.session.publish_request(params).await?;
+        Signature::try_from(response)
     }
 
     pub async fn sign_transaction(&self, tx: WalletConnectTransaction) -> Result<Signature> {

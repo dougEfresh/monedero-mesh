@@ -1,6 +1,7 @@
 use {
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
+    bs58,
     monedero_signer_solana::{
         domain::namespaces::{
             Account, Accounts, Chains, EipMethod, Events, Method, Methods, Namespace,
@@ -10,7 +11,7 @@ use {
             SdkErrors, SessionProposeRequest, SessionRequestRequest, WalletRequestResponse,
             WalletSettlementHandler,
         },
-        Dapp, Error, SolanaSignatureResponse, WalletConnectTransaction,
+        Dapp, Error, SignMessageRequest, SolanaSignatureResponse, WalletConnectTransaction,
     },
     solana_sdk::signer::{keypair::Keypair, Signer},
     std::collections::{BTreeMap, BTreeSet},
@@ -75,11 +76,24 @@ pub const KEYPAIR: [u8; 64] = [
 ];
 
 impl MockWallet {
-    pub async fn sign(&self, value: serde_json::Value) -> anyhow::Result<SolanaSignatureResponse> {
+    pub async fn sign(
+        &self,
+        method: SolanaMethod,
+        value: serde_json::Value,
+    ) -> anyhow::Result<SolanaSignatureResponse> {
         let kp = Keypair::from_bytes(&KEYPAIR).map_err(|_| Error::KeyPairFailure)?;
         info!("PK of signer: {}", kp.pubkey());
-        let req = serde_json::from_value::<WalletConnectTransaction>(value)?;
-        let decoded = BASE64_STANDARD.decode(req.transaction)?;
+        let decoded: Vec<u8> = match method {
+            SolanaMethod::SignTransaction => {
+                let req = serde_json::from_value::<WalletConnectTransaction>(value)?;
+                BASE64_STANDARD.decode(req.transaction)?
+            }
+            SolanaMethod::SignMessage => {
+                let req = serde_json::from_value::<SignMessageRequest>(value)?;
+                bs58::decode(req.message).into_vec()?
+            }
+            SolanaMethod::Other(m) => return Err(Error::InvalidMethod(m).into()),
+        };
         let sig = kp.sign_message(&decoded);
         // let mut tx = bincode::deserialize::<Transaction>(decoded.as_ref())?;
         // let positions = tx.get_signing_keypair_positions(&[kp.pubkey()])?;
@@ -89,9 +103,10 @@ impl MockWallet {
         // tx.try_partial_sign(&[&kp], tx.get_recent_blockhash().clone())?;
         //// tx.try_sign(&[&kp], tx.get_recent_blockhash().clone())?;
         // let sig = tx.get_signature();
-        let signature = bs58::encode(sig).into_string();
+        //let signature = bs58::encode(sig).into_string();
+        let signature: SolanaSignatureResponse = sig.into();
         info!("returning sig: {signature}");
-        Ok(SolanaSignatureResponse { signature })
+        Ok(signature)
     }
 }
 
@@ -100,9 +115,24 @@ impl monedero_mesh::SessionHandler for MockWallet {
     async fn request(&self, request: SessionRequestRequest) -> WalletRequestResponse {
         match request.request.method {
             Method::Solana(SolanaMethod::SignTransaction) => {
-                match self.sign(request.request.params).await {
+                match self
+                    .sign(SolanaMethod::SignTransaction, request.request.params)
+                    .await
+                {
                     Err(e) => {
                         tracing::warn!("failed sig: {e}");
+                        WalletRequestResponse::Error(SdkErrors::UserRejected)
+                    }
+                    Ok(sig) => WalletRequestResponse::Success(serde_json::to_value(&sig).unwrap()),
+                }
+            }
+            Method::Solana(SolanaMethod::SignMessage) => {
+                match self
+                    .sign(SolanaMethod::SignMessage, request.request.params)
+                    .await
+                {
+                    Err(e) => {
+                        tracing::warn!("failed signing message: {e}");
                         WalletRequestResponse::Error(SdkErrors::UserRejected)
                     }
                     Ok(sig) => WalletRequestResponse::Success(serde_json::to_value(&sig).unwrap()),

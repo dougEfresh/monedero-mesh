@@ -71,6 +71,9 @@ pub enum Error {
     #[error("Invalid param for rpc {0}")]
     BadParameter(String),
 
+    #[error("Invalid method request: {0}")]
+    InvalidMethod(String),
+
     //#[error(transparent)]
     // StorageError(#[from] monedero_mesh::KvError),
     #[error(transparent)]
