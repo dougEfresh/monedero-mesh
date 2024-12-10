@@ -1,5 +1,5 @@
 [package]
-name = "monedero-solana"
+name = "monedero-signer-solana"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -37,7 +37,6 @@ async-trait = "0.1.82"
 anyhow = "1"
 dotenvy = { workspace = true }
 tracing-subscriber = { workspace = true }
-solana-rpc-client = { workspace = true }
 
 [[test]]
-name = "solana"
+name = "solana_signer"

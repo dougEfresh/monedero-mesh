@@ -130,7 +130,7 @@ impl MockRelay {
                                         let _ = self.tx.send(msg);
                                     }
                                     Payload::Response(response) => {
-                                        info!("recv response {:?}", response);
+                                        debug!("recv response {:?}", response);
                                     }
                                 },
                                 Err(e) => {
@@ -161,6 +161,6 @@ impl MockRelay {
 
         let _ = self.tx.send(msg);
         self.clients.remove(&addr.port());
-        info!("Connection with {addr} closed.");
+        debug!("Connection with {addr} closed.");
     }
 }

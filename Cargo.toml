@@ -17,7 +17,7 @@ members = [
     "namespaces",
     "relay",
     "sessions",
-    "solana/session",
+    "solana/signer",
   #    "solana/wallet",
     "store",
 ]

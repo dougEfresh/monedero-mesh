@@ -1,54 +1,31 @@
 use {
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
-    monedero_solana::{
+    monedero_signer_solana::{
         domain::namespaces::{
-            Account,
-            Accounts,
-            Chains,
-            EipMethod,
-            Events,
-            Method,
-            Methods,
-            Namespace,
-            NamespaceName,
-            Namespaces,
-            SolanaMethod,
+            Account, Accounts, Chains, EipMethod, Events, Method, Methods, Namespace,
+            NamespaceName, Namespaces, SolanaMethod,
         },
         session::{
-            ClientSession,
-            SdkErrors,
-            SessionProposeRequest,
-            SessionRequestRequest,
-            WalletRequestResponse,
+            SdkErrors, SessionProposeRequest, SessionRequestRequest, WalletRequestResponse,
             WalletSettlementHandler,
         },
-        Dapp,
-        Error,
-        SolanaSignatureResponse,
-        WalletConnectTransaction,
+        Dapp, Error, SolanaSignatureResponse, WalletConnectTransaction,
     },
-    solana_keypair::Keypair,
-    solana_rpc_client::nonblocking::rpc_client::RpcClient,
-    solana_signer::Signer,
-    std::{
-        collections::{BTreeMap, BTreeSet},
-        sync::Arc,
-    },
+    solana_sdk::signer::{keypair::Keypair, Signer},
+    std::collections::{BTreeMap, BTreeSet},
     tracing::info,
 };
 
+#[allow(dead_code)]
 pub struct TestContext {
     pub dapp: Dapp,
-    pub session: monedero_solana::SolanaSession,
+    pub session: monedero_signer_solana::SolanaSession,
     pub wallet: MockWallet,
-    pub rpc: Arc<RpcClient>,
 }
 
 #[derive(Clone)]
-pub struct MockWallet {
-    // pub rpc_client: Arc<RpcClient>,
-}
+pub struct MockWallet {}
 
 pub const SUPPORTED_ACCOUNT: &str = "215r9xfTFVYcE9g3fAUGowauM84egyUvFCbSo3LKNaep";
 
@@ -74,12 +51,15 @@ impl WalletSettlementHandler for MockWallet {
                 NamespaceName::Solana => SolanaMethod::defaults(),
                 NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
             };
-            settled.insert(name.clone(), Namespace {
-                accounts: Accounts(accounts),
-                chains: Chains(namespace.chains.iter().cloned().collect()),
-                methods: Methods(methods),
-                events: Events::default(),
-            });
+            settled.insert(
+                name.clone(),
+                Namespace {
+                    accounts: Accounts(accounts),
+                    chains: Chains(namespace.chains.iter().cloned().collect()),
+                    methods: Methods(methods),
+                    events: Events::default(),
+                },
+            );
         }
         Ok(settled)
     }
