@@ -137,6 +137,7 @@ async fn dapp_test() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init_tracing();
