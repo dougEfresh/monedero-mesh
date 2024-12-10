@@ -37,7 +37,7 @@ impl SessionKey {
     ///
     /// Helper for  when `osrng` is good enough.
     pub fn from_osrng(sender_public_key: &[u8; 32]) -> Result<Self, SessionError> {
-        SessionKey::diffie_hellman(OsRng, sender_public_key)
+        Self::diffie_hellman(OsRng, sender_public_key)
     }
 
     /// Performs Diffie-Hellman symmetric key derivation.
@@ -61,8 +61,8 @@ impl SessionKey {
         Ok(session_sym_key)
     }
 
-    /// Gets symmetic key reference.
-    pub fn symmetric_key(&self) -> &[u8; 32] {
+    /// Gets symmertic key reference.
+    pub const fn symmetric_key(&self) -> &[u8; 32] {
         &self.sym_key
     }
 

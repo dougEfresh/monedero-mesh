@@ -1,16 +1,11 @@
 use {
     crate::{
         actors::{
-            actor_spawn,
-            proposal::ProposalActor,
-            session::SessionRequestHandlerActor,
-            RegisteredComponents,
-            TransportActor,
+            actor_spawn, proposal::ProposalActor, session::SessionRequestHandlerActor,
+            RegisteredComponents, TransportActor,
         },
         rpc::{Request, RequestParams, RpcRequest},
-        spawn_task,
-        PairingManager,
-        Result,
+        spawn_task, PairingManager, Result,
     },
     monedero_relay::Client,
     std::fmt::{Debug, Formatter},
@@ -52,7 +47,7 @@ impl Handler<PairingManager> for RequestHandlerActor {
 
     async fn handle(&mut self, message: PairingManager, _ctx: &mut Context<Self>) -> Self::Return {
         let addr = actor_spawn(message);
-        self.pair_managers = Some(addr)
+        self.pair_managers = Some(addr);
     }
 }
 

@@ -46,14 +46,8 @@ mod test {
     use {
         super::*,
         crate::{
-            default_connection_opts,
-            mock_connection_opts,
-            Client,
-            ConnectionHandler,
-            LogHandler,
-            NoopHandler,
-            ProjectId,
-            Topic,
+            default_connection_opts, mock_connection_opts, Client, ConnectionHandler, LogHandler,
+            NoopHandler, ProjectId, Topic,
         },
         std::{collections::VecDeque, time::Duration},
         tracing::error,
@@ -88,7 +82,7 @@ mod test {
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn mock_relay() -> anyhow::Result<()> {
         init_tracing();
-        let server = MockRelay::start().await?;
+        let _ = MockRelay::start().await?;
         let messages_1: MockMessages = Arc::new(std::sync::RwLock::new(VecDeque::new()));
         let handler_1 = EchoHandler {
             messages: messages_1.clone(),

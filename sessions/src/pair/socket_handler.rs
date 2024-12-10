@@ -6,10 +6,7 @@ use {
     tracing::{debug, info, warn},
 };
 
-pub(crate) async fn handle_socket(
-    mgr: PairingManager,
-    mut rx: mpsc::UnboundedReceiver<SocketEvent>,
-) {
+pub async fn handle_socket(mgr: PairingManager, mut rx: mpsc::UnboundedReceiver<SocketEvent>) {
     while let Some(message) = rx.recv().await {
         match message {
             SocketEvent::Connected | SocketEvent::Disconnect => {

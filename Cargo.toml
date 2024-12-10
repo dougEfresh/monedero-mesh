@@ -38,6 +38,7 @@ module_name_repetitions = "allow"
 missing_errors_doc = "allow"
 must_use_candidate = "allow"
 doc_markdown = "allow"
+missing_const_for_fn = "allow"
 #dead_code = "allow"
 
 [workspace.dependencies]

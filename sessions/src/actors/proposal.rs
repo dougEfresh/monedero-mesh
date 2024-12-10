@@ -2,15 +2,10 @@ use {
     crate::{
         actors::{actor_spawn, TransportActor},
         rpc::{
-            ErrorParams,
-            IntoUnknownError,
-            RequestParams,
-            ResponseParamsError,
-            RpcRequest,
+            ErrorParams, IntoUnknownError, RequestParams, ResponseParamsError, RpcRequest,
             RpcResponse,
         },
-        Dapp,
-        Wallet,
+        Dapp, Wallet,
     },
     monedero_domain::SessionSettled,
     tracing::{error, info, warn},
@@ -29,7 +24,7 @@ impl Handler<Dapp> for ProposalActor {
 
     async fn handle(&mut self, message: Dapp, _ctx: &mut Context<Self>) -> Self::Return {
         let addr = actor_spawn(message);
-        self.dapp = Some(addr)
+        self.dapp = Some(addr);
     }
 }
 
@@ -38,7 +33,7 @@ impl Handler<Wallet> for ProposalActor {
 
     async fn handle(&mut self, message: Wallet, _ctx: &mut Context<Self>) -> Self::Return {
         let addr = actor_spawn(message);
-        self.wallet = Some(addr)
+        self.wallet = Some(addr);
     }
 }
 
@@ -52,7 +47,7 @@ impl ProposalActor {
     }
 
     pub(super) async fn send_response(&self, resp: RpcResponse) {
-        let id = resp.id.clone();
+        let id = resp.id;
         let topic = resp.topic.clone();
         if let Err(err) = self.responder.send(resp).await {
             warn!(
@@ -90,7 +85,7 @@ impl Handler<RpcRequest> for ProposalActor {
                 }
             }
             RequestParams::SessionSettle(args) => {
-                let unknown = RpcResponse::unknown(id, topic.clone(), (&args).unknown());
+                let unknown = RpcResponse::unknown(id, topic.clone(), args.unknown());
                 match &self.dapp {
                     None => {
                         error!("no dapp found for settlement");

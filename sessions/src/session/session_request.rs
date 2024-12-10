@@ -1,14 +1,9 @@
 use {
     crate::{
         rpc::{
-            ResponseParamsError,
-            ResponseParamsSuccess,
-            RpcResponsePayload,
-            SessionRequestRequest,
+            ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload, SessionRequestRequest,
         },
-        ClientSession,
-        SessionHandler,
-        WalletRequestResponse,
+        ClientSession, WalletRequestResponse,
     },
     xtra::prelude::*,
 };
@@ -21,8 +16,7 @@ impl Handler<SessionRequestRequest> for ClientSession {
         message: SessionRequestRequest,
         _ctx: &mut Context<Self>,
     ) -> Self::Return {
-        let l = self.handler.lock().await;
-        let result = l.request(message).await;
+        let result = self.handler.lock().await.request(message).await;
         match result {
             WalletRequestResponse::Success(v) => {
                 RpcResponsePayload::Success(ResponseParamsSuccess::SessionRequest(v))

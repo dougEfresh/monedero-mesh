@@ -1,14 +1,11 @@
 use {
     tracing_error::ErrorLayer,
     tracing_subscriber::{
-        fmt::format::FmtSpan,
-        layer::SubscriberExt,
-        util::SubscriberInitExt,
-        Layer,
+        fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, Layer,
     },
 };
 
-pub fn initialize_logging() -> anyhow::Result<()> {
+pub fn initialize_logging() {
     std::env::set_var(
         "RUST_LOG",
         std::env::var("RUST_LOG").unwrap_or_else(|_| format!("{}=debug", env!("CARGO_CRATE_NAME"))),
@@ -25,5 +22,4 @@ pub fn initialize_logging() -> anyhow::Result<()> {
         .with(file_subscriber)
         .with(ErrorLayer::default())
         .init();
-    Ok(())
 }

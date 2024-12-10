@@ -22,18 +22,9 @@ use {
     },
 };
 pub use {
-    pair_delete::*,
-    pair_extend::*,
-    pair_ping::*,
-    session_delete::*,
-    session_event::*,
-    session_extend::*,
-    session_ping::*,
-    session_propose::*,
-    session_request::*,
-    session_settle::*,
-    session_update::*,
-    shared_types::*,
+    pair_delete::*, pair_extend::*, pair_ping::*, session_delete::*, session_event::*,
+    session_extend::*, session_ping::*, session_propose::*, session_request::*, session_settle::*,
+    session_update::*, shared_types::*,
 };
 
 pub const RELAY_PROTOCOL: &str = "irn";
@@ -191,7 +182,7 @@ impl Display for RequestParams {
             Self::SessionSettle(args) => &format!("sessionSettle: {args}"),
             Self::SessionUpdate(_) => "sessionUpdate",
             Self::SessionExtend(_) => "sessionExtend",
-            Self::SessionRequest(args) => &format!("sessionRequest: {}", args),
+            Self::SessionRequest(args) => &format!("sessionRequest: {args}"),
             Self::SessionEvent(args) => &format!("sessionEvent: {}", args.event.name),
             Self::SessionDelete(_) => "sessionDelete",
             Self::SessionPing(()) => "sessionPing",
@@ -293,11 +284,11 @@ pub enum ResponseParamsError {
 impl_relay_protocol_metadata!(ResponseParamsError, response);
 impl_relay_protocol_helpers!(ResponseParamsError);
 
+#[allow(clippy::fallible_impl_from)]
 impl From<SdkErrors> for ErrorParams {
     /// # Panics
     ///
     /// possible integer overflow
-    #[allow(clippy::fallible_impl_from)]
     fn from(value: SdkErrors) -> Self {
         let e: SdkError = value.into();
         Self {
@@ -324,7 +315,7 @@ pub struct Controller {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use {super::*, anyhow::Result, serde::de::DeserializeOwned, serde_json};
 
     /// Trims json of the whitespaces and newlines.

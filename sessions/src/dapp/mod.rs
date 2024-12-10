@@ -6,10 +6,7 @@ use {
         session::{Category, PendingSession},
         spawn_task,
         Error::NoPairingTopic,
-        PairingManager,
-        ProposeFuture,
-        Result,
-        SessionHandler,
+        PairingManager, ProposeFuture, Result, SessionHandler,
     },
     monedero_domain::{namespaces::Namespaces, Pairing, PairingTopic, SessionSettled},
     std::{
@@ -119,7 +116,7 @@ impl Dapp {
     pub async fn propose<T>(
         &self,
         handlers: T,
-        chains: impl Into<Namespaces>,
+        chains: impl Into<Namespaces> + Send,
     ) -> Result<(Pairing, ProposeFuture, bool)>
     where
         T: SessionHandler,

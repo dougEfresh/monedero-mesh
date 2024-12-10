@@ -24,7 +24,7 @@ pub enum SdkErrors {
     WcMethodUnsupported,
 }
 
-impl<'a> From<SdkErrors> for SdkError<'a> {
+impl From<SdkErrors> for SdkError<'_> {
     fn from(value: SdkErrors) -> Self {
         match value {
             SdkErrors::InvalidMethod => INVALID_METHOD,
@@ -67,7 +67,7 @@ impl<'a> From<SdkError<'a>> for PairDeleteRequest {
 }
 
 #[allow(clippy::cast_sign_loss)]
-impl<'a> From<SdkError<'a>> for ErrorParams {
+impl From<SdkError<'_>> for ErrorParams {
     fn from(value: SdkError) -> Self {
         Self {
             code: Some(value.code as u64),

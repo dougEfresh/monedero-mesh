@@ -12,11 +12,7 @@ use {
         rpc::{PairDeleteRequest, PairExtendRequest, PairPingRequest, RequestParams},
         spawn_task,
         transport::TopicTransport,
-        wait,
-        Error,
-        Result,
-        SocketEvent,
-        SocketListener,
+        wait, Error, Result, SocketEvent, SocketListener,
     },
     monedero_cipher::Cipher,
     monedero_domain::{namespaces::Namespaces, Pairing, SessionSettled, SubscriptionId, Topic},
@@ -44,8 +40,7 @@ impl Debug for PairingManager {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let t: String = self
             .topic()
-            .map(|t| crate::shorten_topic(&t))
-            .unwrap_or(String::from("none"));
+            .map_or_else(|| String::from("none"), |t| crate::shorten_topic(&t));
         write!(f, "pairing={} projectId={}", t, self.opts.project_id)
     }
 }
@@ -108,17 +103,14 @@ impl PairingManager {
     /// If the peer returns an RPC error then it is "alive"
     /// Error only for network communication errors or relay server is down
     pub(crate) async fn alive(&self) -> bool {
-        match wait::wait_until(5000, self.ping()).await {
-            Ok(r) => match r {
-                Ok(true) => true,
-                Ok(false) => false,
-                Err(e) => {
-                    warn!("failed alive check: {e}");
-                    false
-                }
-            },
-            Err(_) => false,
-        }
+        (wait::wait_until(5000, self.ping()).await).map_or(false, |r| match r {
+            Ok(true) => true,
+            Ok(false) => false,
+            Err(e) => {
+                warn!("failed alive check: {e}");
+                false
+            }
+        })
     }
 
     pub fn ciphers(&self) -> Cipher {
@@ -138,7 +130,7 @@ impl PairingManager {
     }
 
     pub fn topic(&self) -> Option<Topic> {
-        self.ciphers.pairing().map(|p| p.topic.clone())
+        self.ciphers.pairing().map(|p| p.topic)
     }
 
     pub fn pairing(&self) -> Option<Pairing> {
@@ -153,9 +145,7 @@ impl PairingManager {
     }
 
     pub(crate) fn find_session(&self, namespaces: &Namespaces) -> Option<SessionSettled> {
-        if self.topic().is_none() {
-            return None;
-        }
+        self.topic()?;
         let settlements = self.ciphers.settlements().unwrap_or_default();
         if settlements.is_empty() {
             return None;
@@ -163,7 +153,7 @@ impl PairingManager {
         let required_chains = namespaces.chains();
         info!("required chains {}", required_chains);
         for s in settlements {
-            let settled_chains = (&s).namespaces.chains();
+            let settled_chains = s.namespaces.chains();
             info!("settled chains {}", settled_chains);
             if required_chains.is_subset(&settled_chains) {
                 return Some(s);

@@ -6,11 +6,9 @@ mod session;
 mod session_handlers;
 mod transport;
 
-pub(crate) use {
-    crate::actors::session::SessionRequestHandlerActor,
-    inbound::InboundResponseActor,
-    request::RequestHandlerActor,
-    transport::TransportActor,
+pub use {
+    crate::actors::session::SessionRequestHandlerActor, inbound::InboundResponseActor,
+    request::RequestHandlerActor, transport::TransportActor,
 };
 use {
     crate::{actors::proposal::ProposalActor, rpc::RequestParams, Result},
@@ -30,11 +28,11 @@ pub struct Actors {
     proposal_actor: Address<ProposalActor>,
 }
 
-pub(crate) struct ClearPairing;
-pub(crate) struct Unsubscribe(pub Topic);
-pub(crate) struct SendRequest(pub(crate) Topic, pub(crate) RequestParams);
-pub(crate) struct SessionPing;
-pub(crate) struct AddRequest;
+pub struct ClearPairing;
+pub struct Unsubscribe(pub Topic);
+pub struct SendRequest(pub(crate) Topic, pub(crate) RequestParams);
+pub struct SessionPing;
+pub struct AddRequest;
 pub struct ClearSession(pub Topic);
 
 impl Display for SendRequest {
@@ -77,7 +75,7 @@ impl Actors {
         ));
         let session_actor = actor_spawn(SessionRequestHandlerActor::new(
             transport_actor.clone(),
-            cipher.clone(),
+            cipher,
         ));
         let proposal_actor = actor_spawn(ProposalActor::new(transport_actor.clone()));
         let request_actor = actor_spawn(RequestHandlerActor::new(

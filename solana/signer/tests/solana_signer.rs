@@ -55,7 +55,7 @@ async fn await_wallet_pair(rx: ProposeFuture) {
     match timeout(Duration::from_secs(5), rx).await {
         Ok(s) => match s {
             Ok(_) => {
-                info!("wallet got client session")
+                info!("wallet got client session");
             }
             Err(e) => error!("wallet got error session: {e}"),
         },
@@ -82,13 +82,13 @@ async fn pair_dapp_wallet(
     Ok(sol_session)
 }
 
-async fn transfer(signer: ReownSigner, to: &Pubkey, lamports: u64) -> anyhow::Result<()> {
+fn transfer(signer: &ReownSigner, to: &Pubkey, lamports: u64) -> anyhow::Result<()> {
     let payer = &signer.pubkey();
     let instruction = solana_sdk::system_instruction::transfer(payer, to, lamports);
     let mut tx = Transaction::new_with_payer(&[instruction], Some(payer));
     //let blockhash = rpc.get_latest_blockhash().await?;
     let blockhash = solana_sdk::hash::Hash::default();
-    tx.try_sign(&[&signer], blockhash)?;
+    tx.try_sign(&[signer], blockhash)?;
     Ok(())
 }
 
@@ -98,8 +98,7 @@ async fn test_solana_session() -> anyhow::Result<()> {
     info!("settlement complete pk is {}", tc.session);
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let signer = ReownSigner::new(tc.session.clone());
-    transfer(signer.clone(), &to, 1).await?;
-
+    transfer(&signer, &to, 1)?;
     tc.session.sign_message("something").await?;
 
     Ok(())

@@ -4,10 +4,7 @@
 use {
     super::IrnMetadata,
     crate::rpc::{
-        ErrorParams,
-        IntoUnknownError,
-        ResponseParamsError,
-        TAG_PAIR_PING_REQUEST,
+        ErrorParams, IntoUnknownError, ResponseParamsError, TAG_PAIR_PING_REQUEST,
         TAG_PAIR_PING_RESPONSE,
     },
     serde::{Deserialize, Serialize},
@@ -44,7 +41,7 @@ mod tests {
 
     #[test]
     fn test_serde_pair_ping_request() -> Result<()> {
-        let json = r#"{}"#;
+        let json = r"{}";
 
         param_serde_test::<PairPingRequest>(json)
     }

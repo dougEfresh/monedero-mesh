@@ -6,17 +6,9 @@ use {
 mod test_utils;
 use test_utils::*;
 
-#[derive(Clone)]
+#[allow(dead_code)]
 struct DummySocketListener {
     pub events: Arc<Mutex<Vec<SocketEvent>>>,
-}
-
-impl DummySocketListener {
-    pub fn new() -> Self {
-        Self {
-            events: Arc::new(Mutex::new(Vec::new())),
-        }
-    }
 }
 
 #[async_trait]
@@ -54,7 +46,7 @@ async fn test_relay_pair_delete() -> anyhow::Result<()> {
 async fn test_relay_pair_extend() -> anyhow::Result<()> {
     let test_components = init_test_components().await?;
     let dapp = test_components.dapp;
-    dapp.extend(100000).await?;
+    dapp.extend(100_000).await?;
     Ok(())
 }
 

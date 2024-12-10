@@ -1,22 +1,14 @@
-mod log;
-
 use {
-    crate::log::initialize_logging,
     copypasta::{ClipboardContext, ClipboardProvider},
     monedero_mesh::{
         self,
         domain::{
             namespaces::{ChainId, ChainType, Chains, Method, NamespaceName, SolanaMethod},
-            Pairing,
-            ProjectId,
+            Pairing, ProjectId,
         },
+        init_tracing,
         rpc::{RequestMethod, RequestParams, SessionRequestRequest},
-        ClientSession,
-        Dapp,
-        KvStorage,
-        Metadata,
-        NoopSessionHandler,
-        ReownBuilder,
+        ClientSession, Dapp, KvStorage, Metadata, NoopSessionHandler, ReownBuilder,
     },
     serde_json::json,
     std::time::Duration,
@@ -57,7 +49,7 @@ async fn sign_message(session: ClientSession) {
         return;
     }
     let sol_namespace = session.namespaces().0.get(&NamespaceName::Solana).unwrap();
-    for a in sol_namespace.accounts.0.iter() {
+    for a in &sol_namespace.accounts.0 {
         let addr = &a.address;
         info!("found solana address {addr}");
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
@@ -111,18 +103,22 @@ async fn do_dapp_stuff(dapp: Dapp) {
     }
 }
 
+#[allow(clippy::redundant_pub_crate)]
 async fn dapp_test() -> anyhow::Result<()> {
     let p = ProjectId::from("987f2292c12194ae69ddb6c52ceb1d62");
     let store = KvStorage::file(None)?;
     let pairing_mgr = ReownBuilder::new(p).store(store).build().await?;
-    let dapp = Dapp::new(pairing_mgr.clone(), Metadata {
-        name: "monedero-mesh".to_string(),
-        description: "reown but for rust".to_string(),
-        url: String::from(monedero_mesh::AUTH_URL),
-        icons: vec![],
-        verify_url: None,
-        redirect: None,
-    })
+    let dapp = Dapp::new(
+        pairing_mgr.clone(),
+        Metadata {
+            name: "monedero-mesh".to_string(),
+            description: "reown but for rust".to_string(),
+            url: String::from(monedero_mesh::AUTH_URL),
+            icons: vec![],
+            verify_url: None,
+            redirect: None,
+        },
+    )
     .await?;
     tokio::spawn(do_dapp_stuff(dapp));
 
@@ -143,6 +139,6 @@ async fn dapp_test() -> anyhow::Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    initialize_logging()?;
+    init_tracing();
     dapp_test().await
 }

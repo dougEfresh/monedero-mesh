@@ -58,6 +58,6 @@ impl TryFrom<SolanaSignatureResponse> for Signature {
         let array: [u8; 64] = decoded
             .try_into()
             .map_err(|_| Error::SigError(value.signature))?;
-        Ok(Signature::from(array))
+        Ok(Self::from(array))
     }
 }

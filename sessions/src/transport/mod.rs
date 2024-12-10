@@ -2,8 +2,7 @@ use {
     crate::{
         actors::{SendRequest, TransportActor, Unsubscribe},
         rpc::{RequestParams, ResponseParams},
-        wait,
-        Result,
+        wait, Result,
     },
     monedero_domain::Topic,
     serde::de::DeserializeOwned,
@@ -27,6 +26,7 @@ impl TopicTransport {
         Self { transport_actor }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn publish_request<R: DeserializeOwned>(
         &self,

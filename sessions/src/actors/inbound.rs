@@ -21,7 +21,7 @@ pub struct InboundResponseActor {
 impl Handler<ClearPairing> for InboundResponseActor {
     type Return = ();
 
-    async fn handle(&mut self, message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, _message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
         self.pending.clear();
     }
 }
@@ -29,7 +29,7 @@ impl Handler<ClearPairing> for InboundResponseActor {
 impl Handler<AddRequest> for InboundResponseActor {
     type Return = (MessageId, oneshot::Receiver<Response>);
 
-    async fn handle(&mut self, message: AddRequest, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, _message: AddRequest, _ctx: &mut Context<Self>) -> Self::Return {
         let id = self.generator.next();
         let (tx, rx) = oneshot::channel::<Response>();
         self.pending.insert(id, tx);
@@ -52,6 +52,6 @@ impl Handler<Response> for InboundResponseActor {
         error!(
             "id [{}] not found for message {:#?}",
             message.id, message.params
-        )
+        );
     }
 }

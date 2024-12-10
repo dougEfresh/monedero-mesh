@@ -2,18 +2,11 @@ use {
     crate::{
         actors::{actor_spawn, ClearPairing, ClearSession, SessionPing, TransportActor},
         rpc::{
-            ErrorParams,
-            RequestParams,
-            ResponseParamsError,
-            ResponseParamsSuccess,
-            RpcRequest,
-            RpcResponse,
-            RpcResponsePayload,
+            ErrorParams, RequestParams, ResponseParamsError, ResponseParamsSuccess, RpcRequest,
+            RpcResponse, RpcResponsePayload,
         },
         session::ClientSession,
-        spawn_task,
-        RegisteredComponents,
-        Topic,
+        spawn_task, RegisteredComponents, Topic,
     },
     dashmap::DashMap,
     monedero_cipher::Cipher,
@@ -53,7 +46,7 @@ impl SessionRequestHandlerActor {
 impl Handler<ClearSession> for SessionRequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: ClearSession, ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, message: ClearSession, _ctx: &mut Context<Self>) -> Self::Return {
         self.handle_session_delete(message.0).await;
     }
 }
@@ -61,7 +54,7 @@ impl Handler<ClearSession> for SessionRequestHandlerActor {
 impl Handler<ClearPairing> for SessionRequestHandlerActor {
     type Return = ();
 
-    async fn handle(&mut self, message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
+    async fn handle(&mut self, _message: ClearPairing, _ctx: &mut Context<Self>) -> Self::Return {
         self.sessions.clear();
     }
 }
@@ -160,7 +153,7 @@ impl Handler<RpcRequest> for SessionRequestHandlerActor {
                     me.handle_session_delete(message.topic).await;
                 });
             }
-            RequestParams::SessionPing(_) => {
+            RequestParams::SessionPing(()) => {
                 let unknown = RpcResponse::unknown(
                     message.payload.id,
                     message.topic.clone(),

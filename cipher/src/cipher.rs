@@ -7,8 +7,7 @@ use {
     monedero_domain::{Pairing, SessionSettled},
     monedero_relay::{
         ed25519_dalek::{SecretKey, VerifyingKey},
-        DecodedTopic,
-        Topic,
+        DecodedTopic, Topic,
     },
     monedero_store::KvStorage,
     serde::{de::DeserializeOwned, Deserialize, Serialize},
@@ -43,22 +42,20 @@ pub enum Type {
 impl Type {
     fn as_bytes(&self) -> Vec<u8> {
         match self {
-            Type::Type1(key) => {
+            Self::Type1(key) => {
                 let mut envelope = vec![1u8];
                 envelope.extend(key.as_bytes().to_vec());
                 envelope
             }
-            _ => vec![0u8],
+            Self::Type0 => vec![0u8],
         }
     }
 
     fn from_bytes(bytes: &[u8]) -> Option<Self> {
         match bytes[0] {
             0u8 => Some(Self::Type0),
-            1u8 => match VerifyingKey::from_bytes((&bytes[1..32]).try_into().unwrap()) {
-                Ok(key) => Some(Self::Type1(key)),
-                _ => None,
-            },
+            1u8 => VerifyingKey::from_bytes((&bytes[1..32]).try_into().unwrap())
+                .map_or(None, |key| Some(Self::Type1(key))),
             _ => None,
         }
     }
@@ -141,49 +138,44 @@ impl Cipher {
 
     fn init(&self) -> Result<(), CipherError> {
         let mut session_expired = false;
-        match self.pairing() {
-            Some(pairing) => {
-                debug!("found existing pairing...restoring");
-                self.pairing
-                    .insert(pairing.topic.clone(), Arc::new(pairing.clone()));
-                let key = pairing.params.sym_key.clone();
-                self.ciphers.insert(
-                    pairing.topic.clone(),
-                    ChaCha20Poly1305::new((&key.to_bytes()).into()),
-                );
-                let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
-                if let Some(sessions) = self.storage.get::<Vec<String>>(&sessions_key)? {
-                    debug!("restoring {} sessions", sessions.len());
-                    for s in sessions {
-                        // TODO: Do I need to copy the string?
-                        if self
-                            .is_expired(Topic::from(String::from(&s)))
-                            .ok()
-                            .unwrap_or(false)
-                        {
-                            session_expired = true;
-                            break;
-                        }
-                        if let Some(controller_pk) = self
-                            .storage
-                            .get::<String>(Self::storage_session_key(&Topic::from(s)))?
-                        {
-                            let (topic, expanded_key) =
-                                Self::derive_sym_key(key.clone(), controller_pk)?;
-                            let _ = self.register(topic, expanded_key);
-                        }
+        if let Some(pairing) = self.pairing() {
+            debug!("found existing pairing...restoring");
+            self.pairing
+                .insert(pairing.topic.clone(), Arc::new(pairing.clone()));
+            let key = pairing.params.sym_key.clone();
+            self.ciphers.insert(
+                pairing.topic,
+                ChaCha20Poly1305::new((&key.to_bytes()).into()),
+            );
+            let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
+            if let Some(sessions) = self.storage.get::<Vec<String>>(&sessions_key)? {
+                debug!("restoring {} sessions", sessions.len());
+                for s in sessions {
+                    // TODO: Do I need to copy the string?
+                    if self
+                        .is_expired(Topic::from(String::from(&s)))
+                        .ok()
+                        .unwrap_or(false)
+                    {
+                        session_expired = true;
+                        break;
                     }
-                    if session_expired {
-                        tracing::info!("Session has expired, resetting storage");
-                        self.storage.clear();
+                    if let Some(controller_pk) = self
+                        .storage
+                        .get::<String>(Self::storage_session_key(&Topic::from(s)))?
+                    {
+                        let (topic, expanded_key) = Self::derive_sym_key(&key, &controller_pk)?;
+                        self.register(&topic, &expanded_key);
                     }
                 }
+                if session_expired {
+                    tracing::info!("Session has expired, resetting storage");
+                    self.storage.clear();
+                }
             }
-            None => {
-                debug!("clearing session storage");
-                self.storage.clear();
-            }
-        };
+        }
+        debug!("clearing session storage");
+        self.storage.clear();
         Ok(())
     }
 
@@ -203,7 +195,7 @@ impl Cipher {
 
         let sessions: Vec<Topic> = self
             .storage
-            .get(&Self::storage_sessions())?
+            .get(Self::storage_sessions())?
             .unwrap_or_default();
         let mut settled: Vec<SessionSettled> = Vec::new();
         for topic in sessions {
@@ -218,7 +210,7 @@ impl Cipher {
     }
 
     pub(crate) fn is_expired(&self, topic: Topic) -> Result<bool, CipherError> {
-        let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-settlement-{}", topic);
+        let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-settlement-{topic}");
         let session: SessionSettleRequest = self
             .storage
             .get(sessions_key)?
@@ -234,7 +226,7 @@ impl Cipher {
             let new_sessions: Vec<Topic> = sessions.into_iter().filter(|t| t == topic).collect();
             self.storage.set(Self::storage_sessions(), new_sessions)?;
         }
-        let sessions_key = Self::storage_settlement(&topic);
+        let sessions_key = Self::storage_settlement(topic);
         self.storage.delete(sessions_key)?;
         self.ciphers.remove(topic);
         Ok(())
@@ -277,7 +269,7 @@ impl Cipher {
 
     pub fn pairing_key(&self) -> Option<StaticSecret> {
         if let Some(pairing) = self.pairing() {
-            return Some(pairing.params.sym_key.clone());
+            return Some(pairing.params.sym_key);
         }
         None
     }
@@ -294,27 +286,27 @@ impl Cipher {
         controller_pk: String,
     ) -> Result<(Topic, PublicKey), CipherError> {
         let pairing_key = self.pairing_key().ok_or(CipherError::NonExistingPairing)?;
-        let (new_topic, expanded_key) =
-            Self::derive_sym_key(pairing_key, String::from(&controller_pk))?;
-        self.update_sessions(controller_pk, new_topic.clone())?;
-        let _ = self.register(new_topic.clone(), expanded_key.clone());
+        let (new_topic, expanded_key) = Self::derive_sym_key(&pairing_key, &controller_pk)?;
+        self.update_sessions(controller_pk, &new_topic)?;
+        self.register(&new_topic, &expanded_key);
         Ok((new_topic, PublicKey::from(&expanded_key)))
     }
 
-    fn update_sessions(&self, controller_pk: String, topic: Topic) -> Result<(), CipherError> {
+    fn update_sessions(&self, controller_pk: String, topic: &Topic) -> Result<(), CipherError> {
         // TODO: May need to lock this entire operation
         let sessions_storage_key = Self::storage_sessions();
         let mut sessions: Vec<Topic> = self.storage.get(&sessions_storage_key)?.unwrap_or_default();
         sessions.push(topic.clone());
         self.storage.set(&sessions_storage_key, sessions)?;
         self.storage
-            .set(Self::storage_session_key(&topic), controller_pk)?;
+            .set(Self::storage_session_key(topic), controller_pk)?;
         Ok(())
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn derive_sym_key(
-        static_key: StaticSecret,
-        controller_pk: String,
+        static_key: &StaticSecret,
+        controller_pk: &str,
     ) -> Result<(Topic, StaticSecret), CipherError> {
         // let key = DecodedClientId(
         //(&data_encoding::HEXLOWER_PERMISSIVE.decode(controller_pk.as_bytes()).unwrap())[..].try_into().unwrap(),
@@ -333,12 +325,11 @@ impl Cipher {
         Ok((new_topic, expanded_key))
     }
 
-    fn register(&self, topic: Topic, key: StaticSecret) -> Result<(), CipherError> {
+    fn register(&self, topic: &Topic, key: &StaticSecret) {
         self.ciphers.insert(
             topic.clone(),
             ChaCha20Poly1305::new((&key.to_bytes()).into()),
         );
-        Ok(())
     }
 
     pub fn encode<T: Serialize>(&self, topic: &Topic, payload: &T) -> Result<String, CipherError> {
@@ -350,6 +341,7 @@ impl Cipher {
         )
     }
 
+    #[allow(clippy::significant_drop_tightening)]
     pub fn encode_with_params<T: Serialize>(
         &self,
         topic: &Topic,
@@ -368,7 +360,7 @@ impl Cipher {
             .map_err(|_| CipherError::Corrupted)?;
         let mut envelope = envelope_type.as_bytes();
         envelope.extend(nonce.to_vec());
-        envelope.extend(encrypted_payload.to_vec());
+        envelope.extend(encrypted_payload);
         Ok(data_encoding::BASE64.encode(&envelope))
     }
 
@@ -395,6 +387,8 @@ impl Cipher {
         }
     }
 
+    // TODO review this allow
+    #[allow(clippy::significant_drop_tightening)]
     fn decode_bytes(&self, topic: &Topic, bytes: &[u8]) -> Result<String, CipherError> {
         let cipher = self
             .ciphers
@@ -494,17 +488,17 @@ mod tests {
     pub fn test_cipher_storage_os() -> anyhow::Result<()> {
         let topic = Topic::generate();
         let store = KvStorage::file(Some(format!("target/kv/{topic}")))?;
-        test_storage(Arc::new(store))
+        test_storage(&Arc::new(store))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
     pub fn test_cipher_storage_mem() -> anyhow::Result<()> {
-        test_storage(Arc::new(KvStorage::mem()))?;
+        test_storage(&Arc::new(KvStorage::mem()))?;
         Ok(())
     }
 
-    fn test_storage(store: Arc<KvStorage>) -> anyhow::Result<()> {
+    fn test_storage(store: &Arc<KvStorage>) -> anyhow::Result<()> {
         crate::test::init_tracing();
         let pairing = Arc::new(create_pairing());
         let pairing_key = pairing.params.sym_key.clone();
@@ -514,14 +508,16 @@ mod tests {
         ciphers.set_pairing(Some((*pairing).clone()))?;
         ciphers
             .pairing()
-            .ok_or(format_err!("pairing should be here"))?;
+            .ok_or_else(|| format_err!("pairing should be here"))?;
         assert_eq!(ciphers.session_topics(), 1);
         assert_eq!(ciphers.pairing.len(), 1);
         drop(ciphers);
 
         // check pairing is restored
         let ciphers = Cipher::new(store.clone(), None)?;
-        let restored_pairing = ciphers.pairing().ok_or(format_err!("pairing not here!"))?;
+        let restored_pairing = ciphers
+            .pairing()
+            .ok_or_else(|| format_err!("pairing not here!"))?;
 
         assert_eq!(restored_pairing.topic, pairing_topic);
         assert_eq!(

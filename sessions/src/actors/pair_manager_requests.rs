@@ -2,10 +2,7 @@ use {
     crate::{
         actors::RequestHandlerActor,
         rpc::{IntoUnknownError, RpcResponse, RpcResponsePayload},
-        spawn_task,
-        PairingManager,
-        Result,
-        Topic,
+        spawn_task, PairingManager, Result, Topic,
     },
     monedero_domain::MessageId,
     tracing::warn,
@@ -14,7 +11,7 @@ use {
 impl RequestHandlerActor {
     pub(super) fn send_response(&self, resp: RpcResponse) {
         let me = self.clone();
-        let id = resp.id.clone();
+        let id = resp.id;
         let topic = resp.topic.clone();
         spawn_task(async move {
             if let Err(err) = me.responder.send(resp).await {
@@ -26,7 +23,12 @@ impl RequestHandlerActor {
         });
     }
 
-    async fn _handle_pair_request<M>(&self, id: MessageId, topic: Topic, request: M) -> Result<()>
+    async fn internal_handle_pair_request<M>(
+        &self,
+        id: MessageId,
+        topic: Topic,
+        request: M,
+    ) -> Result<()>
     where
         M: Send + 'static,
         PairingManager: xtra::Handler<M>,
@@ -51,8 +53,8 @@ impl RequestHandlerActor {
         PairingManager: xtra::Handler<M>,
         <PairingManager as xtra::Handler<M>>::Return: Into<RpcResponsePayload>,
     {
-        let u: RpcResponse = RpcResponse::unknown(id, topic.clone(), (&request).unknown());
-        if let Err(e) = self._handle_pair_request(id, topic, request).await {
+        let u: RpcResponse = RpcResponse::unknown(id, topic.clone(), request.unknown());
+        if let Err(e) = self.internal_handle_pair_request(id, topic, request).await {
             warn!("failed to get response from pair manager: '{e}'");
             self.send_response(u);
         }

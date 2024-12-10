@@ -26,7 +26,7 @@ pub use {
     error::Error,
 };
 
-#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(transparent)]
 pub struct Namespaces(pub BTreeMap<NamespaceName, Namespace>);
 
@@ -36,12 +36,6 @@ impl Namespaces {
             .map(std::string::ToString::to_string)
             .collect::<Vec<_>>()
             .join(", ")
-    }
-}
-
-impl Default for Namespaces {
-    fn default() -> Self {
-        Self(BTreeMap::new())
     }
 }
 
@@ -118,12 +112,15 @@ where
                 let methods = Methods::from(&namespace_name);
                 let events = Events::from(&namespace_name);
                 let accounts = Accounts(BTreeSet::new());
-                (namespace_name, Namespace {
-                    accounts,
-                    chains: Chains(chains),
-                    methods,
-                    events,
-                })
+                (
+                    namespace_name,
+                    Namespace {
+                        accounts,
+                        chains: Chains(chains),
+                        methods,
+                        events,
+                    },
+                )
             })
             .collect::<BTreeMap<_, _>>();
 
@@ -210,7 +207,6 @@ mod tests {
         );
         // eprintln!("{}", serde_json::to_string_pretty(&namespaces)?)
         let result = serde_json::to_value(&namespaces)?;
-        eprintln!("result: {:?}", result);
         assert_eq!(expected_json, result);
         Ok(())
     }

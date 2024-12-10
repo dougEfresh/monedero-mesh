@@ -2,40 +2,18 @@ use {
     async_trait::async_trait,
     monedero_domain::{
         namespaces::{
-            Account,
-            Accounts,
-            ChainId,
-            Chains,
-            EipMethod,
-            Events,
-            Method,
-            Methods,
-            Namespace,
-            NamespaceName,
-            Namespaces,
-            SolanaMethod,
+            Account, Accounts, ChainId, Chains, EipMethod, Events, Method, Methods, Namespace,
+            NamespaceName, Namespaces, SolanaMethod,
         },
         ProjectId,
     },
     monedero_mesh::{
-        init_tracing,
-        mock_connection_opts,
+        init_tracing, mock_connection_opts,
         rpc::{
-            Metadata,
-            ResponseParamsError,
-            ResponseParamsSuccess,
-            RpcResponsePayload,
-            SessionProposeRequest,
-            SessionProposeResponse,
+            Metadata, RelayProtocol, ResponseParamsError, ResponseParamsSuccess,
+            RpcResponsePayload, SessionProposeRequest, SessionProposeResponse,
         },
-        Actors,
-        Dapp,
-        KvStorage,
-        MockRelay,
-        ReownBuilder,
-        Result,
-        SdkErrors,
-        Wallet,
+        Actors, Dapp, KvStorage, MockRelay, ReownBuilder, Result, SdkErrors, Wallet,
         WalletSettlementHandler,
     },
     std::{
@@ -47,6 +25,7 @@ use {
 //#[allow(dead_code)]
 // pub static INIT: Once = Once::new();
 //
+#[allow(dead_code)]
 pub struct TestStuff {
     pub dapp_actors: Actors,
     pub(crate) wallet_actors: Actors,
@@ -82,12 +61,15 @@ impl WalletSettlementHandler for WalletProposal {
                 NamespaceName::Solana => SolanaMethod::defaults(),
                 NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
             };
-            settled.insert(name.clone(), Namespace {
-                accounts: Accounts(accounts),
-                chains: Chains(namespace.chains.iter().cloned().collect()),
-                methods: Methods(methods),
-                events: Events::default(),
-            });
+            settled.insert(
+                name.clone(),
+                Namespace {
+                    accounts: Accounts(accounts),
+                    chains: Chains(namespace.chains.iter().cloned().collect()),
+                    methods: Methods(methods),
+                    events: Events::default(),
+                },
+            );
         }
         Ok(settled)
     }
@@ -110,7 +92,7 @@ impl WalletSettlementHandler for WalletProposal {
         }
         let result = RpcResponsePayload::Success(ResponseParamsSuccess::SessionPropose(
             SessionProposeResponse {
-                relay: Default::default(),
+                relay: RelayProtocol::default(),
                 responder_public_key: pk,
             },
         ));

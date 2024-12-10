@@ -75,7 +75,6 @@ impl TryFrom<&ClientSession> for SolanaSession {
             .first()
             .ok_or(Error::SolanaAccountNotFound)?;
         let network = match &account.chain {
-            ChainId::Solana(ChainType::Dev) => ChainType::Dev,
             ChainId::Solana(ChainType::Test) => ChainType::Test,
             ChainId::Solana(ChainType::Main) => ChainType::Main,
             _ => ChainType::Dev,
@@ -99,18 +98,18 @@ impl SolanaSession {
     }
 
     pub fn network(&self) -> ChainType {
-        self.network.clone()
+        self.network
     }
 
-    pub async fn sign_message(&self, message: impl Into<&str>) -> Result<Signature> {
-        let m = SignMessageRequest::new(self.pubkey(), message.into());
+    pub async fn sign_message(&self, message: &str) -> Result<Signature> {
+        let m = SignMessageRequest::new(self.pubkey(), message);
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
             request: RequestMethod {
                 method: Method::Solana(SolanaMethod::SignMessage),
                 params: serde_json::to_value(&m)?,
                 expiry: None,
             },
-            chain_id: self.chain.clone().into(),
+            chain_id: self.chain.clone(),
         });
         let response: SolanaSignatureResponse = self.session.publish_request(params).await?;
         Signature::try_from(response)
@@ -123,7 +122,7 @@ impl SolanaSession {
                 params: serde_json::to_value(tx)?,
                 expiry: None,
             },
-            chain_id: self.chain.clone().into(),
+            chain_id: self.chain.clone(),
         });
         let response: SolanaSignatureResponse = self.session.publish_request(params).await?;
         Signature::try_from(response)

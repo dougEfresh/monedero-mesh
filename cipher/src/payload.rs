@@ -2,9 +2,7 @@ use {
     base64::{prelude::BASE64_STANDARD, DecodeError, Engine},
     chacha20poly1305::{
         aead::{Aead, KeyInit, OsRng, Payload},
-        AeadCore,
-        ChaCha20Poly1305,
-        Nonce,
+        AeadCore, ChaCha20Poly1305, Nonce,
     },
     std::string::FromUtf8Error,
 };
@@ -181,6 +179,7 @@ fn encrypt(nonce: &Nonce, payload: Payload<'_, '_>, key: &SymKey) -> Result<Vec<
     Ok(sealed)
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn encode(envelope_type: EnvelopeType, sealed: &[u8], init_vec: &InitVec) -> String {
     match envelope_type {
         EnvelopeType::Type0 => {
@@ -209,9 +208,9 @@ mod tests {
     use {super::*, anyhow::Result, hex_literal::hex};
 
     // https://www.rfc-editor.org/rfc/rfc7539#section-2.8.2
-    // Below constans are taken from this section of the RFC.
+    // Below constant are taken from this section of the RFC.
 
-    const PLAINTEXT: &str = r#"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."#;
+    const PLAINTEXT: &str = r"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.";
     const CIPHERTEXT: [u8; 114] = hex!(
         "d3 1a 8d 34 64 8e 60 db 7b 86 af bc 53 ef 7e c2
          a4 ad ed 51 29 6e 08 fe a9 e2 b5 a7 36 ee 62 d6
@@ -265,7 +264,7 @@ mod tests {
             msg: PLAINTEXT.as_bytes(),
             aad: AAD.as_slice(),
         };
-        let init_vec = INIT_VEC.as_slice().try_into()?;
+        let init_vec = INIT_VEC.as_slice().into();
 
         let sealed = encrypt(init_vec, payload, &SYMKEY)?;
         assert_eq!(sealed, [CIPHERTEXT.as_slice(), TAG.as_slice()].concat());
@@ -276,7 +275,7 @@ mod tests {
     /// Tests that encrypted message can be decrypted back.
     #[test]
     fn test_decrypt_encrypted() -> Result<()> {
-        let init_vec = INIT_VEC.as_slice().try_into()?;
+        let init_vec = INIT_VEC.as_slice().into();
 
         let seal_payload = Payload {
             msg: PLAINTEXT.as_bytes(),

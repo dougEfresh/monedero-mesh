@@ -1,11 +1,17 @@
 use crate::Error::WaitError;
 
+#[allow(clippy::option_if_let_else)]
 #[cfg(not(target_family = "wasm"))]
 pub async fn wait_until<F, T>(duration_ms: u32, future: F) -> crate::Result<T>
 where
-    F: std::future::Future<Output = T>,
+    F: std::future::Future<Output = T> + Send,
 {
-    match tokio::time::timeout(std::time::Duration::from_millis(duration_ms as u64), future).await {
+    match tokio::time::timeout(
+        std::time::Duration::from_millis(u64::from(duration_ms)),
+        future,
+    )
+    .await
+    {
         Ok(result) => Ok(result),
         Err(_) => Err(WaitError(duration_ms)),
     }

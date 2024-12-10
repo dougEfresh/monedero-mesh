@@ -1,14 +1,8 @@
 use {
     crate::{
         rpc::{
-            Event,
-            RelayProtocol,
-            ResponseParamsSuccess,
-            RpcResponsePayload,
-            SessionDeleteRequest,
-            SessionProposeRequest,
-            SessionProposeResponse,
-            SessionRequestRequest,
+            Event, RelayProtocol, ResponseParamsSuccess, RpcResponsePayload, SessionDeleteRequest,
+            SessionProposeRequest, SessionProposeResponse, SessionRequestRequest,
         },
         SocketEvent,
     },
@@ -22,6 +16,7 @@ pub trait SocketListener: Sync + Send + 'static {
     async fn handle_socket_event(&self, _event: SocketEvent) {}
 }
 
+#[allow(unused_variables)]
 #[async_trait]
 pub trait SessionEventHandler: Send + Sync + 'static {
     async fn event(&self, event: Event) {}
@@ -44,7 +39,7 @@ pub trait WalletSettlementHandler: Send + Sync + 'static {
 
     async fn verify_settlement(
         &self,
-        proposal: SessionProposeRequest,
+        _proposal: SessionProposeRequest,
         pk: String,
     ) -> (bool, RpcResponsePayload) {
         let result = RpcResponsePayload::Success(ResponseParamsSuccess::SessionPropose(

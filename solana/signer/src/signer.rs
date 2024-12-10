@@ -90,7 +90,7 @@ async fn handler_signer(
 ) {
     while let Some(props) = rx.recv().await {
         let result = signer.wc_sign_transaction(props.message).await;
-        if let Err(_) = props.tx.send(result) {
+        if props.tx.send(result).is_err() {
             warn!("singer has been dropped!");
         }
     }
@@ -99,7 +99,7 @@ async fn handler_signer(
 impl ReownSigner {
     pub fn new(session: SolanaSession) -> Self {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<ChannelProps>();
-        let wc_signer = ReownSigner { session, tx };
+        let wc_signer = Self { session, tx };
         crate::spawn_task(handler_signer(wc_signer.clone(), rx));
         wc_signer
     }

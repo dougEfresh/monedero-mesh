@@ -1,7 +1,6 @@
 use {
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
-    bs58,
     monedero_signer_solana::{
         domain::namespaces::{
             Account, Accounts, Chains, EipMethod, Events, Method, Methods, Namespace,
@@ -76,8 +75,7 @@ pub const KEYPAIR: [u8; 64] = [
 ];
 
 impl MockWallet {
-    pub async fn sign(
-        &self,
+    pub fn sign(
         method: SolanaMethod,
         value: serde_json::Value,
     ) -> anyhow::Result<SolanaSignatureResponse> {
@@ -115,10 +113,7 @@ impl monedero_mesh::SessionHandler for MockWallet {
     async fn request(&self, request: SessionRequestRequest) -> WalletRequestResponse {
         match request.request.method {
             Method::Solana(SolanaMethod::SignTransaction) => {
-                match self
-                    .sign(SolanaMethod::SignTransaction, request.request.params)
-                    .await
-                {
+                match Self::sign(SolanaMethod::SignTransaction, request.request.params) {
                     Err(e) => {
                         tracing::warn!("failed sig: {e}");
                         WalletRequestResponse::Error(SdkErrors::UserRejected)
@@ -127,10 +122,7 @@ impl monedero_mesh::SessionHandler for MockWallet {
                 }
             }
             Method::Solana(SolanaMethod::SignMessage) => {
-                match self
-                    .sign(SolanaMethod::SignMessage, request.request.params)
-                    .await
-                {
+                match Self::sign(SolanaMethod::SignMessage, request.request.params) {
                     Err(e) => {
                         tracing::warn!("failed signing message: {e}");
                         WalletRequestResponse::Error(SdkErrors::UserRejected)

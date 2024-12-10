@@ -3,7 +3,10 @@ use {
     kvx::{Key, KeyValueStore, Namespace, ReadStore, Segment, WriteStore},
     serde::{Deserialize, Serialize},
     sha2::Digest,
-    std::{path::PathBuf, sync::Arc},
+    std::{
+        path::{Path, PathBuf},
+        sync::Arc,
+    },
     tracing::{debug, info},
     url::Url,
 };
@@ -20,7 +23,7 @@ impl Default for KvStorage {
 }
 
 impl KvStorage {
-    pub fn path(location: &PathBuf, ns: &str) -> Result<Self> {
+    pub fn path(location: &Path, ns: &str) -> Result<Self> {
         info!("using storage path location {}", location.display());
         let namespace = Namespace::parse(ns).map_err(|_| crate::Error::NamespaceInvalid)?;
         let store = KeyValueStore::new(
@@ -128,7 +131,7 @@ impl KvStorage {
 mod tests {
     use {super::*, monedero_relay::Topic};
 
-    pub fn test_storage_kv(store: KvStorage) -> anyhow::Result<()> {
+    pub fn test_storage_kv(store: &KvStorage) -> anyhow::Result<()> {
         let result = store.get::<String>("mine")?;
         assert!(result.is_none());
         let store_me: String = String::from("something");
@@ -149,7 +152,7 @@ mod tests {
     #[test]
     pub fn test_storage_kv_mem() -> anyhow::Result<()> {
         let store = KvStorage::mem();
-        test_storage_kv(store)
+        test_storage_kv(&store)
     }
 
     #[test]
@@ -157,6 +160,6 @@ mod tests {
         let topic = Topic::generate();
         let target_dir = env!("CARGO_TARGET_DIR");
         let store = KvStorage::file(Some(format!("{target_dir}/kv/{topic}")))?;
-        test_storage_kv(store)
+        test_storage_kv(&store)
     }
 }

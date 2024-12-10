@@ -2,9 +2,7 @@ use {
     crate::{
         actors::{SessionRequestHandlerActor, Unsubscribe},
         rpc::{IntoUnknownError, RpcResponse, RpcResponsePayload},
-        ClientSession,
-        Result,
-        Topic,
+        ClientSession, Result, Topic,
     },
     monedero_domain::MessageId,
     tracing::warn,
@@ -12,7 +10,7 @@ use {
 
 impl SessionRequestHandlerActor {
     pub(super) async fn send_response(&self, resp: RpcResponse) {
-        let id = resp.id.clone();
+        let id = resp.id;
         let topic = resp.topic.clone();
         if let Err(err) = self.responder.send(resp).await {
             warn!(
@@ -22,7 +20,8 @@ impl SessionRequestHandlerActor {
         }
     }
 
-    async fn _handle_session_request<M>(
+    #[allow(clippy::significant_drop_tightening)]
+    async fn internal_handle_session_request<M>(
         &self,
         id: MessageId,
         topic: Topic,
@@ -60,8 +59,11 @@ impl SessionRequestHandlerActor {
         ClientSession: xtra::Handler<M>,
         <ClientSession as xtra::Handler<M>>::Return: Into<RpcResponsePayload>,
     {
-        let u: RpcResponse = RpcResponse::unknown(id, topic.clone(), (&request).unknown());
-        if let Err(e) = self._handle_session_request(id, topic, request).await {
+        let u: RpcResponse = RpcResponse::unknown(id, topic.clone(), request.unknown());
+        if let Err(e) = self
+            .internal_handle_session_request(id, topic, request)
+            .await
+        {
             warn!("failed to get response from client session: '{e}'");
             self.send_response(u).await;
         }
