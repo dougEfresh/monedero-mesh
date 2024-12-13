@@ -2,10 +2,15 @@ use {
     crate::{
         actors::{actor_spawn, TransportActor},
         rpc::{
-            ErrorParams, IntoUnknownError, RequestParams, ResponseParamsError, RpcRequest,
+            ErrorParams,
+            IntoUnknownError,
+            RequestParams,
+            ResponseParamsError,
+            RpcRequest,
             RpcResponse,
         },
-        Dapp, Wallet,
+        Dapp,
+        Wallet,
     },
     monedero_domain::SessionSettled,
     tracing::{error, info, warn},

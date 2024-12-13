@@ -4,7 +4,10 @@
 use {
     super::IrnMetadata,
     crate::rpc::{
-        ErrorParams, IntoUnknownError, ResponseParamsError, TAG_PAIR_PING_REQUEST,
+        ErrorParams,
+        IntoUnknownError,
+        ResponseParamsError,
+        TAG_PAIR_PING_REQUEST,
         TAG_PAIR_PING_RESPONSE,
     },
     serde::{Deserialize, Serialize},

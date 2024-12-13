@@ -81,4 +81,7 @@ pub enum Error {
 
     #[error("amount {amt} is not enough for minimum delegation {min_amt} ")]
     MinimumDelegation { amt: u64, min_amt: u64 },
+
+    #[error(transparent)]
+    Base58Error(#[from] bs58::decode::Error),
 }

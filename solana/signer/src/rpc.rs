@@ -1,9 +1,10 @@
-use std::fmt::{Display, Formatter};
-
-use crate::Error;
-use serde::{Deserialize, Serialize};
-use solana_pubkey::Pubkey;
-use solana_signature::Signature;
+use {
+    crate::Error,
+    serde::{Deserialize, Serialize},
+    solana_pubkey::Pubkey,
+    solana_signature::Signature,
+    std::fmt::{Display, Formatter},
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct WalletConnectTransaction {

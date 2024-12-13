@@ -2,7 +2,8 @@ use {
     crate::{
         actors::{SendRequest, TransportActor, Unsubscribe},
         rpc::{RequestParams, ResponseParams},
-        wait, Result,
+        wait,
+        Result,
     },
     monedero_domain::Topic,
     serde::de::DeserializeOwned,

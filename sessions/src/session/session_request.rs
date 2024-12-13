@@ -1,9 +1,13 @@
 use {
     crate::{
         rpc::{
-            ResponseParamsError, ResponseParamsSuccess, RpcResponsePayload, SessionRequestRequest,
+            ResponseParamsError,
+            ResponseParamsSuccess,
+            RpcResponsePayload,
+            SessionRequestRequest,
         },
-        ClientSession, WalletRequestResponse,
+        ClientSession,
+        WalletRequestResponse,
     },
     xtra::prelude::*,
 };

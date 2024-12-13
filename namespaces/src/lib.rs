@@ -112,15 +112,12 @@ where
                 let methods = Methods::from(&namespace_name);
                 let events = Events::from(&namespace_name);
                 let accounts = Accounts(BTreeSet::new());
-                (
-                    namespace_name,
-                    Namespace {
-                        accounts,
-                        chains: Chains(chains),
-                        methods,
-                        events,
-                    },
-                )
+                (namespace_name, Namespace {
+                    accounts,
+                    chains: Chains(chains),
+                    methods,
+                    events,
+                })
             })
             .collect::<BTreeMap<_, _>>();
 

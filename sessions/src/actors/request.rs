@@ -1,11 +1,16 @@
 use {
     crate::{
         actors::{
-            actor_spawn, proposal::ProposalActor, session::SessionRequestHandlerActor,
-            RegisteredComponents, TransportActor,
+            actor_spawn,
+            proposal::ProposalActor,
+            session::SessionRequestHandlerActor,
+            RegisteredComponents,
+            TransportActor,
         },
         rpc::{Request, RequestParams, RpcRequest},
-        spawn_task, PairingManager, Result,
+        spawn_task,
+        PairingManager,
+        Result,
     },
     monedero_relay::Client,
     std::fmt::{Debug, Formatter},

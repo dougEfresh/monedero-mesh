@@ -2,7 +2,14 @@ use {
     monedero_signer_solana::{
         domain::namespaces::{ChainId, ChainType},
         session::{init_tracing, mock_connection_opts, NoopSessionHandler, ProposeFuture, Wallet},
-        Dapp, KvStorage, Metadata, ProjectId, ReownBuilder, ReownSigner, SolanaSession,
+        Dapp,
+        KvStorage,
+        Metadata,
+        MockWallet,
+        ProjectId,
+        ReownBuilder,
+        ReownSigner,
+        SolanaSession,
     },
     solana_pubkey::Pubkey,
     solana_sdk::{signer::Signer, transaction::Transaction},
@@ -11,8 +18,12 @@ use {
     tracing::{error, info},
 };
 
-mod mock_wallet;
-use mock_wallet::*;
+#[allow(dead_code)]
+pub struct TestContext {
+    pub dapp: Dapp,
+    pub session: monedero_signer_solana::SolanaSession,
+    pub wallet: MockWallet,
+}
 
 pub(crate) async fn yield_ms(ms: u64) {
     tokio::time::sleep(Duration::from_millis(ms)).await;
@@ -86,7 +97,7 @@ fn transfer(signer: &ReownSigner, to: &Pubkey, lamports: u64) -> anyhow::Result<
     let payer = &signer.pubkey();
     let instruction = solana_sdk::system_instruction::transfer(payer, to, lamports);
     let mut tx = Transaction::new_with_payer(&[instruction], Some(payer));
-    //let blockhash = rpc.get_latest_blockhash().await?;
+    // let blockhash = rpc.get_latest_blockhash().await?;
     let blockhash = solana_sdk::hash::Hash::default();
     tx.try_sign(&[signer], blockhash)?;
     Ok(())

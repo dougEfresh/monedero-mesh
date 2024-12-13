@@ -2,7 +2,9 @@ use {
     crate::{
         actors::{SessionRequestHandlerActor, Unsubscribe},
         rpc::{IntoUnknownError, RpcResponse, RpcResponsePayload},
-        ClientSession, Result, Topic,
+        ClientSession,
+        Result,
+        Topic,
     },
     monedero_domain::MessageId,
     tracing::warn,

@@ -7,8 +7,10 @@ mod session_handlers;
 mod transport;
 
 pub use {
-    crate::actors::session::SessionRequestHandlerActor, inbound::InboundResponseActor,
-    request::RequestHandlerActor, transport::TransportActor,
+    crate::actors::session::SessionRequestHandlerActor,
+    inbound::InboundResponseActor,
+    request::RequestHandlerActor,
+    transport::TransportActor,
 };
 use {
     crate::{actors::proposal::ProposalActor, rpc::RequestParams, Result},

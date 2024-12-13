@@ -2,7 +2,10 @@ use {
     crate::{
         actors::RequestHandlerActor,
         rpc::{IntoUnknownError, RpcResponse, RpcResponsePayload},
-        spawn_task, PairingManager, Result, Topic,
+        spawn_task,
+        PairingManager,
+        Result,
+        Topic,
     },
     monedero_domain::MessageId,
     tracing::warn,

@@ -6,7 +6,12 @@ pub use {
     monedero_mesh::{
         self as session,
         domain::{self, ProjectId},
-        spawn_task, Dapp, KvStorage, KvStorageError, Metadata, ReownBuilder,
+        spawn_task,
+        Dapp,
+        KvStorage,
+        KvStorageError,
+        Metadata,
+        ReownBuilder,
     },
     signer::ReownSigner,
 };
@@ -27,6 +32,9 @@ use {
 
 mod rpc;
 pub use rpc::*;
+mod mock;
+pub use mock::*;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Clone)]

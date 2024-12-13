@@ -2,7 +2,9 @@ use {
     base64::{prelude::BASE64_STANDARD, DecodeError, Engine},
     chacha20poly1305::{
         aead::{Aead, KeyInit, OsRng, Payload},
-        AeadCore, ChaCha20Poly1305, Nonce,
+        AeadCore,
+        ChaCha20Poly1305,
+        Nonce,
     },
     std::string::FromUtf8Error,
 };
