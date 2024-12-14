@@ -6,6 +6,9 @@ authors.workspace = true
 repository.workspace = true
 license.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 base64 = { workspace = true }
 chacha20poly1305 = { workspace =  true }
@@ -24,7 +27,6 @@ sha2 = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 x25519-dalek = { version = "2", features = ["static_secrets", "serde"] }
-# xtra =  { workspace = true }
 
 [dev-dependencies]
 anyhow = "1"
@@ -35,5 +37,4 @@ tracing-error = { version = "0.2.0"}
 dotenvy = {version = "0.15"}
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
 
-[lints]
-workspace = true
+

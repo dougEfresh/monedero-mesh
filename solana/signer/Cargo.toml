@@ -21,7 +21,6 @@ chrono = { workspace = true }
 dashmap = { workspace = true }
 monedero-mesh = { path = "../../sessions" }
 thiserror = { workspace = true }
-tokio = { workspace = true }
 tracing = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
@@ -30,6 +29,13 @@ solana-pubkey = { workspace = true }
 solana-sdk = { workspace = true }
 solana-signature = { workspace = true }
 solana-signer = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true , features = ["full"]}
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { workspace = true }
+
 
 [dev-dependencies]
 anyhow = "1"

@@ -50,7 +50,7 @@ kvx = { version = "0.9" }
 xtra = { version = "0.6", features = ["macros", "tokio", "instrumentation"]}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-backoff = { version = "0.4", features = ["tokio", "wasm-bindgen"] }
+backoff = { version = "0.4", features = ["wasm-bindgen", "futures"] }
 futures-util = { workspace = true }
 getrandom = { version = "0.2" , features = ["js"]}
 gloo-timers = { workspace = true }

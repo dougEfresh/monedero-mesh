@@ -6,15 +6,14 @@ pub use {
     monedero_mesh::{
         self as session,
         domain::{self, ProjectId},
-        spawn_task,
-        Dapp,
-        KvStorage,
-        KvStorageError,
-        Metadata,
-        ReownBuilder,
+        spawn_task, Dapp, KvStorage, KvStorageError, Metadata, ReownBuilder,
     },
     signer::ReownSigner,
 };
+
+#[cfg(not(target_family = "wasm"))]
+pub use monedero_mesh::MockRelay;
+
 use {
     monedero_mesh::{
         domain::namespaces::{ChainId, ChainType, Method, NamespaceName, SolanaMethod},
@@ -109,18 +108,22 @@ impl SolanaSession {
         self.network
     }
 
-    pub async fn sign_message(&self, message: &str) -> Result<Signature> {
-        let m = SignMessageRequest::new(self.pubkey(), message);
+    pub async fn sign_message_payload(&self, payload: SignMessageRequest) -> Result<Signature> {
         let params: RequestParams = RequestParams::SessionRequest(SessionRequestRequest {
             request: RequestMethod {
                 method: Method::Solana(SolanaMethod::SignMessage),
-                params: serde_json::to_value(&m)?,
+                params: serde_json::to_value(&payload)?,
                 expiry: None,
             },
             chain_id: self.chain.clone(),
         });
         let response: SolanaSignatureResponse = self.session.publish_request(params).await?;
         Signature::try_from(response)
+    }
+
+    pub async fn sign_message(&self, message: &str) -> Result<Signature> {
+        let m = SignMessageRequest::new(self.pubkey(), message);
+        self.sign_message_payload(m).await
     }
 
     pub async fn sign_transaction(&self, tx: WalletConnectTransaction) -> Result<Signature> {

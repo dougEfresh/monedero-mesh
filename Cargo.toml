@@ -18,7 +18,7 @@ members = [
     "relay",
     "sessions",
     "solana/signer",
-  #    "solana/wallet",
+    "solana/wallet",
     "store",
 ]
 
@@ -100,7 +100,7 @@ solana-feature-set ={ version = "2.1.5" }
 solana-keypair = { version = "0.0.2" }
 solana-message = { version = "0.0.3"}
 solana-program = { version = "2.1.5"}
-solana-rpc-client ={ version = "2.1.5" }
+solana-rpc-client ={ version = "2.1.5", default-features = false }
 solana-rpc-client-api = { version = "2.1.5" }
 solana-sdk = { version = "2.1.5", default-features = false , features = ["full"] }
 solana-pubkey = { version = "2.1.5"}
@@ -111,11 +111,10 @@ solana-system-interface = { version = "1" , features = ["bincode"] }
 solana-transaction = { version = "0.0.2" }
 stanza = { version = "0.5" }
 thiserror = "1.0"
-tokio = { version = "1", features = ["rt", "time", "sync", "macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
 tracing = { version = "0.1" }
 tracing-error = { version = "0.2.0" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
-
 trait-variant = "0.1.2"
 url = "2.4"
 

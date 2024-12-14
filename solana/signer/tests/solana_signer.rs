@@ -2,14 +2,7 @@ use {
     monedero_signer_solana::{
         domain::namespaces::{ChainId, ChainType},
         session::{init_tracing, mock_connection_opts, NoopSessionHandler, ProposeFuture, Wallet},
-        Dapp,
-        KvStorage,
-        Metadata,
-        MockWallet,
-        ProjectId,
-        ReownBuilder,
-        ReownSigner,
-        SolanaSession,
+        Dapp, KvStorage, Metadata, MockWallet, ProjectId, ReownBuilder, ReownSigner, SolanaSession,
     },
     solana_pubkey::Pubkey,
     solana_sdk::{signer::Signer, transaction::Transaction},
@@ -110,7 +103,9 @@ async fn test_solana_session() -> anyhow::Result<()> {
     let to = Pubkey::from_str("E4SfgGV2v9GLYsEkCQhrrnFbBcYmAiUZZbJ7swKGzZHJ")?;
     let signer = ReownSigner::new(tc.session.clone());
     transfer(&signer, &to, 1)?;
-    tc.session.sign_message("something").await?;
+    let msg = format!("{}", chrono::Utc::now());
+    let sig = tc.session.sign_message(&msg).await?;
+    info!("signed message result {sig}");
 
     Ok(())
 }
