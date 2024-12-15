@@ -1,0 +1,54 @@
+[package]
+name = "monedero-solana"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+
+[dependencies]
+async-trait = { workspace = true }
+base64 = { workspace = true }
+bincode = { workspace = true }
+bs58 = { workspace = true }
+chrono = { workspace = true }
+dashmap = { workspace = true }
+futures = { workspace = true }
+monedero-signer-solana = { path = "../signer" }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+solana-account = { workspace = true }
+solana-program = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-sdk = { workspace = true }
+solana-rpc-client-api = { workspace = true }
+solana-signature = { workspace = true }
+solana-signer = { workspace = true }
+
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true , features = ["full"]}
+wallet_standard = { version = "0.4", features = ["solana"]}
+wasm_client_solana = { version = "0.7", features = ["ssr", "zstd"]}
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { workspace = true }
+wallet_standard = { version = "0.4", features = ["solana", "browser"]}
+wasm_client_solana = { version = "0.7", features = ["js"]}
+
+
+[dev-dependencies]
+anyhow = "1"
+assert_matches = { version = "1.5.0" }
+dotenvy = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[[test]]
+name = "wallet"
