@@ -7,12 +7,7 @@ use {
             namespaces::{ChainId, ChainType, Chains},
             ProjectId,
         },
-        ClientSession,
-        Dapp,
-        Metadata,
-        NoopSessionHandler,
-        PairingManager,
-        ReownBuilder,
+        ClientSession, Dapp, Metadata, NoopSessionHandler, PairingManager, ReownBuilder,
     },
     tracing::{error, info},
     wasm_bindgen::prelude::*,
@@ -33,14 +28,17 @@ async fn pair_manager(p: ProjectId) -> Option<PairingManager> {
 }
 
 async fn dapp_init(mgr: PairingManager) -> Option<Dapp> {
-    match Dapp::new(mgr, Metadata {
-        name: "monedero-mesh".to_string(),
-        description: "reown but for rust".to_string(),
-        url: "https://github.com/dougEfresh".to_string(),
-        icons: vec![],
-        verify_url: None,
-        redirect: None,
-    })
+    match Dapp::new(
+        mgr,
+        Metadata {
+            name: "monedero-mesh".to_string(),
+            description: "reown but for rust".to_string(),
+            url: "https://github.com/dougEfresh".to_string(),
+            icons: vec![],
+            verify_url: None,
+            redirect: None,
+        },
+    )
     .await
     {
         Ok(dapp) => Some(dapp),
@@ -86,6 +84,7 @@ pub fn run() {
     log::init();
     let project_id = std::env::var("PROJECT_ID")
         .unwrap_or_else(|_| String::from("987f2292c12194ae69ddb6c52ceb1d62"));
+    spawn_local(async {});
     spawn_local(async move {
         let p = ProjectId::from(project_id);
         let manager = pair_manager(p).await;

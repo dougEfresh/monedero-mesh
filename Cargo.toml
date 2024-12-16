@@ -92,24 +92,23 @@ spl-memo = { version = "6" }
 spl-token = { version = "7.0.0" }
 spl-token-client = { version = "0.13"}
 spl-token-2022 = {version = "6.0.0" }
-solana-account = { version = "2.1.5" }
-solana-account-decoder = { version = "2.1.5" }
-solana-client ={ version = "2.1.5" }
-solana-instruction = { version = "2.1.5"}
-solana-feature-set ={ version = "2.1.5" }
+solana-account = { version = "2.1.6" }
+solana-account-decoder = { version = "2.1.6" }
+solana-client ={ version = "2.1.6" }
+solana-instruction = { version = "2.1.6"}
+solana-feature-set ={ version = "2.1.6" }
 solana-keypair = { version = "0.0.2" }
 solana-message = { version = "0.0.3"}
-solana-program = { version = "2.1.5"}
-solana-rpc-client ={ version = "2.1.5", default-features = false }
-solana-rpc-client-api = { version = "2.1.5" }
-solana-sdk = { version = "2.1.5", default-features = false , features = ["full"] }
-solana-pubkey = { version = "2.1.5"}
-solana-signature = { version = "2.1.5"}
+solana-program = { version = "2.1.6"}
+solana-rpc-client ={ version = "2.1.6", default-features = false }
+solana-rpc-client-api = { version = "2.1.6" }
+solana-sdk = { version = "2.1.6", default-features = false , features = ["full"] }
+solana-pubkey = { version = "2.1.6"}
+solana-signature = { version = "2.1.6"}
 solana-signer = { version = "0.0.2" }
 solana-system-transaction = { version = "0.0.2" }
 solana-system-interface = { version = "1" , features = ["bincode"] }
 solana-transaction = { version = "0.0.2" }
-stanza = { version = "0.5" }
 thiserror = "1.0"
 tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
 tracing = { version = "0.1" }
@@ -125,7 +124,8 @@ gloo-timers = { version = "0.3", features = ["futures"] }
 web-time = { version = "1.1.0", features = ["serde"] }
 wasm-tracing = { version = "0.2", features = ["tracing-log"] }
 wasm-bindgen-futures = { version = "0.4" }
-
+wallet_standard_browser =  { version = "0.4", features = ["solana"] }
+wasm-bindgen = { version = "0.2.99", features = ["serde-serialize"] }
 ## TUI
 #tuirealm = { version = "1.9" }
 # tui-realm-stdlib = { version = "1.3" }
