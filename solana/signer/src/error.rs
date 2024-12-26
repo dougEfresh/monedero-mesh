@@ -24,6 +24,9 @@ pub enum Error {
     #[error("error decoding bs58: #{0}")]
     Bs58Error(String),
 
+    #[error("no signers found for tx #{0}")]
+    NoSigners(String),
+
     #[error("invalid signature from wallet-connect: {0:#?}")]
     InvalidSignature(crate::SolanaSignatureResponse),
 
@@ -34,7 +37,10 @@ pub enum Error {
     Base64Error(#[from] base64::DecodeError),
 
     #[error(transparent)]
-    SignerError(#[from] solana_signer::SignerError),
+    SignerError(#[from] solana_sdk::signature::SignerError),
+
+    #[error(transparent)]
+    SignedError(#[from] solana_signer::SignerError),
 
     #[error("invalid signature. Length is not 64 '{0}'")]
     SigError(String),
@@ -42,15 +48,16 @@ pub enum Error {
     #[error(transparent)]
     PubkeyError(#[from] solana_pubkey::PubkeyError),
 
+    #[error("transaction was signed but is_signed returned false")]
+    TransactionNotSigned,
+
     // #[error(transparent)]
     // SolanaRpcError(#[from] solana_rpc_client_api::client_error::Error),
     //
     // #[error(transparent)]
     // SolanaProgramError(#[from] solana_program::program_error::ProgramError),
-    //
-    // #[error(transparent)]
-    // TransactionError(#[from] solana_sdk::transaction::TransactionError),
-    //
+    #[error(transparent)]
+    TransactionError(#[from] solana_sdk::transaction::TransactionError),
     // #[error(transparent)]
     // InstructionError(#[from] solana_program::instruction::InstructionError),
     //

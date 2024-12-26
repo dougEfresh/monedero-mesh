@@ -1,4 +1,8 @@
-use clap::{Args, Subcommand};
+use {
+    clap::{Args, Subcommand},
+    solana_pubkey::Pubkey,
+    std::str::FromStr,
+};
 
 #[derive(Debug, Args)]
 pub struct TransferArgs {
@@ -17,6 +21,7 @@ pub struct SendArgs {
     #[arg(help = "fund receipiant account", long)]
     pub fund: bool,
 
-    pub to: String,
+    #[arg(help = "send to this pubkey")]
+    pub to: Pubkey,
     pub sol: f64,
 }

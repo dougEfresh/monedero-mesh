@@ -1,7 +1,11 @@
 use {
     crate::{Result, SolanaSession, WalletConnectTransaction},
     base64::{prelude::BASE64_STANDARD, Engine},
-    solana_sdk::signer::{Signer, SignerError},
+    solana_sdk::{
+        message::Message,
+        signer::{Signer, SignerError},
+        transaction::Transaction,
+    },
     solana_signature::Signature,
     std::{
         fmt::{Debug, Display, Formatter},
@@ -69,7 +73,8 @@ impl Signer for ReownSigner {
                         if cnt > 30 {
                             return Err(SignerError::Custom("signer timeout".to_string()));
                         }
-                        std::thread::sleep(Duration::from_secs(5));
+                        // TODO wasm
+                        std::thread::sleep(Duration::from_secs(1));
                     }
                     TryRecvError::Closed => {
                         return Err(SignerError::Custom("signer timeout".to_string()))
@@ -105,7 +110,10 @@ impl ReownSigner {
     }
 
     pub async fn wc_sign_transaction(&self, msg: Vec<u8>) -> Result<Signature> {
-        let encoded = BASE64_STANDARD.encode(msg);
+        let msg = bincode::deserialize::<Message>(&msg)?;
+        let tx = Transaction::new_unsigned(msg);
+        let encoded = BASE64_STANDARD.encode(bincode::serialize(&tx)?);
+        // let encoded = BASE64_STANDARD.encode(msg);
         let sol_tx_req = WalletConnectTransaction {
             transaction: encoded,
         };

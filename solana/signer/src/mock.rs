@@ -1,18 +1,37 @@
 use {
     crate::{
         domain::namespaces::{
-            Account, Accounts, Chains, EipMethod, Events, Method, Methods, Namespace,
-            NamespaceName, Namespaces, SolanaMethod,
+            Account,
+            Accounts,
+            Chains,
+            EipMethod,
+            Events,
+            Method,
+            Methods,
+            Namespace,
+            NamespaceName,
+            Namespaces,
+            SolanaMethod,
         },
         session::{
-            SdkErrors, SessionProposeRequest, SessionRequestRequest, WalletRequestResponse,
+            SdkErrors,
+            SessionProposeRequest,
+            SessionRequestRequest,
+            WalletRequestResponse,
             WalletSettlementHandler,
         },
-        Error, SignMessageRequest, SolanaSignatureResponse, WalletConnectTransaction,
+        Error,
+        SignMessageRequest,
+        SolanaSignatureResponse,
+        WalletConnectTransaction,
     },
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
-    solana_sdk::signer::{keypair::Keypair, Signer},
+    solana_sdk::{
+        signer::{keypair::Keypair, Signer},
+        transaction::Transaction,
+    },
+    solana_signature::Signature,
     std::collections::{BTreeMap, BTreeSet},
     tracing::info,
 };
@@ -44,15 +63,12 @@ impl WalletSettlementHandler for MockWallet {
                 NamespaceName::Solana => SolanaMethod::defaults(),
                 NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
             };
-            settled.insert(
-                name.clone(),
-                Namespace {
-                    accounts: Accounts(accounts),
-                    chains: Chains(namespace.chains.iter().cloned().collect()),
-                    methods: Methods(methods),
-                    events: Events::default(),
-                },
-            );
+            settled.insert(name.clone(), Namespace {
+                accounts: Accounts(accounts),
+                chains: Chains(namespace.chains.iter().cloned().collect()),
+                methods: Methods(methods),
+                events: Events::default(),
+            });
         }
         Ok(settled)
     }
@@ -68,33 +84,46 @@ pub const KEYPAIR: [u8; 64] = [
 ];
 
 impl MockWallet {
+    pub fn sign_transaction(msg: &[u8], kp: &Keypair) -> crate::Result<Signature> {
+        info!("decoding transaction");
+        let mut tx = bincode::deserialize::<Transaction>(msg)?;
+        info!("tx message is {:?}", tx.message());
+        let positions = tx.get_signing_keypair_positions(&[kp.pubkey()])?;
+        if positions.is_empty() {
+            return Err(crate::Error::NoSigners("something".to_string()));
+        }
+        tx.try_sign(&[kp], tx.message().recent_blockhash)?;
+        info!(
+            "tx is signed? '{}' number of sigs '{}' positing '{:?}'",
+            tx.is_signed(),
+            tx.signatures.len(),
+            positions
+        );
+        if !tx.is_signed() {
+            return Err(crate::Error::TransactionNotSigned);
+        }
+        Ok(tx.signatures[0])
+    }
+
     pub fn sign(
         method: SolanaMethod,
         value: serde_json::Value,
     ) -> crate::Result<SolanaSignatureResponse> {
         let kp = Keypair::from_bytes(&KEYPAIR).map_err(|_| Error::KeyPairFailure)?;
         info!("PK of signer: {}", kp.pubkey());
-        let decoded: Vec<u8> = match method {
+        let sig: Signature = match method {
             SolanaMethod::SignTransaction => {
                 let req = serde_json::from_value::<WalletConnectTransaction>(value)?;
-                BASE64_STANDARD.decode(req.transaction)?
+                let msg = BASE64_STANDARD.decode(req.transaction)?;
+                Self::sign_transaction(&msg, &kp)?
             }
             SolanaMethod::SignMessage => {
                 let req = serde_json::from_value::<SignMessageRequest>(value)?;
-                bs58::decode(req.message).into_vec()?
+                let decoded = bs58::decode(req.message).into_vec()?;
+                kp.sign_message(&decoded)
             }
             SolanaMethod::Other(m) => return Err(Error::InvalidMethod(m)),
         };
-        let sig = kp.sign_message(&decoded);
-        // let mut tx = bincode::deserialize::<Transaction>(decoded.as_ref())?;
-        // let positions = tx.get_signing_keypair_positions(&[kp.pubkey()])?;
-        // if positions.is_empty() {
-        //    return Err(anyhow::format_err!("nothing to sign"));
-        //}
-        // tx.try_partial_sign(&[&kp], tx.get_recent_blockhash().clone())?;
-        //// tx.try_sign(&[&kp], tx.get_recent_blockhash().clone())?;
-        // let sig = tx.get_signature();
-        // let signature = bs58::encode(sig).into_string();
         let signature: SolanaSignatureResponse = sig.into();
         info!("returning sig: {signature}");
         Ok(signature)

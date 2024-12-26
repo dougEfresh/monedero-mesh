@@ -11,6 +11,10 @@ impl KvStorage {
         KvStorage {}
     }
 
+    pub fn mem() -> Self {
+        Self::new()
+    }
+
     pub fn get<T>(&self, key: impl AsRef<str>) -> crate::Result<Option<T>>
     where
         T: for<'de> Deserialize<'de> + Serialize,

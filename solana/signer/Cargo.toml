@@ -29,13 +29,13 @@ solana-pubkey = { workspace = true }
 solana-sdk = { workspace = true }
 solana-signature = { workspace = true }
 solana-signer = { workspace = true }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { workspace = true , features = ["full"]}
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { workspace = true }
 
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+wasm_client_solana = { version = "0.7", features = ["ssr", "zstd"]}
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm_client_solana = { version = "0.7", features = ["js"]}
 
 [dev-dependencies]
 anyhow = "1"

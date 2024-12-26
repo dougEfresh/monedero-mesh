@@ -53,15 +53,11 @@ impl FromStr for ChainType {
 
 impl Display for ChainType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Main => "main",
-                Self::Test => "testnet",
-                Self::Dev => "devnet",
-            }
-        )
+        write!(f, "{}", match self {
+            Self::Main => "main",
+            Self::Test => "testnet",
+            Self::Dev => "devnet",
+        })
     }
 }
 

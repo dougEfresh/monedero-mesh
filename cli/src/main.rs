@@ -158,9 +158,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(SubCommands::Transfer(cmd)) => match cmd.command {
             cmd::TransferCommand::Native(args) => {
-                let to = Pubkey::from_str(&args.to)?;
+                // let to = Pubkey::from_str(&args.to)?;
                 let lamports = sol_to_lamports(args.sol);
-                wallet.transfer(&to, lamports).await?;
+                wallet.transfer(&args.to, lamports).await?;
                 Ok(())
             }
         },
