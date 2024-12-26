@@ -10,6 +10,9 @@ use {
         ClientSession, Dapp, Metadata, NoopSessionHandler, PairingManager, ReownBuilder,
     },
     tracing::{error, info},
+    wallet_standard_browser::{
+        get_wallets, prelude::*, register_wallet, BrowserWallet, BrowserWalletInfo,
+    },
     wasm_bindgen::prelude::*,
     wasm_bindgen_futures::spawn_local,
     web_sys::console,
@@ -78,31 +81,44 @@ async fn propose(dapp: &Dapp) -> Option<ClientSession> {
     }
 }
 
+async fn pair_me() {
+    let project_id = std::env::var("PROJECT_ID")
+        .unwrap_or_else(|_| String::from("987f2292c12194ae69ddb6c52ceb1d62"));
+    let p = ProjectId::from(project_id);
+    let manager = pair_manager(p).await;
+    if manager.is_none() {
+        return;
+    }
+    let dapp = dapp_init(manager.unwrap()).await;
+    if dapp.is_none() {
+        return;
+    }
+    let dapp = dapp.unwrap();
+    let session = propose(&dapp).await;
+    if session.is_none() {
+        return;
+    }
+    let session = session.unwrap();
+    let _ = session.ping().await;
+    TimeoutFuture::new(2000).await;
+    session.delete().await;
+}
+
 #[allow(clippy::panicking_unwrap, clippy::panic, clippy::missing_panics_doc)]
 #[wasm_bindgen(start)]
 pub fn run() {
     log::init();
-    let project_id = std::env::var("PROJECT_ID")
-        .unwrap_or_else(|_| String::from("987f2292c12194ae69ddb6c52ceb1d62"));
-    spawn_local(async {});
-    spawn_local(async move {
-        let p = ProjectId::from(project_id);
-        let manager = pair_manager(p).await;
-        if manager.is_none() {
-            return;
-        }
-        let dapp = dapp_init(manager.unwrap()).await;
-        if dapp.is_none() {
-            return;
-        }
-        let dapp = dapp.unwrap();
-        let session = propose(&dapp).await;
-        if session.is_none() {
-            return;
-        }
-        let session = session.unwrap();
-        let _ = session.ping().await;
-        TimeoutFuture::new(2000).await;
-        session.delete().await;
-    });
+    let wallet_getter = get_wallets();
+    let wallets = wallet_getter.get();
+    for w in &wallets {
+        tracing::info!(
+            "found wallet {} {} {:?} {:?}",
+            w._name(),
+            w._version(),
+            w._chains(),
+            w.features_object()
+        );
+    }
+    //});
+    //spawn_local(pair_me())
 }

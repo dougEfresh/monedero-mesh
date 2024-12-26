@@ -1,95 +1,89 @@
-mod cli;
-pub mod stake;
-pub mod tokens;
-pub mod transfer;
+use clap::{Args, Parser, Subcommand, ValueHint};
+mod transfer;
 
-use enum_str_derive::EnumStr;
+pub use transfer::*;
 
-pub mod prompts {
-    use {
-        crate::context::Context,
-        solana_sdk::{native_token::LAMPORTS_PER_SOL, pubkey::Pubkey, signature::Signature},
-        std::str::FromStr,
-    };
+#[derive(Debug, Parser)]
+pub struct Cli {
+    #[clap(subcommand)]
+    pub subcommands: Option<SubCommands>,
 
-    pub fn signature(sig: Signature, context: &Context) -> anyhow::Result<()> {
-        let msg = format!("Signature: {sig} Open on solscan.io?");
-        confirm(&msg, context)?;
-        Ok(())
-    }
+    #[arg(long,
+    env = "MONEDERO_CONFIG_PATH",
+    value_hint = ValueHint::FilePath,
+    value_name = "FILEPATH",
+    required = false,
+    global = true,
+    )]
+    pub config: Option<std::path::PathBuf>,
 
-    pub fn amount(dec: u8) -> anyhow::Result<(f64, u64)> {
-        let mut p = promkit::preset::readline::Readline::default()
-            .prefix("Amount? ")
-            .validator(
-                |text| text.parse::<f64>().is_ok(),
-                |text| format!("invalid amount {}", text.parse::<f64>().err().unwrap()),
-            )
-            .prompt()?;
-        let amt: f64 = p.run()?.parse()?;
-        let amt_dec: u64 = (amt * 10_f64.powi(dec as i32)) as u64;
-        Ok((amt, amt_dec))
-    }
+    #[arg(
+        long,
+        short,
+        env = "MONEDERO_PROFILE",
+        global = true,
+        value_name = "PROFILE_NAME",
+        help = "override default config with this profile name"
+    )]
+    pub profile: Option<String>,
 
-    pub fn pubkey() -> anyhow::Result<Pubkey> {
-        let mut p = promkit::preset::readline::Readline::default()
-            .prefix("To? ")
-            .enable_history()
-            .validator(
-                |text| Pubkey::from_str(text).is_ok(),
-                |text| {
-                    format!(
-                        "invalid public key {}",
-                        Pubkey::from_str(&text).err().unwrap()
-                    )
-                },
-            )
-            .prompt()?;
-        Ok(Pubkey::from_str(p.run()?.as_str())?)
-    }
+    #[arg(
+        long,
+        env = "MONEDERO_MAINNET",
+        global = true,
+        help = "use mainnet (default is testnet/devnet)"
+    )]
+    pub mainnet: bool,
 
-    pub fn confirm(msg: &str, ctx: &Context) -> anyhow::Result<bool> {
-        let mut p = promkit::preset::confirm::Confirm::new(msg).prompt()?;
-        let confirm: Confirmation = p.run()?.into();
-        Ok(confirm.proceed())
-    }
+    #[arg(
+        long,
+        env = "MONEDERO_MAX_FEE",
+        default_value_t = 50000,
+        global = true,
+        help = "max fee for compute budget program in micro-lamports"
+    )]
+    pub max_fee: u64,
 
-    pub fn confirm_send(to: &Pubkey, amt: f64, ctx: &Context) -> anyhow::Result<bool> {
-        let msg = format!("Send {} SOL to {}?", amt, to);
-        confirm(&msg, ctx)
-    }
-
-    pub struct Confirmation(String);
-
-    impl Confirmation {
-        pub fn proceed(&self) -> bool {
-            self.0.contains("y")
-        }
-    }
-
-    impl From<String> for Confirmation {
-        fn from(value: String) -> Self {
-            Self(value)
-        }
-    }
+    #[arg(
+        long,
+        env = "MONEDERO_DEFAULT_MEMO",
+        global = true,
+        help = "memo to add for every transaction"
+    )]
+    pub default_memo: Option<String>,
 }
 
-#[derive(EnumStr, strum_macros::EnumIter)]
-pub enum MainMenu {
-    Transactions,
-    Transfer,
-    Tokens,
-    Swap,
-    Stake,
-    Logs,
-    Quit,
+#[derive(Debug, Subcommand)]
+pub enum SubCommands {
+    #[command()]
+    Fees,
+    #[command()]
+    Balance,
+    #[command()]
+    Init,
+    #[command()]
+    Pair,
+    #[command()]
+    Version {},
+    #[command()]
+    Transfer(TransferArgs),
+    #[command()]
+    Stake(StakeArgs),
 }
 
-#[derive(EnumStr, strum_macros::EnumIter)]
-pub enum TokenMenu {
-    Transactions,
-    Transfer,
-    Mint,
-    Create,
-    Back,
+#[derive(Debug, Args)]
+pub struct StakeArgs {
+    #[command(subcommand)]
+    pub command: StakeCommand,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum StakeCommand {
+    #[command()]
+    Withdraw(WithdrawArgs),
+}
+
+#[derive(Debug, Args, Default)]
+pub struct WithdrawArgs {
+    pub account: String,
 }

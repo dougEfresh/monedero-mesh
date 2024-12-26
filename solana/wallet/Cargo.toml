@@ -21,14 +21,12 @@ futures = { workspace = true }
 monedero-signer-solana = { path = "../signer" }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 solana-account = { workspace = true }
 solana-program = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-sdk = { workspace = true }
-solana-rpc-client-api = { workspace = true }
 solana-signature = { workspace = true }
 solana-signer = { workspace = true }
 

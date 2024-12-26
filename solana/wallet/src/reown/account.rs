@@ -1,8 +1,10 @@
-use super::WALLET_FEATURES;
-use monedero_signer_solana::SolanaSession;
-use solana_pubkey::Pubkey;
-use std::fmt::{Debug, Display};
-use wallet_standard::prelude::*;
+use {
+    crate::WALLET_FEATURES,
+    monedero_signer_solana::SolanaSession,
+    solana_pubkey::Pubkey,
+    std::fmt::{Debug, Display},
+    wallet_standard::prelude::*,
+};
 
 #[derive(Clone)]
 pub struct ReownAccountInfo {
@@ -15,6 +17,7 @@ impl ReownAccountInfo {
             pk: session.pubkey(),
         }
     }
+
     fn fmt_common(&self) -> String {
         format!("{}", self.pk)
     }

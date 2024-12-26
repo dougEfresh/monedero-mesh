@@ -1,16 +1,22 @@
-use {
-    crate::{cmd::prompts, context::Context},
-    solana_sdk::pubkey::Pubkey,
-};
+use clap::{Args, Subcommand};
 
-pub async fn invoke(context: &Context) -> anyhow::Result<()> {
-    let to: Pubkey = prompts::pubkey()?;
-    let (amt, lamports) = prompts::amount(9)?;
-    let msg = format!("Send {} SOL to {}?", amt, to);
-    let proceed = prompts::confirm(&msg, context)?;
-    if !proceed {
-        return Ok(());
-    }
-    let sig = context.wallet.transfer(&to, lamports).await?;
-    prompts::signature(sig, context)
+#[derive(Debug, Args)]
+pub struct TransferArgs {
+    #[command(subcommand)]
+    pub command: TransferCommand,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum TransferCommand {
+    #[command()]
+    Native(SendArgs),
+}
+
+#[derive(Debug, Args, Default)]
+pub struct SendArgs {
+    #[arg(help = "fund receipiant account", long)]
+    pub fund: bool,
+
+    pub to: String,
+    pub sol: f64,
 }

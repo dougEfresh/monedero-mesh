@@ -6,13 +6,11 @@ mod registration;
 mod socket_handler;
 #[cfg(target_family = "wasm")]
 mod socket_handler_wasm;
-#[cfg(target_family = "wasm")]
-use socket_handler_wasm::handle_socket;
-
 pub use builder::ReownBuilder;
 #[cfg(not(target_family = "wasm"))]
 use socket_handler::handle_socket;
-
+#[cfg(target_family = "wasm")]
+use socket_handler_wasm::handle_socket;
 use {
     crate::{
         actors::Actors,
@@ -20,7 +18,11 @@ use {
         rpc::{PairDeleteRequest, PairExtendRequest, PairPingRequest, RequestParams},
         spawn_task,
         transport::TopicTransport,
-        wait, Error, Result, SocketEvent, SocketListener,
+        wait,
+        Error,
+        Result,
+        SocketEvent,
+        SocketListener,
     },
     monedero_cipher::Cipher,
     monedero_domain::{namespaces::Namespaces, Pairing, SessionSettled, SubscriptionId, Topic},

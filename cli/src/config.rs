@@ -1,12 +1,15 @@
 use {
-    anyhow::format_err,
     config::{Config, File, FileFormat},
-    microxdg::{XdgApp, XdgError},
-    monedero_namespaces::{AlloyChain, ChainId, ChainType, Chains},
+    microxdg::XdgApp,
+    monedero_mesh::domain::namespaces::{AlloyChain, ChainId, ChainType, Chains},
+    monedero_solana::RpcClient,
     serde::Deserialize,
-    solana_rpc_client::nonblocking::rpc_client::RpcClient,
-    std::{path::PathBuf, str::FromStr, sync::Arc},
-    tracing::Instrument,
+    std::{
+        fmt::Display,
+        path::{Path, PathBuf},
+        str::FromStr,
+        sync::Arc,
+    },
 };
 
 const APP_NAME: &str = env!("CARGO_BIN_NAME");
@@ -22,14 +25,14 @@ const DEFAULT_CHAINS_DEV: [ChainId; 4] = [
     ChainId::EIP155(AlloyChain::optimism_sepolia()),
 ];
 
-const DEFAULT_CHAINS_MAIN: [ChainId; 4] = [
+const DEFAULT_CHAINS_MAIN: [ChainId; 2] = [
     ChainId::Solana(ChainType::Main),
     ChainId::EIP155(AlloyChain::mainnet()),
-    ChainId::EIP155(AlloyChain::base_mainnet()),
-    ChainId::EIP155(AlloyChain::optimism_mainnet()),
+    // ChainId::EIP155(AlloyChain::base_mainnet()),
+    // ChainId::EIP155(AlloyChain::optimism_mainnet()),
 ];
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
     pub chain_type: ChainType,
@@ -38,6 +41,19 @@ pub struct AppConfig {
     #[allow(dead_code)]
     pub etherscan_api_key: Option<String>,
     pub storage_path: Option<String>,
+}
+
+impl Display for AppConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let p = self.storage().unwrap_or_default();
+        write!(
+            f,
+            "chain:{} rpc:{} storage:{}",
+            self.chain_type,
+            self.solana_rpc(),
+            p.display()
+        )
+    }
 }
 
 #[allow(clippy::option_if_let_else, dead_code)]
@@ -72,18 +88,15 @@ impl AppConfig {
             None => default_config_file()?,
             Some(cfg) => cfg,
         };
-        AppConfig::new_with_override(cfg, profile)
+        Self::new_with_override(&cfg, profile)
     }
 
-    fn new_with_override(
-        cfg_default: PathBuf,
-        cfg_override: Option<String>,
-    ) -> anyhow::Result<Self> {
+    fn new_with_override(cfg_default: &Path, cfg_override: Option<String>) -> anyhow::Result<Self> {
         tracing::debug!("Loading config {}", cfg_default.display());
         let p = format!("{}", cfg_default.display());
         let mut cfg = Config::builder().add_source(File::new(&p, FileFormat::Toml).required(true));
         if let Some(profile) = cfg_override {
-            let profile_loc = format!("{}.toml", profile);
+            let profile_loc = format!("{profile}.toml");
             let profile_loc = config_file(profile_loc.as_str())?;
             tracing::debug!("Loading profile config {}", profile_loc.display());
             cfg = cfg.add_source(
@@ -96,17 +109,17 @@ impl AppConfig {
     }
 
     fn solana_rpc(&self) -> String {
-        match self.solana_rpc {
-            Some(ref rpc) => rpc.clone(),
-            None => match self.chain_type {
+        self.solana_rpc.as_ref().map_or_else(
+            || match self.chain_type {
                 ChainType::Main => String::from(SOLANA_RPC_MAIN),
                 _ => String::from(SOLANA_RPC_DEV),
             },
-        }
+            std::clone::Clone::clone,
+        )
     }
 
     pub fn solana_rpc_client(&self) -> Arc<RpcClient> {
-        Arc::new(RpcClient::new(self.solana_rpc()))
+        Arc::new(RpcClient::new(&self.solana_rpc()))
     }
 
     pub fn storage(&self) -> anyhow::Result<PathBuf> {
@@ -124,14 +137,13 @@ impl AppConfig {
 
 impl AppConfig {
     pub fn chains(&self) -> Chains {
-        match &self.chains {
-            None => match self.chain_type {
+        self.chains.as_ref().map_or_else(
+            || match self.chain_type {
                 ChainType::Main => DEFAULT_CHAINS_MAIN.into(),
-                ChainType::Test => DEFAULT_CHAINS_DEV.into(),
-                ChainType::Dev => DEFAULT_CHAINS_DEV.into(),
+                ChainType::Test | ChainType::Dev => DEFAULT_CHAINS_DEV.into(),
             },
-            Some(chains) => chains.clone(),
-        }
+            std::clone::Clone::clone,
+        )
     }
 }
 

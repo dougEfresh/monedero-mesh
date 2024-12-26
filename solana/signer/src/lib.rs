@@ -1,19 +1,22 @@
 mod error;
 mod signer;
 
+#[cfg(not(target_family = "wasm"))]
+pub use monedero_mesh::MockRelay;
 pub use {
     error::Error,
     monedero_mesh::{
         self as session,
         domain::{self, ProjectId},
-        spawn_task, Dapp, KvStorage, KvStorageError, Metadata, ReownBuilder,
+        spawn_task,
+        Dapp,
+        KvStorage,
+        KvStorageError,
+        Metadata,
+        ReownBuilder,
     },
     signer::ReownSigner,
 };
-
-#[cfg(not(target_family = "wasm"))]
-pub use monedero_mesh::MockRelay;
-
 use {
     monedero_mesh::{
         domain::namespaces::{ChainId, ChainType, Method, NamespaceName, SolanaMethod},

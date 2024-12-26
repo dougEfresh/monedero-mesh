@@ -1,11 +1,10 @@
 use {
     crate::{PairingManager, SocketEvent},
+    backoff::{future::retry, ExponentialBackoffBuilder},
+    std::time::Duration,
     tokio::sync::mpsc,
     tracing::{debug, info, warn},
 };
-
-use backoff::{future::retry, ExponentialBackoffBuilder};
-use std::time::Duration;
 
 async fn retry_backoff(mgr: PairingManager) {
     info!("reconnecting");

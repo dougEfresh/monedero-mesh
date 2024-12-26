@@ -1,6 +1,9 @@
-use super::{account::ReownAccountInfo, WALLET_FEATURES};
-use std::fmt::Debug;
-use wallet_standard::WalletInfo;
+use {
+    super::account::ReownAccountInfo,
+    crate::WALLET_FEATURES,
+    std::fmt::Debug,
+    wallet_standard::WalletInfo,
+};
 
 #[derive(Clone)]
 pub struct ReownInfo {
@@ -19,8 +22,8 @@ impl ReownInfo {
 
 impl Debug for ReownInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.accounts.iter().next() {
-            Some(a) => write!(f, "{}", a),
+        match self.accounts.first() {
+            Some(a) => write!(f, "{a}"),
             None => write!(f, "no-accounts"),
         }
     }

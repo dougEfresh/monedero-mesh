@@ -139,44 +139,47 @@ impl Cipher {
 
     fn init(&self) -> Result<(), CipherError> {
         let mut session_expired = false;
-        if let Some(pairing) = self.pairing() {
-            debug!("found existing pairing...restoring");
-            self.pairing
-                .insert(pairing.topic.clone(), Arc::new(pairing.clone()));
-            let key = pairing.params.sym_key.clone();
-            self.ciphers.insert(
-                pairing.topic,
-                ChaCha20Poly1305::new((&key.to_bytes()).into()),
-            );
-            let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
-            if let Some(sessions) = self.storage.get::<Vec<String>>(&sessions_key)? {
-                debug!("restoring {} sessions", sessions.len());
-                for s in sessions {
-                    // TODO: Do I need to copy the string?
-                    if self
-                        .is_expired(Topic::from(String::from(&s)))
-                        .ok()
-                        .unwrap_or(false)
-                    {
-                        session_expired = true;
-                        break;
-                    }
-                    if let Some(controller_pk) = self
-                        .storage
-                        .get::<String>(Self::storage_session_key(&Topic::from(s)))?
-                    {
-                        let (topic, expanded_key) = Self::derive_sym_key(&key, &controller_pk)?;
-                        self.register(&topic, &expanded_key);
-                    }
+        let pairing = self.pairing();
+        if pairing.is_none() {
+            debug!("clearing session storage");
+            self.storage.clear();
+            return Ok(());
+        }
+        let pairing = pairing.unwrap();
+        debug!("found existing pairing...restoring");
+        self.pairing
+            .insert(pairing.topic.clone(), Arc::new(pairing.clone()));
+        let key = pairing.params.sym_key.clone();
+        self.ciphers.insert(
+            pairing.topic,
+            ChaCha20Poly1305::new((&key.to_bytes()).into()),
+        );
+        let sessions_key = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
+        if let Some(sessions) = self.storage.get::<Vec<String>>(&sessions_key)? {
+            debug!("restoring {} sessions", sessions.len());
+            for s in sessions {
+                // TODO: Do I need to copy the string?
+                if self
+                    .is_expired(Topic::from(String::from(&s)))
+                    .ok()
+                    .unwrap_or(false)
+                {
+                    session_expired = true;
+                    break;
                 }
-                if session_expired {
-                    tracing::info!("Session has expired, resetting storage");
-                    self.storage.clear();
+                if let Some(controller_pk) = self
+                    .storage
+                    .get::<String>(Self::storage_session_key(&Topic::from(s)))?
+                {
+                    let (topic, expanded_key) = Self::derive_sym_key(&key, &controller_pk)?;
+                    self.register(&topic, &expanded_key);
                 }
             }
+            if session_expired {
+                tracing::info!("Session has expired, resetting storage");
+                self.storage.clear();
+            }
         }
-        debug!("clearing session storage");
-        self.storage.clear();
         Ok(())
     }
 

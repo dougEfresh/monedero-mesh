@@ -11,9 +11,9 @@ use {
 };
 
 // old solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ
-const SOLANA: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+// const SOLANA_NEW: &str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 // const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
-const SOLANA_OLD: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
+const SOLANA: &str = "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ";
 /// This is actually Solana Dev
 // const SOLANA_DEV_NEW: &str = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 const SOLANA_DEV: &str = "solana:8E9rvCKLFQia2Y35HXjjpWzj8weVo44K";
@@ -180,7 +180,7 @@ impl FromStr for ChainId {
         }
         let chain_id = format!("{ns}:{id}");
         match chain_id.as_str() {
-            SOLANA_OLD | SOLANA => Ok(Self::Solana(ChainType::Main)),
+            SOLANA => Ok(Self::Solana(ChainType::Main)),
             SOLANA_DEV => Ok(Self::Solana(ChainType::Dev)),
             SOLANA_TEST => Ok(Self::Solana(ChainType::Test)),
             _ => {

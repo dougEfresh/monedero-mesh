@@ -14,7 +14,7 @@ pub fn initialize_logging() -> anyhow::Result<()> {
     let directory = app.app_data()?;
     std::fs::create_dir_all(directory.clone())?;
     let log_file_name = format!("{}.log", env!("CARGO_BIN_NAME"));
-    let log_path = directory.join(log_file_name.clone());
+    let log_path = directory.join(log_file_name);
     let log_file = std::fs::File::create(log_path)?;
     std::env::set_var(
         "RUST_LOG",
@@ -35,7 +35,7 @@ pub fn initialize_logging() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(file_subscriber)
         .with(ErrorLayer::default())
-        .with(console_subscriber::spawn())
+        //.with(console_subscriber::spawn())
         .init();
     Ok(())
 }

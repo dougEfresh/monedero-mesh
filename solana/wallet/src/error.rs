@@ -29,46 +29,43 @@ pub enum Error {
 
     #[error(transparent)]
     SignerError(#[from] solana_sdk::signature::SignerError),
-    //SignerError(#[from] solana_signer::SignerError),
+    // SignerError(#[from] solana_signer::SignerError),
     #[error("invalid signature. Length is not 64 '{0}'")]
     SigError(String),
 
     #[error(transparent)]
     PubkeyError(#[from] solana_pubkey::PubkeyError),
 
-    /*
-    #[error(transparent)]
-    SolanaProgramError(#[from] solana_program::program_error::ProgramError),
-
-    #[error(transparent)]
-    TransactionError(#[from] solana_sdk::transaction::TransactionError),
-
-    #[error(transparent)]
-    InstructionError(#[from] solana_program::instruction::InstructionError),
-
-    #[error(transparent)]
-    TokenError(#[from] spl_token_client::token::TokenError),
-     */
+    // #[error(transparent)]
+    // SolanaProgramError(#[from] solana_program::program_error::ProgramError),
+    //
+    // #[error(transparent)]
+    // TransactionError(#[from] solana_sdk::transaction::TransactionError),
+    //
+    // #[error(transparent)]
+    // InstructionError(#[from] solana_program::instruction::InstructionError),
+    //
+    // #[error(transparent)]
+    // TokenError(#[from] spl_token_client::token::TokenError),
     #[error("signature failed to confirm {0}")]
     ConfirmationFailure(solana_signature::Signature),
 
     #[error("spl-token program is not valid for this operation try spl-token-2022")]
     InvalidTokenProgram,
 
-    #[error("{0}")]
-    RpcRequestError(String),
+    #[error(transparent)]
+    RpcRequestError(#[from] wasm_client_solana::ClientError),
+
     #[error("Account exists! {0}")]
     AccountExists(String),
     #[error("Invalid param for rpc {0}")]
     BadParameter(String),
 
     //#[error(transparent)]
-    //StorageError(#[from] monedero_store::Error),
-    #[error(transparent)]
-    HttpError(#[from] reqwest::Error),
+    // StorageError(#[from] monedero_store::Error),
 
     //#[error(transparent)]
-    //XdgError(#[from] microxdg::XdgError),
+    // XdgError(#[from] microxdg::XdgError),
     #[error("amount {amt} is not enough for minimum delegation {min_amt} ")]
     MinimumDelegation { amt: u64, min_amt: u64 },
 }

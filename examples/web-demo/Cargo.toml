@@ -18,6 +18,7 @@ futures = { workspace = true }
 getrandom = { version = "0.2", features = ["js"] }
 gloo-timers = { workspace = true }
 monedero-mesh = { path = "../../sessions" }
+monedero-solana = { path = "../../solana/wallet" }
 rand = { workspace = true }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
@@ -26,6 +27,8 @@ wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
 web-time = { workspace = true }
 wasm-tracing = { workspace = true }
+wallet_standard_browser = { version = "0.4", features = ["solana"] }
+memory_wallet = { version = "0.1"}
 
 [dependencies.web-sys]
 version = "0.3"
@@ -33,7 +36,7 @@ features = [
     "Element", "HtmlElement", "Window",
     "WebSocket", "console", "Event",
     "Document", "Crypto", "CryptoKey",
-    "DateTimeValue", "SubtleCrypto", "Performance", "HtlmDocument",
+    "DateTimeValue", "SubtleCrypto", "Performance", 
     "TimeEvent"
 ]
 
