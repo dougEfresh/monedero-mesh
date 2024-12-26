@@ -53,11 +53,15 @@ impl FromStr for ChainType {
 
 impl Display for ChainType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Self::Main => "main",
-            Self::Test => "testnet",
-            Self::Dev => "devnet",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Main => "main",
+                Self::Test => "testnet",
+                Self::Dev => "devnet",
+            }
+        )
     }
 }
 
@@ -230,7 +234,7 @@ mod tests {
         assert_eq!(solana.to_string(), SOLANA);
         assert_eq!(solana, SOLANA.parse()?);
 
-        let with_account = format!("{SOLANA_OLD}:someaccount");
+        let with_account = format!("{SOLANA}:someaccount");
         let solana = ChainId::from_str(&with_account)?;
         assert!(matches!(solana, ChainId::Solana(_)));
 

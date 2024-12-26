@@ -12,7 +12,7 @@ members = [
     "domain",
     # "examples/dapp-demo",
     # "examples/web-demo",
-    "examples/dioxus-demo",
+    # "examples/dioxus-demo",
     "cli",
     #"extension",
     "namespaces",

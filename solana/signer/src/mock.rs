@@ -1,29 +1,14 @@
 use {
     crate::{
         domain::namespaces::{
-            Account,
-            Accounts,
-            Chains,
-            EipMethod,
-            Events,
-            Method,
-            Methods,
-            Namespace,
-            NamespaceName,
-            Namespaces,
-            SolanaMethod,
+            Account, Accounts, Chains, EipMethod, Events, Method, Methods, Namespace,
+            NamespaceName, Namespaces, SolanaMethod,
         },
         session::{
-            SdkErrors,
-            SessionProposeRequest,
-            SessionRequestRequest,
-            WalletRequestResponse,
+            SdkErrors, SessionProposeRequest, SessionRequestRequest, WalletRequestResponse,
             WalletSettlementHandler,
         },
-        Error,
-        SignMessageRequest,
-        SolanaSignatureResponse,
-        WalletConnectTransaction,
+        Error, SignMessageRequest, SolanaSignatureResponse, WalletConnectTransaction,
     },
     async_trait::async_trait,
     base64::{prelude::BASE64_STANDARD, Engine},
@@ -59,12 +44,15 @@ impl WalletSettlementHandler for MockWallet {
                 NamespaceName::Solana => SolanaMethod::defaults(),
                 NamespaceName::Other(_) => BTreeSet::from([Method::Other("unknown".to_owned())]),
             };
-            settled.insert(name.clone(), Namespace {
-                accounts: Accounts(accounts),
-                chains: Chains(namespace.chains.iter().cloned().collect()),
-                methods: Methods(methods),
-                events: Events::default(),
-            });
+            settled.insert(
+                name.clone(),
+                Namespace {
+                    accounts: Accounts(accounts),
+                    chains: Chains(namespace.chains.iter().cloned().collect()),
+                    methods: Methods(methods),
+                    events: Events::default(),
+                },
+            );
         }
         Ok(settled)
     }
@@ -95,7 +83,7 @@ impl MockWallet {
                 let req = serde_json::from_value::<SignMessageRequest>(value)?;
                 bs58::decode(req.message).into_vec()?
             }
-            SolanaMethod::Other(m) => return Err(Error::InvalidMethod(m).into()),
+            SolanaMethod::Other(m) => return Err(Error::InvalidMethod(m)),
         };
         let sig = kp.sign_message(&decoded);
         // let mut tx = bincode::deserialize::<Transaction>(decoded.as_ref())?;
