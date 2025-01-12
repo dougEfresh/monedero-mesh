@@ -10,8 +10,13 @@ use {
     },
     std::{fmt::Display, sync::Arc},
     wallet_standard::{
-        SOLANA_SIGN_AND_SEND_TRANSACTION, SOLANA_SIGN_IN, SOLANA_SIGN_MESSAGE,
-        SOLANA_SIGN_TRANSACTION, STANDARD_CONNECT, STANDARD_DISCONNECT, STANDARD_EVENTS,
+        SOLANA_SIGN_AND_SEND_TRANSACTION,
+        SOLANA_SIGN_IN,
+        SOLANA_SIGN_MESSAGE,
+        SOLANA_SIGN_TRANSACTION,
+        STANDARD_CONNECT,
+        STANDARD_DISCONNECT,
+        STANDARD_EVENTS,
     },
     wasm_client_solana::SolanaRpcClient as RpcClient,
 };
@@ -69,7 +74,7 @@ impl SolanaWallet {
 
     pub(super) async fn send_instructions(&self, ix: &[Instruction]) -> crate::Result<Signature> {
         let block = self.rpc.get_latest_blockhash().await?;
-        let msg = Message::new_with_blockhash(&ix, Some(&self.pubkey), &block);
+        let msg = Message::new_with_blockhash(ix, Some(&self.pubkey), &block);
         let mut tx = Transaction::new_unsigned(msg);
         tx.try_sign(&[&self.signer], tx.message.recent_blockhash)?;
         Ok(self.rpc.send_transaction(&tx.into()).await?)

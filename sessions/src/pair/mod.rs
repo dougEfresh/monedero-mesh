@@ -112,6 +112,7 @@ impl PairingManager {
     /// Check if other side is "alive"i
     /// If the peer returns an RPC error then it is "alive"
     /// Error only for network communication errors or relay server is down
+    #[allow(clippy::unnecessary_map_or)]
     pub(crate) async fn alive(&self) -> bool {
         (wait::wait_until(5000, self.ping()).await).map_or(false, |r| match r {
             Ok(true) => true,

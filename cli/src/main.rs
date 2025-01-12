@@ -10,7 +10,12 @@ use {
     copypasta::{ClipboardContext, ClipboardProvider},
     monedero_mesh::{
         domain::{Pairing, ProjectId},
-        Dapp, KvStorage, Metadata, NoopSessionHandler, ProposeFuture, ReownBuilder,
+        Dapp,
+        KvStorage,
+        Metadata,
+        NoopSessionHandler,
+        ProposeFuture,
+        ReownBuilder,
     },
     monedero_solana::{SolanaSession, SolanaWallet},
     solana_sdk::{
@@ -34,17 +39,14 @@ async fn init_dapp(cfg: AppConfig) -> anyhow::Result<(Pairing, ProposeFuture, bo
     let storage_path = format!("{}", cfg.storage()?.display());
     let storage = KvStorage::file(Some(storage_path))?;
     let mgr = ReownBuilder::new(project).store(storage).build().await?;
-    let dapp = Dapp::new(
-        mgr,
-        Metadata {
-            name: env!("CARGO_BIN_NAME").to_string(),
-            description: "monedero mesh cli dapp".to_string(),
-            url: "https://github.com/dougeEfresh/monedero-mesh".to_string(),
-            icons: vec![],
-            verify_url: None,
-            redirect: None,
-        },
-    )
+    let dapp = Dapp::new(mgr, Metadata {
+        name: env!("CARGO_BIN_NAME").to_string(),
+        description: "monedero mesh cli dapp".to_string(),
+        url: "https://github.com/dougeEfresh/monedero-mesh".to_string(),
+        icons: vec![],
+        verify_url: None,
+        redirect: None,
+    })
     .await?;
 
     let (p, fut, cached) = dapp.propose(NoopSessionHandler, &cfg.chains()).await?;
