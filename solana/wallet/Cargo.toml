@@ -29,6 +29,7 @@ solana-pubkey = { workspace = true }
 solana-sdk = { workspace = true }
 solana-signature = { workspace = true }
 solana-signer = { workspace = true }
+spl-memo = { workspace = true }
 
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

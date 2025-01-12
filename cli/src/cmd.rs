@@ -69,6 +69,13 @@ pub enum SubCommands {
     Transfer(TransferArgs),
     #[command()]
     Stake(StakeArgs),
+    #[command()]
+    Memo(MemoArgs),
+}
+
+#[derive(Debug, Args, Default)]
+pub struct MemoArgs {
+    pub message: String,
 }
 
 #[derive(Debug, Args)]

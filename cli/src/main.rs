@@ -10,12 +10,7 @@ use {
     copypasta::{ClipboardContext, ClipboardProvider},
     monedero_mesh::{
         domain::{Pairing, ProjectId},
-        Dapp,
-        KvStorage,
-        Metadata,
-        NoopSessionHandler,
-        ProposeFuture,
-        ReownBuilder,
+        Dapp, KvStorage, Metadata, NoopSessionHandler, ProposeFuture, ReownBuilder,
     },
     monedero_solana::{SolanaSession, SolanaWallet},
     solana_sdk::{
@@ -39,14 +34,17 @@ async fn init_dapp(cfg: AppConfig) -> anyhow::Result<(Pairing, ProposeFuture, bo
     let storage_path = format!("{}", cfg.storage()?.display());
     let storage = KvStorage::file(Some(storage_path))?;
     let mgr = ReownBuilder::new(project).store(storage).build().await?;
-    let dapp = Dapp::new(mgr, Metadata {
-        name: env!("CARGO_BIN_NAME").to_string(),
-        description: "monedero mesh cli dapp".to_string(),
-        url: "https://github.com/dougeEfresh/monedero-mesh".to_string(),
-        icons: vec![],
-        verify_url: None,
-        redirect: None,
-    })
+    let dapp = Dapp::new(
+        mgr,
+        Metadata {
+            name: env!("CARGO_BIN_NAME").to_string(),
+            description: "monedero mesh cli dapp".to_string(),
+            url: "https://github.com/dougeEfresh/monedero-mesh".to_string(),
+            icons: vec![],
+            verify_url: None,
+            redirect: None,
+        },
+    )
     .await?;
 
     let (p, fut, cached) = dapp.propose(NoopSessionHandler, &cfg.chains()).await?;
@@ -115,18 +113,27 @@ pub async fn stake_withdraw(ctx: &mut Context, account: &Pubkey) -> anyhow::Resu
     Ok(rpc.send_transaction(&tx.into()).await?)
 }
 
+fn explorer(ctx: &mut Context, sig: Signature) -> anyhow::Result<()> {
+    ctx.clip
+        .set_contents(format!("{sig}"))
+        .expect("Failed to set clipboard");
+
+    ctx.term.write_fmt(format_args!("\n{sig}\nhttps://solscan.io/tx/{sig}?cluster=devnet\nhttps://solana.fm/tx/{sig}?cluster=devnet"))?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let matches = Cli::parse();
     initialize_logging()?;
-    let mut ctx = ClipboardContext::new().expect("Failed to open clipboard");
+    let mut clip = ClipboardContext::new().expect("Failed to open clipboard");
     let mut term = Term::stdout();
 
     let cfg = AppConfig::new(matches.config.clone(), matches.profile.clone())?;
     term.write_fmt(format_args!("{cfg}\n"))?;
     let (pairing, fut, cached) = init_dapp(cfg.clone()).await?;
     if !cached {
-        ctx.set_contents(pairing.to_string())
+        clip.set_contents(pairing.to_string())
             .expect("Failed to set clipboard");
 
         term.write_fmt(format_args!("Pairing: {pairing}\n"))?;
@@ -145,6 +152,7 @@ async fn main() -> anyhow::Result<()> {
     let mut ctx = Context {
         wallet: wallet.clone(),
         term,
+        clip,
     };
     match matches.subcommands {
         None => {
@@ -155,6 +163,11 @@ async fn main() -> anyhow::Result<()> {
             // tokio::spawn(async move { cs.pinger(Duration::from_secs(15)).await });
             // main_menu(ctx).await
             Ok(())
+        }
+
+        Some(SubCommands::Memo(args)) => {
+            let sig = wallet.memo(&args.message).await?;
+            explorer(&mut ctx, sig)
         }
         Some(SubCommands::Transfer(cmd)) => match cmd.command {
             cmd::TransferCommand::Native(args) => {
