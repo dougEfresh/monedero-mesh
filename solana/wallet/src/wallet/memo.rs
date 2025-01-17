@@ -13,6 +13,6 @@ impl SolanaWallet {
             accounts: vec![],
             data: message.as_bytes().to_vec(),
         };
-        self.send_instructions(&[memo_ix]).await
+        self.send_instructions(&[memo_ix], None).await
     }
 }

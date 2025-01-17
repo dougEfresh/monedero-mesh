@@ -2,13 +2,18 @@ use {
     monedero_signer_solana::{ReownSigner, SolanaSession},
     solana_pubkey::Pubkey,
     solana_sdk::{
+        address_lookup_table::AddressLookupTableAccount,
         instruction::Instruction,
-        message::Message,
+        message::{v0::Message, VersionedMessage},
         signature::Signature,
         signer::{Signer, SignerError},
-        transaction::Transaction,
+        transaction::VersionedTransaction,
     },
-    std::{fmt::Display, sync::Arc},
+    std::{
+        fmt::{Debug, Display},
+        sync::Arc,
+    },
+    tracing::Level,
     wallet_standard::{
         SOLANA_SIGN_AND_SEND_TRANSACTION,
         SOLANA_SIGN_IN,
@@ -18,7 +23,13 @@ use {
         STANDARD_DISCONNECT,
         STANDARD_EVENTS,
     },
-    wasm_client_solana::SolanaRpcClient as RpcClient,
+    wasm_client_solana::{
+        solana_transaction_status::UiTransactionEncoding,
+        RpcSimulateTransactionConfig,
+        SimulateTransactionResponseValue,
+        SolanaRpcClient as RpcClient,
+        VersionedTransactionExtension,
+    },
 };
 
 mod memo;
@@ -50,6 +61,12 @@ pub enum FeeType {
     Priority(u64),
 }
 
+impl Debug for SolanaWallet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}]", self.pk())
+    }
+}
+
 impl Display for SolanaWallet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[{}]", self.pk())
@@ -72,12 +89,70 @@ impl SolanaWallet {
         })
     }
 
-    pub(super) async fn send_instructions(&self, ix: &[Instruction]) -> crate::Result<Signature> {
+    #[tracing::instrument(level = "info", skip(table))]
+    async fn lookup(
+        &self,
+        table: Option<&Pubkey>,
+    ) -> crate::Result<Vec<AddressLookupTableAccount>> {
+        match table {
+            None => Ok(Vec::new()),
+            Some(pubkey) => {
+                let addr_table = self
+                    .rpc
+                    .get_address_lookup_table(pubkey)
+                    .await?
+                    .optional_address_lookup_table_account(pubkey)
+                    .ok_or(crate::Error::UninitializedLookupTable(pubkey.to_string()))?;
+                Ok(vec![addr_table])
+            }
+        }
+    }
+
+    pub async fn simulate(
+        &self,
+        tx: &VersionedTransaction,
+    ) -> crate::Result<SimulateTransactionResponseValue> {
+        let span = tracing::span!(
+            Level::INFO,
+            "simulate",
+            wallet = format!("{self}"),
+            computeUnits = 0,
+        );
+        let _ctx = span.enter();
+        let r = self
+            .rpc
+            .simulate_transaction_with_config(&tx, RpcSimulateTransactionConfig {
+                sig_verify: false,
+                encoding: Some(UiTransactionEncoding::Base64),
+                replace_recent_blockhash: Some(false),
+                ..Default::default()
+            })
+            .await?
+            .value;
+        r.units_consumed.inspect(|u| {
+            span.record("computeUnits", u);
+        });
+        Ok(r)
+    }
+
+    pub async fn send_instructions(
+        &self,
+        ix: &[Instruction],
+        table: Option<&Pubkey>,
+    ) -> crate::Result<Signature> {
         let block = self.rpc.get_latest_blockhash().await?;
-        let msg = Message::new_with_blockhash(ix, Some(&self.pubkey), &block);
-        let mut tx = Transaction::new_unsigned(msg);
-        tx.try_sign(&[&self.signer], tx.message.recent_blockhash)?;
-        Ok(self.rpc.send_transaction(&tx.into()).await?)
+        let address_lookup = self.lookup(table).await?;
+        let instructions = Vec::from(ix);
+        let message = VersionedMessage::V0(Message::try_compile(
+            self.pk(),
+            &instructions,
+            &address_lookup,
+            block,
+        )?);
+        let mut tx = VersionedTransaction::new_unsigned(message);
+        self.simulate(&tx).await?.units_consumed;
+        tx.try_sign(&[self], None)?;
+        Ok(self.rpc.send_transaction(&tx).await?)
     }
 
     pub fn rpc(&self) -> Arc<RpcClient> {

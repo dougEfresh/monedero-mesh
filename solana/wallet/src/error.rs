@@ -68,4 +68,10 @@ pub enum Error {
     // XdgError(#[from] microxdg::XdgError),
     #[error("amount {amt} is not enough for minimum delegation {min_amt} ")]
     MinimumDelegation { amt: u64, min_amt: u64 },
+
+    #[error("lookup table {0} is not initialized")]
+    UninitializedLookupTable(String),
+
+    #[error(transparent)]
+    CompileError(#[from] solana_sdk::message::CompileError),
 }

@@ -97,6 +97,7 @@ spl-token-2022 = {version = "6.0.0" }
 solana-account = { version = "2.1.6" }
 solana-account-decoder = { version = "2.1.6" }
 solana-client ={ version = "2.1.6" }
+solana-compute-budget =  { version = "2.1.6" }
 solana-instruction = { version = "2.1.6"}
 solana-feature-set ={ version = "2.1.6" }
 solana-keypair = { version = "0.0.2" }

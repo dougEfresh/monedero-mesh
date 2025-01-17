@@ -24,6 +24,7 @@ tracing = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 solana-account = { workspace = true }
+solana-compute-budget = { workspace = true }
 solana-program = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-sdk = { workspace = true }
@@ -49,5 +50,8 @@ assert_matches = { version = "1.5.0" }
 dotenvy = { workspace = true }
 tracing-subscriber = { workspace = true }
 
+
+[[test]]
+name = "instructions"
 [[test]]
 name = "wallet"
