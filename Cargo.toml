@@ -13,13 +13,10 @@ members = [
     # "examples/dapp-demo",
     # "examples/web-demo",
     # "examples/dioxus-demo",
-    "cli",
     #"extension",
     "namespaces",
     "relay",
     "sessions",
-    "solana/signer",
-    "solana/wallet",
     "store",
 ]
 
