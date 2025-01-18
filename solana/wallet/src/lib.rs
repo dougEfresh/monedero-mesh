@@ -1,9 +1,10 @@
 mod error;
 mod reown;
 mod wallet;
+pub use monedero_signer_solana::domain;
+pub use monedero_signer_solana::session;
 pub use {
     error::*,
-    monedero_signer_solana::{ReownSigner, SolanaSession},
     reown::*,
     wallet::*,
     wasm_client_solana::{SolanaRpcClient as RpcClient, DEVNET, MAINNET},

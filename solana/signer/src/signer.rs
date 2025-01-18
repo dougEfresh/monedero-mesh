@@ -1,4 +1,5 @@
 use {
+    crate::session::spawn_task,
     crate::{Result, SolanaSession, WalletConnectTransaction},
     base64::{prelude::BASE64_STANDARD, Engine},
     solana_sdk::{
@@ -105,7 +106,7 @@ impl ReownSigner {
     pub fn new(session: SolanaSession) -> Self {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<ChannelProps>();
         let wc_signer = Self { session, tx };
-        crate::spawn_task(handler_signer(wc_signer.clone(), rx));
+        spawn_task(handler_signer(wc_signer.clone(), rx));
         wc_signer
     }
 
