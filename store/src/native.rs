@@ -158,7 +158,7 @@ mod tests {
     #[test]
     pub fn test_storage_kv_file() -> anyhow::Result<()> {
         let topic = Topic::generate();
-        let target_dir = env!("CARGO_TARGET_DIR");
+        let target_dir = std::env::var("CARGO_TARGET_DIR").unwrap_or_else(|_| "target".to_string());
         let store = KvStorage::file(Some(format!("{target_dir}/kv/{topic}")))?;
         test_storage_kv(&store)
     }
