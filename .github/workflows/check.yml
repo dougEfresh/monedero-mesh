@@ -1,4 +1,4 @@
-# This workflow runs whenever a PR is opened or updated, or a commit is pushed to main. It runs
+#.github/workflows/check.ymo This workflow runs whenever a PR is opened or updated, or a commit is pushed to main. It runs
 # several checks:
 # - fmt: checks that the code is formatted according to rustfmt
 # - clippy: checks that the code does not contain any clippy warnings
@@ -88,7 +88,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-        project: ["monedero-signer-sender", "monedero-solana-tokens", "monedero-solana-stake", "monedero-solana-instructor", "monedero-solana"]
+        project: ["monedero-store", "monedero-domain", "monedero-namespaces", "monedero-mesh", "monedero-relay"]
     steps:
       - uses: actions/checkout@v4
         with:

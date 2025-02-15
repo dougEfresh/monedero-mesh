@@ -157,7 +157,7 @@ mod tests {
             .get(&NamespaceName::Solana)
             .ok_or(Error::NamespaceNotFound)?;
 
-        assert!(eip_ns.events.is_empty());
+        assert!(!eip_ns.events.is_empty());
         assert!(!eip_ns.methods.is_empty());
         assert_eq!(eip_ns.chains.len(), 2);
         let mut iter = eip_ns.chains.iter();
@@ -188,25 +188,30 @@ mod tests {
               "eth_signTypedData_v4",
               "personal_sign"
             ],
-            "events": []
-          },
+           "events": [
+              "accountsChanged",
+              "chainChanged"
+            ]
+         },
             "solana": {
             "chains": [
-              "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
+              "solana:4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZ"
             ],
+            "events": [],
             "methods": [
               "solana_signMessage",
               "solana_signTransaction"
-            ],
-            "events": []
+            ]
           }
           }
         );
-        // eprintln!("{}", serde_json::to_string_pretty(&namespaces)?)
+        // eprintln!("{}", serde_json::to_string_pretty(&namespaces)?);
         let result = serde_json::to_value(&namespaces)?;
+        // eprintln!("{}", serde_json::to_string_pretty(&expected_json)?);
         assert_eq!(expected_json, result);
         Ok(())
     }
+
     #[test]
     #[allow(
         clippy::unwrap_used,
