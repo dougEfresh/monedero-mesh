@@ -3,6 +3,11 @@ use {
     crate::MOCK_RELAY_ADDRESS,
     dashmap::{DashMap, DashSet},
     futures_util::{stream::SplitSink, SinkExt, StreamExt},
+    reown_relay_client::MessageIdGenerator,
+    reown_relay_rpc::{
+        domain::MessageId,
+        rpc::{Payload, Response, SuccessfulResponse},
+    },
     serde::Serialize,
     std::{fmt::Debug, net::SocketAddr, sync::Arc, time::Duration},
     tokio::{
@@ -11,13 +16,6 @@ use {
     },
     tokio_tungstenite::{accept_async, tungstenite::Message, WebSocketStream},
     tracing::{debug, error, info, Level},
-    walletconnect_sdk::{
-        client::MessageIdGenerator,
-        rpc::{
-            domain::MessageId,
-            rpc::{Payload, Response, SuccessfulResponse},
-        },
-    },
 };
 
 #[allow(dead_code)]

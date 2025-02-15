@@ -76,6 +76,8 @@ once_cell = "1.16"
 paste = "1.0"
 pin-project-lite = {version = "0.2.14" }
 rand = "0.8"
+reown-relay-client = { version = "0.1.0-rc1"}
+reown-relay-rpc = { version = "0.1.0-rc1"}
 regex = "1.10"
 reqwest = {version = "0.12", features = ["json"]}
 sha2 = "0.10"
@@ -97,7 +99,7 @@ console_error_panic_hook = "0.1"
 gloo-storage = { version = "0.3" }
 gloo-timers = { version = "0.3", features = ["futures"] }
 web-time = { version = "1.1.0", features = ["serde"] }
-wasm-tracing = { version = "0.2", features = ["tracing-log"] }
+wasm-tracing = { version = "1", features = ["tracing-log"] }
 wasm-bindgen-futures = { version = "0.4" }
 wallet_standard_browser =  { version = "0.4", features = ["solana"] }
 wasm-bindgen = { version = "0.2.99", features = ["serde-serialize"] }

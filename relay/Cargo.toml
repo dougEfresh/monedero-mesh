@@ -21,8 +21,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-walletconnect_sdk = { git = "https://github.com/dougEfresh/WalletConnectRust.git", branch = "wasm" , features = ["rpc", "client"] }
-
+reown-relay-client = { workspace = true }
+reown-relay-rpc = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { workspace = true , features = ["full"]}

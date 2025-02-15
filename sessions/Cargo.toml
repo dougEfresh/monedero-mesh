@@ -14,7 +14,6 @@ default = []
 
 [dependencies]
 aead = { workspace = true }
-alloy-chains = {workspace = true}
 async-trait = { workspace = true }
 base64 = { workspace = true }
 chacha20poly1305 = { workspace = true }
@@ -23,13 +22,11 @@ data-encoding = { workspace = true }
 derive_more = { workspace = true }
 hkdf = { workspace = true }
 lazy_static = { workspace = true }
-microxdg = { workspace = true }
-monedero-domain = { path = "../domain" }
-monedero-cipher = { path = "../cipher" }
-monedero-store = { path = "../store" }
-monedero-relay = { path = "../relay" }
+monedero-domain = { path = "../domain", version = "0.1.0" }
+monedero-cipher = { path = "../cipher" , version = "0.1.0"}
+monedero-store = { path = "../store" , version = "0.1.0"}
+monedero-relay = { path = "../relay", version = "0.1.0" }
 once_cell = { workspace = true }
-paste = { workspace = true }
 pin-project-lite = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
@@ -70,6 +67,7 @@ name = "dapp"
 #required-features = ["mock"]
 
 [dev-dependencies]
+alloy-chains = {workspace = true}
 assert_matches = { version = "1" }
 hex-literal = { version = "0.4" }
 serde_json = { version = "1.0", features = ["preserve_order"] }

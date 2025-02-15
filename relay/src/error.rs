@@ -1,6 +1,6 @@
 use {
     crate::Topic,
-    walletconnect_sdk::rpc::rpc::{PublishError, SubscriptionError},
+    reown_relay_rpc::rpc::{PublishError, SubscriptionError},
 };
 
 #[allow(clippy::module_name_repetitions)]
@@ -19,16 +19,16 @@ pub enum ClientError {
     TxSendError,
 
     #[error(transparent)]
-    NetworkError(#[from] walletconnect_sdk::client::error::ClientError),
+    NetworkError(#[from] reown_relay_client::error::ClientError),
 
     #[error(transparent)]
-    SubscriptionError(#[from] walletconnect_sdk::client::error::Error<SubscriptionError>),
+    SubscriptionError(#[from] reown_relay_client::error::Error<SubscriptionError>),
 
     #[error("failed to generate jwt key")]
     JwtError,
 
     #[error(transparent)]
-    PublicationError(#[from] walletconnect_sdk::client::error::Error<PublishError>),
+    PublicationError(#[from] reown_relay_client::error::Error<PublishError>),
 
     #[error(transparent)]
     BindError(#[from] tokio::io::Error),

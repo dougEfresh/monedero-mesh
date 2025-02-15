@@ -1,29 +1,20 @@
-pub use walletconnect_sdk::{
-    client::MessageIdGenerator,
-    rpc::{
-        auth::*,
-        domain::{
-            ClientIdDecodingError,
-            DecodedTopic,
-            MessageId,
-            ProjectId,
-            SubscriptionId,
-            Topic,
-        },
-        user_agent::*,
-    },
+pub use reown_relay_client::MessageIdGenerator;
+pub use reown_relay_rpc::auth::*;
+pub use reown_relay_rpc::domain::{
+    ClientIdDecodingError, DecodedTopic, MessageId, ProjectId, SubscriptionId, Topic,
 };
+pub use reown_relay_rpc::user_agent::*;
+
 use {
+    reown_relay_client::websocket::PublishedMessage,
+    reown_relay_client::Authorization,
+    reown_relay_rpc::auth::ed25519_dalek::SigningKey,
     serde::{Deserialize, Serialize},
     std::{
         borrow::Cow,
         fmt::{Debug, Display, Formatter},
         sync::Arc,
         time::Duration,
-    },
-    walletconnect_sdk::{
-        client::{websocket::PublishedMessage, Authorization},
-        rpc::auth::ed25519_dalek::SigningKey,
     },
 };
 

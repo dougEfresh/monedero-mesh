@@ -1,13 +1,13 @@
 use {
     crate::{ConnectionHandler, ConnectionOptions, Result, SubscriptionId, Topic},
+    reown_relay_client::{
+        websocket::{Client as WcClient, ConnectionHandler as WcHandler, PublishedMessage},
+        ConnectionOptions as WcOptions,
+    },
     std::{
         fmt::{Debug, Display, Formatter},
         sync::Arc,
         time::Duration,
-    },
-    walletconnect_sdk::client::{
-        websocket::{Client as WcClient, ConnectionHandler as WcHandler, PublishedMessage},
-        ConnectionOptions as WcOptions,
     },
 };
 
@@ -55,10 +55,7 @@ impl<T: ConnectionHandler> WcHandler for WrapperHandler<T> {
         self.handler.connected();
     }
 
-    fn disconnected(
-        &mut self,
-        _frame: Option<walletconnect_sdk::client::websocket::CloseFrame<'static>>,
-    ) {
+    fn disconnected(&mut self, _frame: Option<reown_relay_client::websocket::CloseFrame<'static>>) {
         self.handler.disconnected(None);
     }
 
@@ -66,11 +63,11 @@ impl<T: ConnectionHandler> WcHandler for WrapperHandler<T> {
         self.handler.message_received(message.into());
     }
 
-    fn inbound_error(&mut self, err: walletconnect_sdk::client::error::ClientError) {
+    fn inbound_error(&mut self, err: reown_relay_client::error::ClientError) {
         self.handler.inbound_error(err.into());
     }
 
-    fn outbound_error(&mut self, err: walletconnect_sdk::client::error::ClientError) {
+    fn outbound_error(&mut self, err: reown_relay_client::error::ClientError) {
         self.handler.outbound_error(err.into());
     }
 }

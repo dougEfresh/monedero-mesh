@@ -2,6 +2,11 @@ use {
     super::{MockRelay, PendingMessages, WsPublishedMessage, WsSender},
     crate::Topic,
     dashmap::DashSet,
+    reown_relay_client::MessageIdGenerator,
+    reown_relay_rpc::{
+        domain::{MessageId, SubscriptionId},
+        rpc::{Params, Payload, Publish},
+    },
     std::{
         fmt::{Debug, Display},
         hash::{Hash, Hasher},
@@ -10,13 +15,6 @@ use {
     },
     tokio::sync::broadcast::Receiver,
     tracing::{debug, warn, Level},
-    walletconnect_sdk::{
-        client::MessageIdGenerator,
-        rpc::{
-            domain::{MessageId, SubscriptionId},
-            rpc::{Params, Payload, Publish},
-        },
-    },
 };
 
 #[allow(dead_code)]

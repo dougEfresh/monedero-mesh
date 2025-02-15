@@ -9,8 +9,8 @@ license.workspace = true
 [dependencies]
 data-encoding = { workspace = true }
 derive_more = { workspace = true }
-monedero-relay = { path = "../relay" }
-monedero-namespaces = { path = "../namespaces" }
+monedero-relay = { path = "../relay", version = "0.1.0" }
+monedero-namespaces = { path = "../namespaces" , version = "0.1.0"}
 rand = { workspace = true }
 regex = { workspace = true }
 serde = { workspace =  true}

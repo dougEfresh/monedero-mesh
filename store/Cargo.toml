@@ -29,7 +29,7 @@ console_error_panic_hook = { workspace = true }
 
 [dev-dependencies]
 anyhow = "1"
-monedero-relay = { path = "../relay" }
+monedero-relay = { path = "../relay" , version = "0.1.0" }
 wasm-bindgen-test = { version = "0.3" }
 
 [lints]

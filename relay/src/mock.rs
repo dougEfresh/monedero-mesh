@@ -1,13 +1,13 @@
 use {
     dashmap::DashSet,
     futures_util::stream::SplitSink,
+    reown_relay_rpc::rpc::{Payload, Publish},
     std::{
         fmt::{Debug, Display},
         sync::Arc,
     },
     tokio::{net::TcpStream, sync::Mutex},
     tokio_tungstenite::{tungstenite::Message, WebSocketStream},
-    walletconnect_sdk::rpc::rpc::{Payload, Publish},
 };
 
 mod client;
@@ -46,14 +46,8 @@ mod test {
     use {
         super::*,
         crate::{
-            default_connection_opts,
-            mock_connection_opts,
-            Client,
-            ConnectionHandler,
-            LogHandler,
-            NoopHandler,
-            ProjectId,
-            Topic,
+            default_connection_opts, mock_connection_opts, Client, ConnectionHandler, LogHandler,
+            NoopHandler, ProjectId, Topic,
         },
         std::{collections::VecDeque, time::Duration},
         tracing::error,
