@@ -27,6 +27,7 @@ monedero-cipher = { path = "../cipher" , version = "0.1.0"}
 monedero-store = { path = "../store" , version = "0.1.0"}
 monedero-relay = { path = "../relay", version = "0.1.0" }
 once_cell = { workspace = true }
+paste = { workspace = true }
 pin-project-lite = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
