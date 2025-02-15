@@ -7,7 +7,8 @@ use {
     monedero_domain::{Pairing, SessionSettled},
     monedero_relay::{
         ed25519_dalek::{SecretKey, VerifyingKey},
-        DecodedTopic, Topic,
+        DecodedTopic,
+        Topic,
     },
     monedero_store::KvStorage,
     serde::{de::DeserializeOwned, Deserialize, Serialize},
