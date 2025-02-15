@@ -27,7 +27,7 @@ reown-relay-rpc = { workspace = true }
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { workspace = true , features = ["full"]}
 futures-util = { workspace = true }
-tokio-tungstenite = { version = "0.24" }
+tokio-tungstenite = { version = "0.26" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { workspace = true }
