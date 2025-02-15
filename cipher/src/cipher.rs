@@ -220,6 +220,7 @@ impl Cipher {
             .get(sessions_key)?
             .ok_or(CipherError::UnknownSessionTopic(topic))?;
         let now = chrono::Utc::now().timestamp();
+        tracing::debug!("expiry {} ({})", session.expiry, now);
         Ok(session.expiry < now)
     }
 
@@ -299,8 +300,10 @@ impl Cipher {
     fn update_sessions(&self, controller_pk: String, topic: &Topic) -> Result<(), CipherError> {
         // TODO: May need to lock this entire operation
         let sessions_storage_key = Self::storage_sessions();
-        let mut sessions: Vec<Topic> = self.storage.get(&sessions_storage_key)?.unwrap_or_default();
-        sessions.push(topic.clone());
+        let sessions: Vec<Topic> = vec![topic.clone()];
+        // self.storage.get(&sessions_storage_key)?.unwrap_or_default();
+        // sessions.push(topic.clone());
+        // tracing::debug!("setting {} sessions to store", sessions.len());
         self.storage.set(&sessions_storage_key, sessions)?;
         self.storage
             .set(Self::storage_session_key(topic), controller_pk)?;
@@ -530,6 +533,7 @@ mod tests {
         );
 
         // Add a Session
+        tracing::info!("adding session");
         let session_key = SessionKey::from_osrng(ciphers.public_key().unwrap().as_bytes())?;
         let responder_pk = session_key.public_key();
         let (session_topic, _) = ciphers.create_common_topic(String::from(&responder_pk))?;
@@ -537,7 +541,7 @@ mod tests {
         assert_eq!(ciphers.session_topics(), 2);
 
         // Validate Sessions in Store
-        let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-sessions");
+        let kv = Cipher::storage_sessions();
         let sessions: Vec<String> = store.get::<Vec<String>>(kv)?.unwrap();
         assert_eq!(ciphers.session_topics(), sessions.len());
         let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-{session_topic}");
@@ -566,14 +570,18 @@ mod tests {
         let session_key = SessionKey::from_osrng(
             ciphers
                 .public_key()
-                .ok_or_else(|| format_err!("shit"))?
+                .ok_or_else(|| format_err!("oh no!"))?
                 .as_bytes(),
         )?;
         let responder_pk = session_key.public_key();
         let (session_topic, _) = ciphers.create_common_topic(String::from(&responder_pk))?;
 
         let now = chrono::Utc::now();
-        let mut settlement = SessionSettleRequest::default();
+        let mut settlement = SessionSettled {
+            topic: session_topic.clone(),
+            namespaces: monedero_domain::namespaces::Namespaces::default(),
+            expiry: now.timestamp(),
+        };
 
         ciphers.set_settlement(&session_topic, settlement.clone())?;
         assert!(!ciphers.is_expired(session_topic.clone())?);

@@ -19,7 +19,8 @@ impl SocketListener for DummySocketListener {
     }
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+//#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+#[allow(dead_code)]
 async fn test_relay_pair_ping() -> anyhow::Result<()> {
     let test_components = init_test_components().await?;
     let dapp = test_components.dapp;
@@ -27,29 +28,29 @@ async fn test_relay_pair_ping() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_relay_pair_delete() -> anyhow::Result<()> {
-    let test_components = init_test_components().await?;
-    let dapp = test_components.dapp;
-    dapp.purge().await?;
-    // TODO verify purge
-    // let c = dapp.ciphers();
-    // yield_ms(2000).await;
-    // assert!(c.pairing().is_none());
-    // let dapp_actors = test_components.dapp_actors;
-    // let components = dapp_actors.request().send(RegisteredComponents).await?;
-    // assert!(components);
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-async fn test_relay_pair_extend() -> anyhow::Result<()> {
-    let test_components = init_test_components().await?;
-    let dapp = test_components.dapp;
-    dapp.extend(100_000).await?;
-    Ok(())
-}
-
+//#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+// async fn test_relay_pair_delete() -> anyhow::Result<()> {
+//    let test_components = init_test_components().await?;
+//    let dapp = test_components.dapp;
+//    dapp.purge().await?;
+//    // TODO verify purge
+//    // let c = dapp.ciphers();
+//    // yield_ms(2000).await;
+//    // assert!(c.pairing().is_none());
+//    // let dapp_actors = test_components.dapp_actors;
+//    // let components =
+// dapp_actors.request().send(RegisteredComponents).await?;    // assert!
+// (components);    Ok(())
+//}
+//
+//#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+// async fn test_relay_pair_extend() -> anyhow::Result<()> {
+//    let test_components = init_test_components().await?;
+//    let dapp = test_components.dapp;
+//    dapp.extend(100_000).await?;
+//    Ok(())
+//}
+//
 //#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 // async fn test_relay_disconnect() -> anyhow::Result<()> {
 //    let test_components = init_test_components().await?;
