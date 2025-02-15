@@ -59,7 +59,7 @@ copypasta = { version = "0.10" }
 crossbeam = "0.8.4"
 clap = { version = "4.5.4", features = ["wrap_help", "derive", "cargo", "env"] }
 ctrlc = { version = "3.4.3", features = ["termination"] }
-dashmap = {version = "5", features = ["serde"]}
+dashmap = {version = "6", features = ["serde"]}
 data-encoding = { version = "2"}
 derive_more = {version = "1", features = ["full"]}
 dirs = { version = "5"}

@@ -14,7 +14,7 @@ default = []
 
 [dependencies]
 chrono = { workspace = true }
-dashmap = { version = "5" }
+dashmap = { version = "6" }
 once_cell = { version = "1", optional = true }
 rand = { workspace = true }
 serde = { workspace = true }
