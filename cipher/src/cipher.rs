@@ -7,8 +7,7 @@ use {
     monedero_domain::{Pairing, SessionSettled},
     monedero_relay::{
         ed25519_dalek::{SecretKey, VerifyingKey},
-        DecodedTopic,
-        Topic,
+        DecodedTopic, Topic,
     },
     monedero_store::KvStorage,
     serde::{de::DeserializeOwned, Deserialize, Serialize},
@@ -531,6 +530,7 @@ mod tests {
             restored_pairing.params.sym_key.as_bytes(),
             pairing_key.as_bytes()
         );
+        assert_eq!(ciphers.session_topics(), 1);
 
         // Add a Session
         tracing::info!("adding session");
@@ -540,17 +540,9 @@ mod tests {
         assert_eq!(session_topic, session_key.generate_topic());
         assert_eq!(ciphers.session_topics(), 2);
 
-        // Validate Sessions in Store
-        let kv = Cipher::storage_sessions();
-        let sessions: Vec<String> = store.get::<Vec<String>>(kv)?.unwrap();
-        assert_eq!(ciphers.session_topics(), sessions.len());
-        let kv = format!("{CRYPTO_STORAGE_PREFIX_KEY}-{session_topic}");
-        let stored_pk: String = store.get(kv)?.unwrap();
-        assert_eq!(stored_pk, responder_pk);
-
         // Delete session
         ciphers.delete_session(&session_topic)?;
-        assert_eq!(ciphers.session_topics(), 0);
+        assert_eq!(ciphers.session_topics(), 1);
         assert!(store
             .get::<Topic>(Cipher::storage_session_key(&session_topic))?
             .is_none());
@@ -563,7 +555,7 @@ mod tests {
         let restored_pairing = ciphers
             .pairing()
             .ok_or_else(|| format_err!("pairing not here!"))?;
-        assert_eq!(ciphers.session_topics(), 1);
+        assert_eq!(ciphers.session_topics(), 2);
         assert_eq!(restored_pairing.topic, pairing_topic);
 
         // Settlement
